@@ -397,8 +397,8 @@ function anim(){
         // turnback_south: tram is approaching from below, param increasing → triggers at curParam >= blockParam
         // turnback_north: tram is approaching from above, param decreasing → triggers at curParam <= blockParam
         var atBoundary=false;
-        if(t.blockState==='turnback_south'&&paramIncreasing&&curParam>=t.blockParam) atBoundary=true;
-        if(t.blockState==='turnback_north'&&!paramIncreasing&&curParam<=t.blockParam) atBoundary=true;
+        if(t.blockState==='turnback_south'&&curParam>=t.blockParam) atBoundary=true;
+        if(t.blockState==='turnback_north'&&curParam<=t.blockParam) atBoundary=true;
  
         // Look-ahead: will the NEXT step cross?
         var nextCrosses=false;
@@ -408,8 +408,8 @@ function anim(){
             var fwdNextIdx=(t.dir==='Outbound')?nextSi2:(arr.length-1-nextSi2);
             fwdNextIdx=Math.max(0,Math.min(arr.length-1,fwdNextIdx));
             var nextParam=arr[fwdNextIdx];
-            if(t.blockState==='turnback_south'&&paramIncreasing&&nextParam>=t.blockParam) nextCrosses=true;
-            if(t.blockState==='turnback_north'&&!paramIncreasing&&nextParam<=t.blockParam) nextCrosses=true;
+            if(t.blockState==='turnback_south'&&nextParam>=t.blockParam) nextCrosses=true;
+            if(t.blockState==='turnback_north'&&nextParam<=t.blockParam) nextCrosses=true;
           }
         }
  
