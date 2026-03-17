@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpsView — Tram Network Monitor</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="css/opsview.css">
+</head>
+<body>
+<div id="app">
+  <div id="hdr">
+    <div class="hl">
+      <div class="logo">OPSVIEW <span>v0.1</span></div>
+      <!-- Punctuality pill + dropdown -->
+      <div id="puncPill" onclick="togglePuncDrop()">
+        <div class="pp-dot" id="ppDot" style="background:var(--grn)"></div>
+        <span class="pp-val" id="ppVal">—</span>
+        <span class="pp-lbl">on time</span>
+        <span class="pp-arr">▾</span>
+      </div>
+      <div id="puncDrop">
+        <div class="pd-row"><div class="pd-dot" style="background:var(--blu)"></div><span class="pd-lbl">Early</span><span class="pd-val" id="sBlu">0</span></div>
+        <div class="pd-row"><div class="pd-dot" style="background:var(--grn)"></div><span class="pd-lbl">On Time</span><span class="pd-val" id="sGrn">0</span></div>
+        <div class="pd-row"><div class="pd-dot" style="background:var(--yel)"></div><span class="pd-lbl">Late (1–5 min)</span><span class="pd-val" id="sYel">0</span></div>
+        <div class="pd-row"><div class="pd-dot" style="background:var(--amb)"></div><span class="pd-lbl">Late (5–10 min)</span><span class="pd-val" id="sAmb">0</span></div>
+        <div class="pd-row"><div class="pd-dot" style="background:var(--mag)"></div><span class="pd-lbl">Very Late (10+ min)</span><span class="pd-val" id="sMag">0</span></div>
+        <div class="pd-total" id="pdTotal">0 trams visible</div>
+      </div>
+    </div>
+    <div class="hr">
+      <button class="perf-btn" id="perfBtn" onclick="togglePerfPanel()">▦ Performance</button>
+      <div class="spd"><label>Data:</label><select id="dataMode" onchange="setDataMode(this.value)"><option value="mock">Mock</option><option value="live">Live API</option></select></div>
+      <div class="spd"><label>ID:</label><select id="idMode" onchange="setIdMode(this.value)"><option value="tram">Tram #</option><option value="run">Run #</option></select></div>
+      <div class="spd"><label>Find:</label><input id="tramSearch" type="text" placeholder="T2156..." style="width:62px;background:var(--pnl2);border:1px solid var(--bdr);color:var(--txt);padding:2px 4px;border-radius:3px;font-family:inherit;font-size:10px" oninput="filterTram(this.value)"></div>
+      <div class="spd"><label>Speed:</label><select id="spdSel" onchange="setSpeed(this.value)"><option value="1">1x</option><option value="3">3x</option><option value="5" selected>5x</option><option value="10">10x</option><option value="20">20x</option></select></div>
+      <div class="clk"><span class="cd" id="cD"></span><span id="cT"></span></div>
+      <button class="rb" id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark" style="border:1px solid var(--bdr);border-radius:4px;margin-right:4px;padding:3px 8px">&#x263C;</button>
+      <div class="rtg"><button class="rb a" id="rC" onclick="setRole('c')">Controller</button><button class="rb" id="rR" onclick="setRole('r')">Read-Only</button></div>
+    </div>
+  </div>
+  <!-- NETWORK STATUS STRIP -->
+  <div id="netStrip">
+    <div id="netStripLeft">
+      <div id="netPulse"></div>
+      <span id="netLabel">NETWORK NOMINAL</span>
+      <span id="netSub">All routes operating — no disruptions active</span>
+    </div>
+    <div id="netStripRight">
+      <button id="disCreateBtnStrip" class="strip-dis-btn" onclick="enterDisruptionMode()" title="Place disruption on map">&#x26A0; + Log Disruption</button>
+    </div>
+  </div>
+  <!-- DISRUPTION LOG -->
+  <div id="disLog">
+    <div class="dislog-hdr" onclick="toggleDisLog()">
+      <div class="dislog-title">📋 Disruption Log <span class="dislog-count" id="dislogCount">0</span></div>
+      <span class="dislog-arr" id="dislogArr">▾</span>
+    </div>
+    <div class="dislog-body" id="dislogBody">
+      <div class="dislog-empty">No disruptions logged today</div>
+    </div>
+  </div>
+  <!-- hidden JS compat stubs -->
+  <div id="disList" style="position:absolute;top:88px;right:4px;z-index:960;min-width:220px;max-width:300px"></div>
+  <button id="disBtn" style="display:none"></button>
+  <button id="disCreateBtn" style="display:none"></button>
+  <div id="mn">
+    <div id="fp" class="collapsed">
+      <div class="fh"><span class="ft">Routes</span><div class="fa"><button onclick="fAll()">All</button><button onclick="fClr()">Clear</button></div></div>
+      <div class="rl" id="rl"></div>
+      <div class="ff" id="ff">0 visible</div>
+    </div>
+    <button class="fp-toggle" id="fpToggle" onclick="togglePanel()" title="Toggle route panel">&#x25B6;</button>
+    <div id="mc"><div id="map"><div class="live-indicator" id="liveStatus"></div>
+<div id="mapGrain"></div>
+<div id="mapScanlines"></div>
+<div id="kbPanel">
+  <h3>⌨ Keyboard Shortcuts</h3>
+  <div class="kb-row"><span class="kb-key">?</span><span class="kb-desc">Show / hide this panel</span></div>
+  <div class="kb-row"><span class="kb-key">R</span><span class="kb-desc">Toggle route filter panel</span></div>
+  <div class="kb-row"><span class="kb-key">D</span><span class="kb-desc">Log a disruption (place mode)</span></div>
+  <div class="kb-row"><span class="kb-key">Esc</span><span class="kb-desc">Cancel / close panels</span></div>
+  <div class="kb-row"><span class="kb-key">L</span><span class="kb-desc">Toggle map layers menu</span></div>
+  <div class="kb-row"><span class="kb-key">T</span><span class="kb-desc">Toggle light / dark theme</span></div>
+  <div class="kb-row"><span class="kb-key">F</span><span class="kb-desc">Show all routes</span></div>
+  <div class="kb-row"><span class="kb-key">Home</span><span class="kb-desc">Reset map to default view</span></div>
+  <button class="kb-close" onclick="toggleKbPanel()">Close</button>
+</div>
+<div id="kbHint">? = shortcuts</div>
+<div class="dis-form" id="disForm">
+  <div class="df-title"><span style="font-size:16px">&#x26A0;</span> <span id="dfTitleText">Create Disruption</span></div>
+  <label>Type</label>
+  <select id="dfType">
+    <option value="Vehicle breakdown">Vehicle breakdown</option>
+    <option value="Collision">Collision</option>
+    <option value="Infrastructure failure">Infrastructure failure</option>
+    <option value="Police/emergency">Police/emergency services</option>
+    <option value="Obstruction on track">Obstruction on track</option>
+    <option value="Overhead wire down">Overhead wire down</option>
+    <option value="Points failure">Points failure</option>
+    <option value="Signal priority fault">Signal priority fault</option>
+    <option value="Passenger incident">Passenger incident</option>
+    <option value="Other">Other</option>
+  </select>
+  <label>Route affected</label>
+  <select id="dfRoute"></select>
+  <div class="df-row">
+    <div><label>Direction</label>
+    <select id="dfDir"><option value="Both directions">Both directions</option><option value="Up only">Up only</option><option value="Down only">Down only</option></select></div>
+  </div>
+  <label>Notes (optional)</label>
+  <textarea id="dfNotes" placeholder="Additional details..."></textarea>
+  <div id="dfCoord" style="font-size:9px;color:var(--tx3);margin-top:4px"></div>
+  <div class="df-btns">
+    <div class="df-btn df-cancel" onclick="cancelDisruption()">Cancel</div>
+    <div class="df-btn df-ok" id="dfOkBtn" onclick="confirmDisruption()">Create</div>
+  </div>
+</div>
+<div class="job-panel" id="jobPanel"></div>
+<button class="lyr-btn" onclick="toggleLayerMenu()">&#x2630; Layers</button>
+<div class="layer-menu" id="layerMenu">
+  <div class="layer-menu-title"><span>Map Layers</span><span style="cursor:pointer;float:right;color:var(--tx3)" onclick="document.getElementById('layerMenu').classList.remove('open')">&times;</span></div>
+  <label class="layer-item"><input type="checkbox" checked onchange="toggleLayer('routes')"><span class="ldot" style="background:#607d8b"></span>Route Lines</label>
+  <label class="layer-item"><input type="checkbox" checked onchange="toggleLayer('trams')"><span class="ldot" style="background:#00e5a0"></span>Trams</label>
+  <label class="layer-item"><input type="checkbox" checked onchange="toggleLayer('depots')"><span class="ldot" style="background:#f5a623"></span>Depots</label>
+  <label class="layer-item"><input type="checkbox" onchange="toggleLayer('xovers')"><span class="ldot" style="background:#4fc3f7"></span>Crossovers (GIS)</label>
+  <label class="layer-item"><input type="checkbox" onchange="toggleLayer('termini_gis')"><span class="ldot" style="background:#ff9800"></span>Track Points (GIS)</label>
+  <label class="layer-item"><input type="checkbox" onchange="toggleLayer('sidings')"><span class="ldot" style="background:#ab47bc"></span>Sidings (GIS)</label>
+  <label class="layer-item"><input type="checkbox" checked onchange="toggleLayer('termini_map')"><span class="ldot" style="background:#3d5266"></span>Terminus Diamonds</label>
+  <div class="layer-opacity">
+    <div class="layer-opacity-lbl">Route Opacity <span id="routeOpacityVal">75%</span></div>
+    <input type="range" class="lyr-slider" id="routeOpacitySlider" min="5" max="100" value="75" step="5" oninput="setRouteOpacity(this.value)">
+  </div>
+</div>
+<div class="ntm" id="ntm">Map tiles loading...<br>If blank, open this file in Chrome</div></div><div class="wm">PROTOTYPE DATA — NOT LIVE FEED</div><div id="zoomBadge" class="tier-cmp">● COMPACT</div></div>
+    <div id="dp"><div class="dh"><span class="did" id="did"></span><button class="dx" onclick="cDet()">&#x2715;</button></div><div class="db" id="dbd"></div></div>
+    <!-- PERFORMANCE PANEL -->
+    <div id="perfPanel">
+      <div class="perf-hdr">
+        <span class="perf-title">▦ PERFORMANCE</span>
+        <button class="perf-close" onclick="togglePerfPanel()">✕</button>
+      </div>
+      <div class="perf-body" id="perfBody">
+        <div class="perf-section">
+          <div class="perf-stitle">Network Overview</div>
+          <div class="perf-kpi-row" id="perfKpis"></div>
+          <div id="perfBars"></div>
+        </div>
+        <div class="perf-section">
+          <div class="perf-stitle">Route by Route</div>
+          <table class="perf-rt-tbl" id="perfRtTbl">
+            <thead><tr><th>Rt</th><th>Trams</th><th>On Time %</th><th>Avg Dev</th></tr></thead>
+            <tbody id="perfRtBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div id="dmpPanel">
+      <div class="dmp-hdr">
+        <div class="dmp-title"><span>&#x1F4CB;</span> DMP Scenarios</div>
+        <button class="dmp-close" onclick="closeDmpPanel()">&#x2715;</button>
+      </div>
+      <div class="dmp-ctx" id="dmpCtx"></div>
+      <div class="dmp-scen-list" id="dmpScenList"></div>
+    </div>
+    <!-- ATTRIBUTION ENGINE PANEL -->
+    <div id="attrPanel">
+      <div class="attr-hdr">
+        <span class="attr-title">⚡ ATTRIBUTION ENGINE</span>
+        <button class="attr-close" onclick="closeAttrPanel()">✕</button>
+      </div>
+      <div class="attr-ctx" id="attrCtx"></div>
+      <div class="attr-body" id="attrBody"></div>
+    </div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/protobufjs@7.2.6/dist/protobuf.min.js"></script>
+<!-- Data modules (global scope — no map dependency) -->
+<script src="js/gis.js"></script>
+<script src="js/dmp.js"></script>
+<!-- Main app (creates map, trams, disruptions — signals opsview-ready) -->
+<script src="js/app.js"></script>
+<!-- Attribution engine (deferred — waits for opsview-ready) -->
+<script src="js/attribution.js"></script>
+</body>
+</html>
