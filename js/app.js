@@ -477,35 +477,49 @@ requestAnimationFrame(anim);
 //   turnback_north — Inbound tram approaching north crossover; reverses at that boundary
 // On disruption clear, all blocked trams resume normal movement.
 
+// ═══════════════════════════════════════════════════════════════
+// DIAGNOSTIC applyDisruptionToTrams — paste this over the
+// existing function in app.js temporarily.
+// Open F12 → Console before creating a disruption.
+// It will log every tram's classification decision.
+// ═══════════════════════════════════════════════════════════════
+
 function applyDisruptionToTrams(dis){
   var affectedRoutes=dis.routes||[dis.route];
   var affectDown=(dis.dir==='Both directions'||dis.dir==='Down only');
   var affectUp  =(dis.dir==='Both directions'||dis.dir==='Up only');
- 
-  // Project disruption point onto each affected route
+
   var disParamByRoute={};
   affectedRoutes.forEach(function(rk){
     var shape=R[rk]?R[rk].fwd:null;
     if(shape) disParamByRoute[rk]=routeParam(dis.la,dis.lo,shape).param;
   });
- 
+
+  console.log('=== applyDisruptionToTrams ===');
+  console.log('Affected routes:', affectedRoutes.join(', '));
+  console.log('Direction scope: affectDown='+affectDown+', affectUp='+affectUp);
+
+  affectedRoutes.forEach(function(rk){
+    var bp=dis.routeBlockParams?dis.routeBlockParams[rk]:null;
+    if(bp) console.log('Route '+rk+': southParam='+Math.round(bp.southParam)+'m, northParam='+Math.round(bp.northParam)+'m, disParam='+Math.round(disParamByRoute[rk]||0)+'m');
+  });
+
   trams.forEach(function(t){
     if(affectedRoutes.indexOf(t.route)<0||t.blockedByDis)return;
     if(t.updn==='Down'&&!affectDown)return;
     if(t.updn==='Up'  &&!affectUp  )return;
- 
-    // No crossover data — fallback to proximity trap
+
     if(!dis.southXO&&!dis.northXO){
       var pos=tPos(t);
       if(geoDist(pos[0],pos[1],dis.la,dis.lo)<300){
         t.blockedByDis=dis.id;t.blockState='trapped';
         t._trappedAt=Date.now();t._preTrapDv=t.dv;
         if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
+        console.log(t.id+' Rt'+t.route+' → TRAPPED (no XO fallback)');
       }
       return;
     }
- 
-    // Get block params in THIS route's along-shape metres
+
     var bp=dis.routeBlockParams?dis.routeBlockParams[t.route]:null;
     if(!bp){
       var shape=R[t.route]?R[t.route].fwd:null;
@@ -518,64 +532,60 @@ function applyDisruptionToTrams(dis){
       bp={southParam:sp,northParam:np};
     }
     var southParam=bp.southParam,northParam=bp.northParam;
- 
+
     var arr=routeParamArr[t.route];
     if(!arr)return;
- 
-    // Get tram's current position in fwd-shape param space
+
     var fwdIdx=(t.dir==='Outbound')?t.si:(arr.length-1-t.si);
     fwdIdx=Math.max(0,Math.min(arr.length-1,fwdIdx));
     var param=arr[fwdIdx];
     var isOutbound=(t.dir==='Outbound');
- 
-    // Determine if tram's fwd-param is INCREASING or DECREASING as it moves
-    // Outbound trams follow fwd shape: param increases each step
-    // Inbound trams follow rev shape: param DECREASES each step
     var paramIncreasing=isOutbound;
- 
+
+    var disParam=disParamByRoute[t.route]||((southParam+northParam)/2);
+
+    var decision='UNAFFECTED (heading away)';
+
     if(param>southParam&&param<northParam){
-      // ── TRAM IS INSIDE THE BLOCKED ZONE ──
-      var disParam=disParamByRoute[t.route]||((southParam+northParam)/2);
- 
-      // Is the tram heading toward or away from the incident?
       var headingToward;
       if(paramIncreasing){
         headingToward=(disParam>=param);
       } else {
         headingToward=(disParam<=param);
       }
- 
       if(headingToward){
-        // Incident ahead — trapped
         t.blockedByDis=dis.id;t.blockState='trapped';
         t._trappedAt=Date.now();t._preTrapDv=t.dv;
+        decision='TRAPPED (inside zone, heading toward)';
       } else {
-        // Incident behind — can escape, will short-work on return
         t.blockedByDis=dis.id;t.blockState='escaping';
         t._disBaselineDv=t.dv;
+        decision='ESCAPING (inside zone, heading away)';
       }
- 
     } else if(param<=southParam){
-      // ── TRAM IS SOUTH OF THE ZONE ──
-      // Only needs turnback if it's heading toward the zone (param increasing)
       if(paramIncreasing){
         t.blockedByDis=dis.id;t.blockState='turnback_south';t.blockParam=southParam;
         t._disBaselineDv=t.dv;
+        decision='TURNBACK_SOUTH (south of zone, heading toward, blockParam='+Math.round(southParam)+'m)';
+      } else {
+        decision='UNAFFECTED (south of zone, heading away — param decreasing)';
       }
-      // If param is decreasing, tram is heading away — unaffected
- 
     } else if(param>=northParam){
-      // ── TRAM IS NORTH OF THE ZONE ──
-      // Only needs turnback if it's heading toward the zone (param decreasing)
       if(!paramIncreasing){
         t.blockedByDis=dis.id;t.blockState='turnback_north';t.blockParam=northParam;
         t._disBaselineDv=t.dv;
+        decision='TURNBACK_NORTH (north of zone, heading toward, blockParam='+Math.round(northParam)+'m)';
+      } else {
+        decision='UNAFFECTED (north of zone, heading away — param increasing)';
       }
-      // If param is increasing, tram is heading away — unaffected
     }
- 
+
+    console.log(t.id+' Rt'+t.route+' dir='+t.dir+' updn='+t.updn+' param='+Math.round(param)+'m paramInc='+paramIncreasing+' → '+decision);
+
     if(t.blockedByDis&&t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
   });
+
+  console.log('=== END applyDisruptionToTrams ===');
 }
 
 function checkDisruptionOnTerminusReversal(t){
