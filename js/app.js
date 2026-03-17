@@ -383,6 +383,24 @@ trams.forEach(function(t){
 // checkDisruptionOnTerminusReversal) stays as-is.
 // ═══════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════
+// OpsView Disruption Logic v6 — GEOGRAPHIC-ONLY enforcement
+//
+// Completely new approach. Instead of tracking route-specific
+// param values and comparing them per-frame, we check every
+// turnback tram's PHYSICAL POSITION against the disruption's
+// crossover lat/lng positions every frame.
+//
+// The check: project the tram's current position onto the line
+// between the two crossovers. If it's past the crossover it
+// should turn at (or within 100m of it), reverse immediately.
+//
+// This eliminates all the param-based direction issues and
+// works identically for every route on shared track.
+//
+// Replace ONLY the anim() function. Everything else stays.
+// ═══════════════════════════════════════════════════════════════
+
 function anim(){
   var now=Date.now(),needStats=false;
   trams.forEach(function(t){
@@ -402,61 +420,43 @@ function anim(){
     // ── DISRUPTION: ESCAPING — heading away from incident ──
     // Falls through to normal movement. Cleared at terminus.
 
-    // ── DISRUPTION: TURNBACK — reverse at crossover boundary ──
+    // ── DISRUPTION: TURNBACK — geographic enforcement ──
     if(t.blockState==='turnback_south'||t.blockState==='turnback_north'){
-      var arr=routeParamArr[t.route];
-      if(arr){
-        var fwdCurIdx=(t.dir==='Outbound')?t.si:(arr.length-1-t.si);
-        fwdCurIdx=Math.max(0,Math.min(arr.length-1,fwdCurIdx));
-        var curParam=arr[fwdCurIdx];
+      // Find the disruption this tram is assigned to
+      var dis=null;
+      for(var di=0;di<disruptions.length;di++){
+        if(disruptions[di].id===t.blockedByDis){dis=disruptions[di];break;}
+      }
+      if(dis){
+        var pos=tPos(t);
+        var shouldReverse=false;
 
-        // ── PARAM-BASED boundary check (route-specific) ──
-        var atBoundary=false;
-        if(t.blockState==='turnback_south'&&curParam>=t.blockParam) atBoundary=true;
-        if(t.blockState==='turnback_north'&&curParam<=t.blockParam) atBoundary=true;
-
-        // ── GEOGRAPHIC proximity check (cross-route safe) ──
-        // On shared track, the param boundary may be far away on THIS
-        // route's shape, but the tram is physically about to enter the
-        // blocked section. Check distance to the disruption's crossovers.
-        if(!atBoundary&&t.blockedByDis){
-          var dis=null;
-          for(var di=0;di<disruptions.length;di++){
-            if(disruptions[di].id===t.blockedByDis){dis=disruptions[di];break;}
-          }
-          if(dis){
-            var pos=tPos(t);
-            // Check proximity to the crossover this tram should turn at
-            var xo=(t.blockState==='turnback_south')?dis.southXO:dis.northXO;
-            if(xo){
-              var distToXO=geoDist(pos[0],pos[1],xo.la,xo.lo);
-              if(distToXO<80) atBoundary=true; // within 80m of crossover = close enough
-            }
-            // Also check: is the tram inside the blocked zone geographically?
-            // (between the two crossovers)
-            if(!atBoundary&&dis.southXO&&dis.northXO){
-              var distToDis=geoDist(pos[0],pos[1],dis.la,dis.lo);
-              // If tram is within 60m of the disruption point itself, definitely reverse
-              if(distToDis<60) atBoundary=true;
-            }
-          }
+        if(t.blockState==='turnback_south'&&dis.southXO){
+          // Tram should turn at the south crossover
+          // Check: is the tram at or past the south crossover (heading toward the zone)?
+          var distToXO=geoDist(pos[0],pos[1],dis.southXO.la,dis.southXO.lo);
+          var distToDis=geoDist(pos[0],pos[1],dis.la,dis.lo);
+          var xoToDis=geoDist(dis.southXO.la,dis.southXO.lo,dis.la,dis.lo);
+          // The tram should reverse when it's closer to the disruption than the crossover is,
+          // OR when it's within 100m of the crossover
+          if(distToXO<100||distToDis<xoToDis) shouldReverse=true;
         }
 
-        // Look-ahead: will the NEXT step cross the param boundary?
-        var nextCrosses=false;
-        if(!atBoundary&&now-t.lt>=seg){
-          var nextSi2=t.si+1;
-          if(nextSi2<t.path.length){
-            var fwdNextIdx=(t.dir==='Outbound')?nextSi2:(arr.length-1-nextSi2);
-            fwdNextIdx=Math.max(0,Math.min(arr.length-1,fwdNextIdx));
-            var nextParam=arr[fwdNextIdx];
-            if(t.blockState==='turnback_south'&&nextParam>=t.blockParam) nextCrosses=true;
-            if(t.blockState==='turnback_north'&&nextParam<=t.blockParam) nextCrosses=true;
-          }
+        if(t.blockState==='turnback_north'&&dis.northXO){
+          var distToXO=geoDist(pos[0],pos[1],dis.northXO.la,dis.northXO.lo);
+          var distToDis=geoDist(pos[0],pos[1],dis.la,dis.lo);
+          var xoToDis=geoDist(dis.northXO.la,dis.northXO.lo,dis.la,dis.lo);
+          if(distToXO<100||distToDis<xoToDis) shouldReverse=true;
         }
 
-        if(atBoundary||nextCrosses){
-          // ── REVERSE IN PLACE at crossover ──
+        // Fallback: if no crossover data, reverse within 200m of disruption
+        if(!dis.southXO&&!dis.northXO){
+          var distToDis=geoDist(pos[0],pos[1],dis.la,dis.lo);
+          if(distToDis<200) shouldReverse=true;
+        }
+
+        if(shouldReverse){
+          // ── REVERSE IN PLACE ──
           var oldSi=t.si,pathLen=t.path.length;
           t.path=t.path.slice().reverse();
           t.si=Math.max(0,pathLen-2-oldSi);
