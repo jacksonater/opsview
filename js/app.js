@@ -362,16 +362,14 @@ trams.forEach(function(t){
   t.mk=m;
 });
 
-// ── ANIMATION ──
 function anim(){
   var now=Date.now(),needStats=false;
   trams.forEach(function(t){
     var seg=segMs(t.route);
-
-    // ── DISRUPTION: TRAPPED — freeze in place, accumulate punctuality delay ──
+ 
+    // ── DISRUPTION: TRAPPED — freeze in place, accumulate delay ──
     if(t.blockState==='trapped'){
       if(!t._trappedAt){t._trappedAt=now;t._preTrapDv=t.dv;}
-      // Delay grows at simulation-speed pace — operator watching sees clock ticking
       var elapsed=Math.floor((now-t._trappedAt)*TIME_SCALE/1000);
       t.dv=Math.min(900,t._preTrapDv+elapsed);
       t.pr=0;
@@ -379,22 +377,22 @@ function anim(){
       needStats=true;
       return;
     }
-
+ 
+    // ── DISRUPTION: ESCAPING — heading away from incident, normal movement ──
+    // (falls through to normal advance below — no special handling needed
+    //  except clearing state at terminus, which happens in the terminus block)
+ 
     // ── DISRUPTION: TURNBACK — reverse at the crossover boundary ──
     if(t.blockState==='turnback_south'||t.blockState==='turnback_north'){
       var arr=routeParamArr[t.route];
       if(arr){
-        // Map current segment-start vertex to along-route fwd param
         var fwdCurIdx=(t.dir==='Outbound')?t.si:(arr.length-1-t.si);
         fwdCurIdx=Math.max(0,Math.min(arr.length-1,fwdCurIdx));
         var curParam=arr[fwdCurIdx];
-
-        // Two triggers for reversal:
-        //   atBoundary  — tram already AT or past the limit (catches overshoots at high speed)
-        //   nextCrosses — tram is one step away from crossing (normal case)
+ 
         var atBoundary=(t.blockState==='turnback_south'&&curParam>=t.blockParam)||
                        (t.blockState==='turnback_north'&&curParam<=t.blockParam);
-
+ 
         var nextCrosses=false;
         if(!atBoundary&&now-t.lt>=seg){
           var nextSi2=t.si+1;
@@ -406,14 +404,9 @@ function anim(){
                         (t.blockState==='turnback_north'&&nextParam<=t.blockParam);
           }
         }
-
+ 
         if(atBoundary||nextCrosses){
-          // ── REVERSE IN PLACE ──
-          // Do NOT reset si to 0 — that would teleport the tram to the far terminus.
-          // Instead: keep the tram at its current physical position in the newly-reversed path.
-          // If the old path has length N and we were at vertex oldSi,
-          // the same physical vertex in the reversed path is at index (N-1-oldSi).
-          // We use (N-2-oldSi) as the segment START so the tram moves forward from there.
+          // ── REVERSE IN PLACE at crossover ──
           var oldSi=t.si,pathLen=t.path.length;
           t.path=t.path.slice().reverse();
           t.si=Math.max(0,pathLen-2-oldSi);
@@ -422,8 +415,11 @@ function anim(){
           t.updn=t.updn==='Down'?'Up':'Down';
           var rb=R[t.route];t.dest=t.dir==='Outbound'?rb.d:rb.o;
           var ddb=DIR_DATA[t.route];if(ddb)t.updnDest=t.updn==='Down'?ddb.dn:ddb.up;
-          // Punctuality impact: this tram will miss all downstream signposts
+          // Punctuality impact: downstream signposts will all be missed
           t.dv=Math.min(900,t.dv+600);
+          // Clear disruption state — tram heads back to terminus normally.
+          // checkDisruptionOnTerminusReversal will re-assign on arrival,
+          // creating the short-working loop.
           delete t.blockedByDis;delete t.blockState;delete t.blockParam;
           if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
           needStats=true;
@@ -432,11 +428,12 @@ function anim(){
       }
       // Not yet at boundary — fall through to normal advance
     }
-
+ 
     // ── NORMAL MOVEMENT ──
     if(now-t.lt>=seg){
       t.lt=now;t.pr=0;t.si++;
       if(t.si>=t.path.length-1){
+        // ── TERMINUS REVERSAL ──
         t.si=0;
         t.path=t.path.slice().reverse();
         t.dir=t.dir==='Outbound'?'Inbound':'Outbound';
@@ -445,6 +442,20 @@ function anim(){
         var dd2=DIR_DATA[t.route];if(dd2)t.updnDest=t.updn==='Down'?dd2.dn:dd2.up;
         if(Math.random()<.3)t.dv+=Math.floor(Math.random()*61)-30;
         t.dv=Math.max(-180,Math.min(900,t.dv));
+ 
+        // ── DISRUPTION: Clear escaping state at terminus ──
+        if(t.blockState==='escaping'){
+          delete t.blockedByDis;delete t.blockState;delete t._disBaselineDv;
+        }
+ 
+        // ── DISRUPTION: Check if this tram should now short-work ──
+        // Catches: (a) escaping trams starting their return trip
+        //          (b) previously unaffected trams departing toward the zone
+        //          (c) trams that reversed at crossover, returned to terminus,
+        //              and are now departing again toward the disruption
+        if(disruptions.length>0&&!t.blockedByDis){
+          checkDisruptionOnTerminusReversal(t);
+        }
       }
       if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
       needStats=true;
@@ -468,14 +479,20 @@ function applyDisruptionToTrams(dis){
   var affectedRoutes=dis.routes||[dis.route];
   var affectDown=(dis.dir==='Both directions'||dis.dir==='Down only');
   var affectUp  =(dis.dir==='Both directions'||dis.dir==='Up only');
-
+ 
+  // Project the disruption point onto each affected route (needed for heading check)
+  var disParamByRoute={};
+  affectedRoutes.forEach(function(rk){
+    var shape=R[rk]?R[rk].fwd:null;
+    if(shape) disParamByRoute[rk]=routeParam(dis.la,dis.lo,shape).param;
+  });
+ 
   trams.forEach(function(t){
-    // Skip trams not on any affected route, or already assigned to a disruption
     if(affectedRoutes.indexOf(t.route)<0||t.blockedByDis)return;
     if(t.updn==='Down'&&!affectDown)return;
     if(t.updn==='Up'  &&!affectUp  )return;
-
-    // No crossover data at all — fallback to proximity trap
+ 
+    // No crossover data — fallback to proximity trap
     if(!dis.southXO&&!dis.northXO){
       var pos=tPos(t);
       if(geoDist(pos[0],pos[1],dis.la,dis.lo)<300){
@@ -485,11 +502,10 @@ function applyDisruptionToTrams(dis){
       }
       return;
     }
-
+ 
     // Get block params in THIS route's along-shape metres
     var bp=dis.routeBlockParams?dis.routeBlockParams[t.route]:null;
     if(!bp){
-      // Fallback: project XO positions onto this route on the fly
       var shape=R[t.route]?R[t.route].fwd:null;
       if(!shape)return;
       var arr2=routeParamArr[t.route];
@@ -500,30 +516,92 @@ function applyDisruptionToTrams(dis){
       bp={southParam:sp,northParam:np};
     }
     var southParam=bp.southParam,northParam=bp.northParam;
-
+ 
     var arr=routeParamArr[t.route];
     if(!arr)return;
-
-    // t.si in the fwd path → arr index.
-    // Outbound: path==fwd, so arr[t.si]. Inbound: path==rev, so arr[arr.length-1-t.si].
+ 
     var fwdIdx=(t.dir==='Outbound')?t.si:(arr.length-1-t.si);
     fwdIdx=Math.max(0,Math.min(arr.length-1,fwdIdx));
     var param=arr[fwdIdx];
     var isOutbound=(t.dir==='Outbound');
-
+ 
+    // Get disruption point on this route for heading comparison
+    var disParam=disParamByRoute[t.route]||((southParam+northParam)/2);
+ 
     if(param>southParam&&param<northParam){
-      t.blockedByDis=dis.id;t.blockState='trapped';
-      t._trappedAt=Date.now();t._preTrapDv=t.dv;
+      // ── TRAM IS BETWEEN THE CROSSOVERS ──
+      // Is the incident AHEAD of the tram (blocking its forward path)?
+      var headingToward;
+      if(isOutbound){
+        // Outbound = fwd param increasing. Incident ahead if disParam > tram param
+        headingToward=(disParam>=param);
+      } else {
+        // Inbound = fwd param decreasing. Incident ahead if disParam <= tram param
+        headingToward=(disParam<=param);
+      }
+ 
+      if(headingToward){
+        // Incident is ahead — tram is genuinely trapped
+        t.blockedByDis=dis.id;t.blockState='trapped';
+        t._trappedAt=Date.now();t._preTrapDv=t.dv;
+      } else {
+        // Incident is BEHIND — tram can escape out of the zone
+        // Let it continue normally; on next terminus reversal it will short-work
+        t.blockedByDis=dis.id;t.blockState='escaping';
+        t._disBaselineDv=t.dv;
+      }
     } else if(isOutbound&&param<=southParam){
       t.blockedByDis=dis.id;t.blockState='turnback_south';t.blockParam=southParam;
+      t._disBaselineDv=t.dv;
     } else if(!isOutbound&&param>=northParam){
       t.blockedByDis=dis.id;t.blockState='turnback_north';t.blockParam=northParam;
+      t._disBaselineDv=t.dv;
     }
-
+    // Trams already on the far side heading away — unaffected
+ 
     if(t.blockedByDis&&t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
   });
 }
 
+function checkDisruptionOnTerminusReversal(t){
+  if(t.blockedByDis)return; // already assigned to a disruption
+ 
+  for(var di=0;di<disruptions.length;di++){
+    var dis=disruptions[di];
+    var affectedRoutes=dis.routes||[dis.route];
+    if(affectedRoutes.indexOf(t.route)<0)continue;
+ 
+    var affectDown=(dis.dir==='Both directions'||dis.dir==='Down only');
+    var affectUp  =(dis.dir==='Both directions'||dis.dir==='Up only');
+    if(t.updn==='Down'&&!affectDown)continue;
+    if(t.updn==='Up'  &&!affectUp  )continue;
+ 
+    var bp=dis.routeBlockParams?dis.routeBlockParams[t.route]:null;
+    if(!bp)continue;
+    var southParam=bp.southParam,northParam=bp.northParam;
+ 
+    var arr=routeParamArr[t.route];
+    if(!arr)continue;
+ 
+    var fwdIdx=(t.dir==='Outbound')?t.si:(arr.length-1-t.si);
+    fwdIdx=Math.max(0,Math.min(arr.length-1,fwdIdx));
+    var param=arr[fwdIdx];
+    var isOutbound=(t.dir==='Outbound');
+ 
+    if(isOutbound&&param<=southParam){
+      t.blockedByDis=dis.id;t.blockState='turnback_south';t.blockParam=southParam;
+      t._disBaselineDv=t.dv;
+      if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
+      return;
+    } else if(!isOutbound&&param>=northParam){
+      t.blockedByDis=dis.id;t.blockState='turnback_north';t.blockParam=northParam;
+      t._disBaselineDv=t.dv;
+      if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
+      return;
+    }
+  }
+}
+              
 function clearDisruptionFromTrams(disId){
   trams.forEach(function(t){
     if(t.blockedByDis===disId){
@@ -533,7 +611,6 @@ function clearDisruptionFromTrams(disId){
     }
   });
 }
-
 
 function refreshIcons(){
   trams.forEach(function(t){if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));});
@@ -1880,6 +1957,7 @@ window.renderDisLog=renderDisLog; window.updateDisList=updateDisList;
 window.updateNetStrip=updateNetStrip; window.renderPerfPanel=renderPerfPanel;
 window.applyDisruptionToTrams=applyDisruptionToTrams;
 window.clearDisruptionFromTrams=clearDisruptionFromTrams;
+window.checkDisruptionOnTerminusReversal=checkDisruptionOnTerminusReversal;
 window.applyLayerVis=applyLayerVis;
 window.shapeSlice=shapeSlice; window.drawDisBlockedLine=drawDisBlockedLine;
 
