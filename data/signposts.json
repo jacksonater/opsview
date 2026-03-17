@@ -1,0 +1,3152 @@
+[
+  {
+    "code": "ABQU",
+    "name": "QUEENSBERRY ST / ABBOTSFORD ST",
+    "pole": "QST060-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 060-U, Queensberry Street, Up Direction",
+    "routes": [
+      "57"
+    ],
+    "suburb": "North Melbourne",
+    "section": "Queensberry Street : Swanston Street - Abbotsford Street",
+    "lat": -37.802523,
+    "lng": 144.945794
+  },
+  {
+    "code": "ABFL",
+    "name": "FLEMINGTON RD / ABBOTSFORD ST",
+    "pole": "FRD035B-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 035BU, Flemington Road, Up Direction",
+    "routes": [
+      "55",
+      "57",
+      "59",
+      "68"
+    ],
+    "suburb": "North Melbourne",
+    "section": "Abbotsford Street : Queensbury Street - Flemington Road",
+    "lat": -37.7934131,
+    "lng": 144.9473786
+  },
+  {
+    "code": "ABFL2",
+    "name": "FLEMINGTON RD / ABBOTSFORD ST SHUNT",
+    "pole": "ABS092-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 092-D, Abbotsford Street, Down Direction",
+    "routes": [
+      "55",
+      "57",
+      "59"
+    ],
+    "suburb": "NORTH MELBOURNE",
+    "section": "Royal Park : Flemington Road - Grantham Street",
+    "lat": -37.7938764,
+    "lng": 144.9470649
+  },
+  {
+    "code": "ALHO",
+    "name": "ALBION ST / HOLMES ST",
+    "pole": "HSB010-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 010-U, Holmes Street Brunswick, Up Direction.",
+    "routes": [
+      "1",
+      "1-1",
+      "22"
+    ],
+    "suburb": "BRUNSWICK",
+    "section": "Holmes Street Brunswick : Lygon Street - Nicholson Street East Coburg",
+    "lat": -37.7594367,
+    "lng": 144.974496
+  },
+  {
+    "code": "ALSK",
+    "name": "ALMA RD / ST KILDA RD",
+    "pole": "STK161-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 161-D, St Kilda Road, Down Direction",
+    "routes": [
+      "67"
+    ],
+    "suburb": "STKILDA",
+    "section": "St Kilda Road : Flinders Street - Brighton Road",
+    "lat": -37.8606074,
+    "lng": 144.984383
+  },
+  {
+    "code": "ARSG",
+    "name": "ARTHURTON RD / ST GEORGES RD",
+    "pole": "SGN157-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 157-D, St Georges Road, Down Direction",
+    "routes": [
+      "11",
+      "11-1"
+    ],
+    "suburb": "Northcote",
+    "section": "St Georges Road : Brunswick Street - Miller Street",
+    "lat": -37.7680705,
+    "lng": 144.9914004
+  },
+  {
+    "code": "ASRA",
+    "name": "ASCOT VALE RD / RACECOURSE RD",
+    "pole": "RCD053-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 053-D, Racecourse Road, Down Direction",
+    "routes": [
+      "57"
+    ],
+    "suburb": "Flemington",
+    "section": "Racecourse Road : Flemington Road - Epsom Road",
+    "lat": -37.7874737,
+    "lng": 144.9211783
+  },
+  {
+    "code": "ASVL",
+    "name": "MARIBYRNONG RD / UNION RD",
+    "pole": "MRA108AUPO",
+    "status": "IN SERVICE",
+    "description": "Pole 108AU, Maribyrnong Road, Up Direction",
+    "routes": [
+      "57",
+      "82"
+    ],
+    "suburb": "MOONEE PONDS",
+    "section": "Maribyrnong Road : Ascot Vale Road - Raleigh Road",
+    "lat": -37.7716329,
+    "lng": 144.9158274
+  },
+  {
+    "code": "AWST",
+    "name": "MATTHEWS AV / RODD RD",
+    "pole": "MAV397-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 397-D, Matthews Avenue, Down Direction",
+    "routes": [
+      "59"
+    ],
+    "suburb": "AIRPORT WEST",
+    "section": "Matthews Avenue : Keilor Road - Dromana Avenue",
+    "lat": -37.714265,
+    "lng": 144.8908627
+  },
+  {
+    "code": "AZRS",
+    "name": "ANZAC STATION/STOP INTERCHANGE",
+    "pole": "STK051BUPO",
+    "status": "IN SERVICE",
+    "description": "Pole 051BU, St Kilda Road, Up Direction",
+    "routes": [
+      "3",
+      "5",
+      "6",
+      "16",
+      "58",
+      "64",
+      "67",
+      "72"
+    ],
+    "suburb": "MELBOURNE",
+    "section": "St Kilda Road : Flinders Street - Brighton Road",
+    "lat": -37.8335387,
+    "lng": 144.9728204
+  },
+  {
+    "code": "BABA",
+    "name": "BALACLAVA RD / REDAN ST",
+    "pole": "BRC152-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 152-U, Balaclava Road, Up Direction",
+    "routes": [
+      "3"
+    ],
+    "suburb": "CAULFIELD",
+    "section": "Balaclava Road : Carlisle Street - Normanby Road",
+    "lat": -37.8736143,
+    "lng": 145.0319434
+  },
+  {
+    "code": "BAGO",
+    "name": "BALLARAT RD / GORDON ST",
+    "pole": "BRD043-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 043-D, Ballarat Road, Down Direction.",
+    "routes": [
+      "82",
+      "223"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Ballarat Road : Gordon Street - Droop Street",
+    "lat": -37.7911402,
+    "lng": 144.8896973
+  },
+  {
+    "code": "BALJ",
+    "name": "HAWTHORN RD / BALACLAVA RD",
+    "pole": "HRC023BUPO",
+    "status": "IN SERVICE",
+    "description": "Pole 023BU, Hawthorn Road, Up Direction",
+    "routes": [
+      "3",
+      "64",
+      "69"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Hawthorn Road : Dandenong Road Prahran - Nepean Hi",
+    "lat": -37.8727728,
+    "lng": 145.0246171
+  },
+  {
+    "code": "BALW",
+    "name": "BALWYN RD / WHITEHORSE RD",
+    "pole": "WHR051-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 051-U, Whitehorse Road, Up Direction",
+    "routes": [
+      "23",
+      "109"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Whitehorse Road : Burke Road - Station Street",
+    "lat": -37.8128933,
+    "lng": 145.0811342
+  },
+  {
+    "code": "BAOR",
+    "name": "BALACLAVA RD / ORRONG RD",
+    "pole": "BRC089-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 089-U, Balaclava Road, Up Direction",
+    "routes": [
+      "3",
+      "69",
+      "220"
+    ],
+    "suburb": "St Kilda East",
+    "section": "Balaclava Road : Carlisle Street - Normanby Road",
+    "lat": -37.8706976,
+    "lng": 145.0083654
+  },
+  {
+    "code": "BEHI",
+    "name": "BEAVERS RD / HIGH ST",
+    "pole": "HSN189-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 189-D, High Street Northcote, Down Direction",
+    "routes": [
+      "86"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "High Street Northcote : Queens Parade - Plenty Roa",
+    "lat": -37.7670347,
+    "lng": 144.9990992
+  },
+  {
+    "code": "BELL",
+    "name": "BELL ST / GILBERT RD",
+    "pole": "GBR049-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 049-U, Gilbert Road, Up Direction",
+    "routes": [
+      "112"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Gilbert Road : Miller Street - Union Street",
+    "lat": -37.743368,
+    "lng": 144.989366
+  },
+  {
+    "code": "BOSP",
+    "name": "BOURKE ST / SPRING ST",
+    "pole": "SPS066-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 066-D, Spring Street, Down Direction",
+    "routes": [
+      "35",
+      "86"
+    ],
+    "suburb": "Melbourne",
+    "section": "Spring Street : Wellington Parade - Nicholson Stre",
+    "lat": -37.811254,
+    "lng": 144.972865
+  },
+  {
+    "code": "BOSP2",
+    "name": "BOURKE ST / SPRING ST (SHUNT)",
+    "pole": "SPS071-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 071-U, Spring Street, Up Direction",
+    "routes": [
+      "35",
+      "86"
+    ],
+    "suburb": "Melbourne",
+    "section": "Nicholson Street Fitzroy : Spring Street - Blyth S",
+    "lat": -37.8103455,
+    "lng": 144.9729694
+  },
+  {
+    "code": "BOWI",
+    "name": "BOURKE ST / WILLIAMS ST",
+    "pole": "BSC016-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 016-U, Bourke Street City, Up Direction",
+    "routes": [
+      "55",
+      "86",
+      "96",
+      "96-1"
+    ],
+    "suburb": "Melbourne",
+    "section": "Bourke Street City : Spencer Street - Spring Stree",
+    "lat": -37.8158322,
+    "lng": 144.9580753
+  },
+  {
+    "code": "BOXC",
+    "name": "WHITEHORSE RD / BOX HILL CENTRAL",
+    "pole": "WHR150-MPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 150-M, Whitehorse Road, Middle Direction",
+    "routes": [
+      "109"
+    ],
+    "suburb": "Box Hill",
+    "section": "Whitehorse Road : Burke Road - Station Street",
+    "lat": -37.8178058,
+    "lng": 145.121552
+  },
+  {
+    "code": "BRCH",
+    "name": "BRIGHTON RD / CHAPEL ST",
+    "pole": "BRS016-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 016-U, Brighton Road, Up Direction",
+    "routes": [
+      "67",
+      "78"
+    ],
+    "suburb": "ELWOOD",
+    "section": "Chapel Street Prahran : Church Street Richmond - Brighton Road",
+    "lat": -37.8723413,
+    "lng": 144.9895987
+  },
+  {
+    "code": "BRCH2",
+    "name": "BRIGHTON RD / CHAPEL ST",
+    "pole": "CHS209-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 209-D, Chapel Street Prahran, Down Direction",
+    "routes": [
+      "67",
+      "78"
+    ],
+    "suburb": "BALACLAVA",
+    "section": "Chapel Street Prahran : Church Street Richmond - Brighton Road",
+    "lat": -37.8713983,
+    "lng": 144.9898685
+  },
+  {
+    "code": "BRLY",
+    "name": "BRUNSWICK RD / LYGON ST",
+    "pole": "LGB073-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 073-D, Lygon Street, Down Direction",
+    "routes": [
+      "1",
+      "6"
+    ],
+    "suburb": "PRINCES HILL",
+    "section": "Lygon Street : Elgin Street - Holmes Street",
+    "lat": -37.7784203,
+    "lng": 144.9705514
+  },
+  {
+    "code": "BUDO",
+    "name": "BULLEEN RD / DONCASTER RD",
+    "pole": "DRB181-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 181-U, Doncaster Road, Up Direction",
+    "routes": [
+      "24",
+      "48"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Doncaster Road : High Street Kew - Balwyn Road",
+    "lat": -37.792714,
+    "lng": 145.0706391
+  },
+  {
+    "code": "BUMI",
+    "name": "BURWOOD HWY / MIDDLEBOROUGH RD",
+    "pole": "BHE112-MPO",
+    "status": "IN SERVICE",
+    "description": "Pole 112-M, Burwood Highway, Middle Direction",
+    "routes": [
+      "75"
+    ],
+    "suburb": "Carlton",
+    "section": "Burwood Highway : Toorak Road - Hanover road",
+    "lat": -37.851928,
+    "lng": 145.131392
+  },
+  {
+    "code": "BUND",
+    "name": "PLENTY RD / PLENTY RD TERMINUS",
+    "pole": "PRB385-MPO",
+    "status": "IN SERVICE",
+    "description": "Pole 385-M, Plenty Road, Middle Direction",
+    "routes": [
+      "86"
+    ],
+    "suburb": "MILL PARK",
+    "section": "Plenty Road : High Street Northcote - McKimmies Ro",
+    "lat": -37.6795924,
+    "lng": 145.069425
+  },
+  {
+    "code": "BURN",
+    "name": "SWAN ST / PARK GVE",
+    "pole": "SWS115-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 115-U, Swan Street, Up Direction",
+    "routes": [
+      "70"
+    ],
+    "suburb": "RICHMOND",
+    "section": "Swan Street : Melbourne Park - Wallen Road",
+    "lat": -37.8273752,
+    "lng": 145.012686
+  },
+  {
+    "code": "BURW",
+    "name": "BURWOOD HWY / SOMERS ST",
+    "pole": "BHE014-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 014-U, Burwood Highway, Up Direction",
+    "routes": [
+      "75"
+    ],
+    "suburb": "BURWOOD",
+    "section": "Burwood Highway : Toorak Road - Hanover road",
+    "lat": -37.8508403,
+    "lng": 145.099574
+  },
+  {
+    "code": "BWCK",
+    "name": "MORELAND RD / SYDNEY RD",
+    "pole": "MLD027-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 027-U, Moreland Road, Up Direction",
+    "routes": [
+      "19",
+      "22",
+      "1-1",
+      "19-1"
+    ],
+    "suburb": "BRUNSWICK",
+    "section": "Holmes Street - Cameron Street",
+    "lat": -37.755426,
+    "lng": 144.9642981
+  },
+  {
+    "code": "BWDP",
+    "name": "SYDNEY RD / BRUNSWICK DEPOT",
+    "pole": "SRB236A-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 236-U, Sydney Road Brunswick, Up Direction",
+    "routes": [
+      "19",
+      "19-1"
+    ],
+    "suburb": "BRUNSWICK",
+    "section": "Sydney Road Brunswick : Royal Parade - Moreland Ro",
+    "lat": -37.7573982,
+    "lng": 144.9638838
+  },
+  {
+    "code": "CAMB",
+    "name": "BURKE RD / COTHAM RD TERMINUS",
+    "pole": "BRK137-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 137-U, Burke Road, Up Direction",
+    "routes": [
+      "23",
+      "72",
+      "109"
+    ],
+    "suburb": "CAMBERWELL",
+    "section": "Whitehorse Road : Burke Road - Station Street",
+    "lat": -37.8115659,
+    "lng": 145.060545
+  },
+  {
+    "code": "CARN",
+    "name": "TRUGANINI RD / CARNEGIE TERMINUS",
+    "pole": "TRC218-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 218-U, Truganini Road, Up Direction",
+    "routes": [
+      "67"
+    ],
+    "suburb": "CARNEGIE",
+    "section": "Truganini Road : Glenhuntly Road - Koornang Road",
+    "lat": -37.893937,
+    "lng": 145.055687
+  },
+  {
+    "code": "CASK",
+    "name": "ST KILDA RD / CARLISLE ST",
+    "pole": "STK034-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 034-U, St Kilda Road, Up Direction",
+    "routes": [
+      "6",
+      "69",
+      "79"
+    ],
+    "suburb": "StKILDA",
+    "section": "St Kilda Road : Flinders Street - Brighton Road",
+    "lat": -37.8677723,
+    "lng": 144.9869773
+  },
+  {
+    "code": "CFRS",
+    "name": "SIR JOHN MONASH DR / CAULFIELD STATION",
+    "pole": "SJM054BUPO",
+    "status": "IN SERVICE",
+    "description": "Pole 054BU, Sir John Monash Drive, Up Direction",
+    "routes": [
+      "3"
+    ],
+    "suburb": "CAULFIELD",
+    "section": "Sir John Monash Drive : Normanby Road - Derby Road",
+    "lat": -37.8766684,
+    "lng": 145.0416797
+  },
+  {
+    "code": "CHCA",
+    "name": "CHAPEL ST / CARLISLE ST",
+    "pole": "CHS198-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 198-D, Chapel Street Prahran, Down Direction",
+    "routes": [
+      "3",
+      "69",
+      "78",
+      "79"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Chapel Street Prahran : Church Street Richmond - B",
+    "lat": -37.8682465,
+    "lng": 144.990435
+  },
+  {
+    "code": "CHCO",
+    "name": "MALVERN RD / CHAPEL ST",
+    "pole": "MLV043-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 043-U, Malvern Road, Up Direction",
+    "routes": [
+      "72",
+      "78",
+      "79"
+    ],
+    "suburb": "PRAHRAN",
+    "section": "Malvern Road : Commercial Road - Burke Road",
+    "lat": -37.8469593,
+    "lng": 144.994272
+  },
+  {
+    "code": "CICL",
+    "name": "CLARENDON ST / CITY RD",
+    "pole": "CSM023-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 023-D, Clarendon Street, Down Direction",
+    "routes": [
+      "1",
+      "3",
+      "5",
+      "6",
+      "8",
+      "16",
+      "22",
+      "64",
+      "67",
+      "72"
+    ],
+    "suburb": "Melbourne",
+    "section": "Clarendon Street : Spencer Street Bridge - Albert",
+    "lat": -37.8273742,
+    "lng": 144.9581335
+  },
+  {
+    "code": "GMAN",
+    "name": "GLENFERRIE RD / MANNINGTREE RD",
+    "pole": "GFH149AUPO",
+    "status": "IN SERVICE",
+    "description": "Pole 149-D, Glenferrie Road, Down Direction",
+    "routes": [
+      "16",
+      "17",
+      "116"
+    ],
+    "suburb": "HAWTHORN",
+    "section": "Glenferrie Road : Dandenong Road Prahran - Cotham",
+    "lat": -37.8242086,
+    "lng": 145.0351372
+  },
+  {
+    "code": "GOSG",
+    "name": "GORDON GROVE / ST GEORGES RD",
+    "pole": "SGN132-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 132, St Georges Road, Up Direction -outside Northcote School",
+    "routes": [
+      "11"
+    ],
+    "suburb": "North Fitzroy",
+    "section": "St Georges Road : Brunswick Street - Miller Street",
+    "lat": -37.7746634,
+    "lng": 144.9900835
+  },
+  {
+    "code": "GRPL",
+    "name": "PLENTY RD / GREENWOOD DR",
+    "pole": "PRB257-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 257-U, Plenty Road, Up Direction",
+    "routes": [
+      "86",
+      "1186"
+    ],
+    "suburb": "BUNDOORA",
+    "section": "Plenty Road : High Street Northcote - McKimmies Road",
+    "lat": -37.7078567,
+    "lng": 145.0518884
+  },
+  {
+    "code": "HADA",
+    "name": "DANDENONG RD / HAWTHORN RD",
+    "pole": "DRP092-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 092-U, Dandenong Road Prahran, Up Direction",
+    "routes": [
+      "64",
+      "69"
+    ],
+    "suburb": "CAULFIELD NORTH",
+    "section": "Hawthorn Road : Dandenong Road Prahran - Nepean Hi",
+    "lat": -37.865829,
+    "lng": 145.0259184
+  },
+  {
+    "code": "HADA2",
+    "name": "DANDENONG RD / HAWTHORN RD",
+    "pole": "DRP093-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 093-U, Dandenong Road Prahran, Up Direction",
+    "routes": [
+      "64",
+      "69"
+    ],
+    "suburb": "CAULFIEL NORTH",
+    "section": "Dandenong Road Prahran : Chapel Street Prahran - G",
+    "lat": -37.865819,
+    "lng": 145.026331
+  },
+  {
+    "code": "HAHI",
+    "name": "HIGH ST / HARP RD",
+    "pole": "HSK112-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 112-D, High Street Kew, Down Direction",
+    "routes": [
+      "24",
+      "48"
+    ],
+    "suburb": "EAST KEW",
+    "section": "High Street Kew : Barkers Road - Doncaster Road",
+    "lat": -37.7995054,
+    "lng": 145.0499745
+  },
+  {
+    "code": "HAMA",
+    "name": "MATTHEWS AV / HAWKER ST",
+    "pole": "MAV356-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 356-D, Matthews Avenue, Down Direction",
+    "routes": [
+      "59"
+    ],
+    "suburb": "AIRPORT WEST",
+    "section": "Matthews Avenue : Keilor Road - Dromana Avenue",
+    "lat": -37.722725,
+    "lng": 144.8913376
+  },
+  {
+    "code": "HARB",
+    "name": "HARBOUR ESPLANADE / SIDING SOUTH END",
+    "pole": "HBE010-MPO",
+    "status": "IN SERVICE",
+    "description": "Pole 010-M, Harbour Esplanade, Middle Direction",
+    "routes": [
+      "35",
+      "70",
+      "71",
+      "75",
+      "135",
+      "1030",
+      "1121"
+    ],
+    "suburb": "DOCKLANDS",
+    "section": "Harbour Esplanade : Docklands Drive - Flinders Str",
+    "lat": -37.8168232,
+    "lng": 144.9457457
+  },
+  {
+    "code": "HART",
+    "name": "CAMBERWELL RD / EDDY ST SHUNT",
+    "pole": "CRC062-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 062-U, Camberwell Rd, Camberwell, Up Direction",
+    "routes": [
+      "75"
+    ],
+    "suburb": "HARTWELL",
+    "section": "Camberwell Road : Riversdale Road - Toorak Road",
+    "lat": -37.8461868,
+    "lng": 145.0734831
+  },
+  {
+    "code": "HAWN",
+    "name": "RIVERDSDALE RD / POWER ST",
+    "pole": "RVR002-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 002-D, Riversdale Road, Down Direction",
+    "routes": [
+      "70",
+      "71",
+      "74",
+      "75",
+      "135",
+      "1030",
+      "1121"
+    ],
+    "suburb": "Hawthorn",
+    "section": "Riversdale Road : Wallen Road - Elgar Road",
+    "lat": -37.827718,
+    "lng": 145.0260686
+  },
+  {
+    "code": "HICH",
+    "name": "CHAPEL ST / HIGH ST",
+    "pole": "CHS141-UBA",
+    "status": "IN SERVICE",
+    "description": "Building Attachment 141-U, Chapel Street Prahran, Up Direction",
+    "routes": [
+      "6",
+      "7",
+      "78",
+      "79",
+      "106"
+    ],
+    "suburb": "Prahran, 3181",
+    "section": "Chapel Street Prahran : Church Street Richmond - B",
+    "lat": -37.8517501,
+    "lng": 144.9932927
+  },
+  {
+    "code": "HIPO",
+    "name": "ROSAMOND RD / WILLIAMSON RD",
+    "pole": "RMD074-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 074-D, Rosamond Road, Down Direction",
+    "routes": [
+      "82"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Rosamond Road : Williamson Road - River Street",
+    "lat": -37.7758697,
+    "lng": 144.885803
+  },
+  {
+    "code": "HMKT",
+    "name": "ELIZABETH ST / FLEMINGTON RD",
+    "pole": "EZT068-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 068-D, Elizabeth Street, Down Direction",
+    "routes": [
+      "19",
+      "55",
+      "59",
+      "68"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Elizabeth Street : Flinders Street - Royal Parade",
+    "lat": -37.8019207,
+    "lng": 144.9573747
+  },
+  {
+    "code": "HMKT2",
+    "name": "ELIZABETH ST / PEEL ST SHUNT",
+    "pole": "PST002ADPO",
+    "status": "IN SERVICE",
+    "description": "Pole 002AD, Peel Street, Down Direction",
+    "routes": [
+      "19",
+      "55",
+      "59",
+      "68"
+    ],
+    "suburb": "Melbourne",
+    "section": "Peel Street : William Street - Flemington Road",
+    "lat": -37.8019323,
+    "lng": 144.9566249
+  },
+  {
+    "code": "HOBR",
+    "name": "NEPEAN HWY / HOTHAM RD",
+    "pole": "BRS057-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 057-D, Brighton Road, Down Direction",
+    "routes": [
+      "67"
+    ],
+    "suburb": "ELSTERNWICK",
+    "section": "Brighton Road : Carlisle Street - Glen Huntly Road",
+    "lat": -37.8832001,
+    "lng": 144.9966517
+  },
+  {
+    "code": "JOBR",
+    "name": "BRUNSWICK ST / JOHNSTON ST",
+    "pole": "BWS035-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 035-D, Brunswick Street, Down Direction",
+    "routes": [
+      "11",
+      "110",
+      "112",
+      "1110"
+    ],
+    "suburb": "FITZROY",
+    "section": "Brunswick Street : Victoria Parade - St Georges Ro",
+    "lat": -37.7981615,
+    "lng": 144.9784121
+  },
+  {
+    "code": "JONI",
+    "name": "NICHOLSON ST / JOHNSTON ST",
+    "pole": "NSF115-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 115-U, Nicholson Street Fitzroy, Up Direction",
+    "routes": [
+      "96",
+      "96-1"
+    ],
+    "suburb": "FITZROY",
+    "section": "Nicholson Street Fitzroy : Spring Street - Blyth Street",
+    "lat": -37.798317,
+    "lng": 144.9749727
+  },
+  {
+    "code": "JOSM",
+    "name": "SMITH ST / JOHNSTON ST",
+    "pole": "SMC057-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 057-U, Smith Street Collingwood, Up Direction",
+    "routes": [
+      "86"
+    ],
+    "suburb": "FITZROY",
+    "section": "Smith Street Collingwood : Gertrude Street - Queen",
+    "lat": -37.7988492,
+    "lng": 144.9843688
+  },
+  {
+    "code": "KEWC",
+    "name": "GLENFERRIE RD / COTHAM RD",
+    "pole": "GFH204ADPO",
+    "status": "IN SERVICE",
+    "description": "Pole 204AD, Glenferrie Road, Down Direction",
+    "routes": [
+      "69",
+      "142",
+      "1109"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Glenferrie Road : Dandenong Road Prahran - Cotham",
+    "lat": -37.8078005,
+    "lng": 145.0380163
+  },
+  {
+    "code": "KEWC2",
+    "name": "COTHAM RD / GLENFERRIE RD SHUNT",
+    "pole": "COR020-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 020-U, Cotham Road, Up Direction",
+    "routes": [
+      "69",
+      "142",
+      "1109"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Cotham Road : High Street, Kew - Burke Road",
+    "lat": -37.8077553,
+    "lng": 145.037882
+  },
+  {
+    "code": "KEWJ",
+    "name": "HIGH ST / KEW JUNCTION",
+    "pole": "HSK052-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 052-U, High Street Kew, Up Direction",
+    "routes": [
+      "10",
+      "24",
+      "48",
+      "109",
+      "142",
+      "1109"
+    ],
+    "suburb": "KEW",
+    "section": "High Street Kew : Barkers Road - Doncaster Road",
+    "lat": -37.8075407,
+    "lng": 145.0291047
+  },
+  {
+    "code": "KIFL",
+    "name": "FLINDERS ST / KINGS ST",
+    "pole": "FSC010-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 010-D, Flinders Street City, Down Direction",
+    "routes": [
+      "35",
+      "70",
+      "71",
+      "75",
+      "121",
+      "135",
+      "335"
+    ],
+    "suburb": "Melbourne",
+    "section": "Flinders Street City : Spencer Street - Spring Str",
+    "lat": -37.8203679,
+    "lng": 144.9580805
+  },
+  {
+    "code": "KIST",
+    "name": "KINGSWAY / STURT ST",
+    "pole": "KWY025-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 025-U, Kingsway, Up Direction",
+    "routes": [
+      "1",
+      "33",
+      "53",
+      "55",
+      "101",
+      "1055"
+    ],
+    "suburb": "South Melbourne",
+    "section": "Kingsway : Park Street South Melbourne (Rte 55) -",
+    "lat": -37.8308972,
+    "lng": 144.9655161
+  },
+  {
+    "code": "KOOY",
+    "name": "GLENFERRIE RD / GARDINER RD SE FWY",
+    "pole": "GFH109-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 109-D, Glenferrie Road, Down Direction",
+    "routes": [
+      "16",
+      "17",
+      "116"
+    ],
+    "suburb": "PRAHAN",
+    "section": "Glenferrie Road : Dandenong Road Prahran - Cotham Road",
+    "lat": -37.8364812,
+    "lng": 145.0327515
+  },
+  {
+    "code": "KWDP",
+    "name": "HIGH ST / KEW DEPOT (REAR ENTRANCE)",
+    "pole": "HSK031-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 031-U, High Street Kew, Up Direction",
+    "routes": [
+      "24",
+      "48",
+      "109"
+    ],
+    "suburb": "KEW",
+    "section": "Barkers Road - Doncaster Road",
+    "lat": -37.812696,
+    "lng": 145.024039
+  },
+  {
+    "code": "KWDP2",
+    "name": "BARKERS RD - KEW DEPOT (BARKERS RD ENTRANCE)",
+    "pole": "BKR023-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 023-D, Barkers Road, Down Direction",
+    "routes": [
+      "24",
+      "48",
+      "109"
+    ],
+    "suburb": "KEW",
+    "section": "Victoria Street, Hawthorn - Burke Road, Kew",
+    "lat": -37.8128715,
+    "lng": 145.0220817
+  },
+  {
+    "code": "LAEL",
+    "name": "LA TROBE ST / ELIZABETH ST",
+    "pole": "LSC032-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 032-U, LaTrobe Street, Up Direction",
+    "routes": [
+      "19",
+      "24",
+      "35",
+      "57",
+      "59",
+      "68"
+    ],
+    "suburb": "Melbourne",
+    "section": "LaTrobe Street : Spencer Street - Victoria Parade East Melbourne",
+    "lat": -37.8104795,
+    "lng": 144.9612286
+  },
+  {
+    "code": "LAFO",
+    "name": "LA TROBE ST / FOOTSCRAY RD",
+    "pole": "LSD005-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 005-D, LaTrobe Street Docklands, Down Direction",
+    "routes": [
+      "24",
+      "30",
+      "35"
+    ],
+    "suburb": "DOCKLANDS",
+    "section": "LaTrobe Street Docklands : Harbour Esplanade - Spe",
+    "lat": -37.814626,
+    "lng": 144.9459568
+  },
+  {
+    "code": "LASP1",
+    "name": "SPENCER ST / LA TROBE ST 3SP",
+    "pole": "SNC030-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 030-U, Spencer Street, Up Direction",
+    "routes": [
+      "24",
+      "30",
+      "35"
+    ],
+    "suburb": "Melbourne",
+    "section": "Spencer Street : LaTrobe Street - Flinders Street",
+    "lat": -37.8129282,
+    "lng": 144.9511747
+  },
+  {
+    "code": "LASP2",
+    "name": "SPENCER ST / LA TROBE ST 3SP",
+    "pole": "SNC028AUPO",
+    "status": "IN SERVICE",
+    "description": "Pole 028AU, Spencer Street, Up Direction",
+    "routes": [
+      "24",
+      "30",
+      "35"
+    ],
+    "suburb": "MELBOURNE",
+    "section": "Spencer Street : LaTrobe Street - Flinders Street",
+    "lat": -37.8134724,
+    "lng": 144.9514209
+  },
+  {
+    "code": "LASP3",
+    "name": "LA TROBE ST / SPENCER ST 3SP",
+    "pole": "LSC003-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 003-U, LaTrobe Street, Up Direction",
+    "routes": [
+      "24",
+      "30",
+      "35"
+    ],
+    "suburb": "Melbourne",
+    "section": "LaTrobe Street : Spencer Street - Victoria Parade",
+    "lat": -37.8131054,
+    "lng": 144.9520536
+  },
+  {
+    "code": "LASW",
+    "name": "SWANSTON ST / LA TROBE ST",
+    "pole": "SWC185-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 185-D, Swanston Street, Down Direction",
+    "routes": [
+      "1",
+      "3",
+      "5",
+      "6",
+      "8",
+      "16",
+      "22",
+      "23",
+      "24",
+      "35",
+      "64",
+      "67"
+    ],
+    "suburb": "MELBOURNE",
+    "section": "Swanston Street : Elgin Street - St Kilda Road",
+    "lat": -37.8097063,
+    "lng": 144.9639674
+  },
+  {
+    "code": "LAWI",
+    "name": "LA TROBE ST / WILLIAM ST",
+    "pole": "LSC016-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 016-U, LaTrobe Street, Up Direction",
+    "routes": [
+      "23",
+      "24",
+      "35",
+      "55"
+    ],
+    "suburb": "MELBOURNE",
+    "section": "LaTrobe Street : Spencer Street - Victoria Parade East Melbourne",
+    "lat": -37.8119174,
+    "lng": 144.9562823
+  },
+  {
+    "code": "LEBU",
+    "name": "BURKE RD / LEURA GRV",
+    "pole": "BRK052-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 052-D, Burke Road, Down Direction",
+    "routes": [
+      "72"
+    ],
+    "suburb": "CAMBERWELL",
+    "section": "Burke Road : Malvern Road - Cotham Road",
+    "lat": -37.8381031,
+    "lng": 145.0553383
+  },
+  {
+    "code": "LOEL",
+    "name": "ELIZABETH ST / LONSDALE ST",
+    "pole": "EZT024-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 025-U, Elizabeth Street, Up Direction",
+    "routes": [
+      "19",
+      "57",
+      "59",
+      "68"
+    ],
+    "suburb": "MELBOURNE",
+    "section": "Elizabeth Street : Flinders Street - Royal Parade",
+    "lat": -37.8123912,
+    "lng": 144.96244
+  },
+  {
+    "code": "LOSP",
+    "name": "SPENCER ST / LONSDALE ST",
+    "pole": "SNC021-DBA",
+    "status": "IN SERVICE",
+    "description": "Building Attachment 021-D, Spencer Street, Down Direction",
+    "routes": [
+      "43",
+      "86",
+      "95",
+      "110",
+      "121"
+    ],
+    "suburb": "MELBOURNE",
+    "section": "Spencer Street : LaTrobe Street - Flinders Street",
+    "lat": -37.815246,
+    "lng": 144.9525917
+  },
+  {
+    "code": "LOSW",
+    "name": "SWANSTON ST / LONSDALE ST",
+    "pole": "SWC193-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 193-U, Swanston Street, Up Direction",
+    "routes": [
+      "1",
+      "3",
+      "5",
+      "6",
+      "8",
+      "16",
+      "22",
+      "64",
+      "72"
+    ],
+    "suburb": "MELBOURNE",
+    "section": "Swanston Street : Elgin Street - St Kilda Road",
+    "lat": -37.8117354,
+    "lng": 144.9646311
+  },
+  {
+    "code": "LUNA",
+    "name": "THE ESPLANADE STKILDA (Crossover)",
+    "pole": "ESP057-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 057-U, Esplanade, Up Direction",
+    "routes": [
+      "4",
+      "16",
+      "17",
+      "20",
+      "79",
+      "96",
+      "116",
+      "196"
+    ],
+    "suburb": "STKILDA",
+    "section": "Carlisle Street : Esplanade - Balaclava Road",
+    "lat": -37.8667749,
+    "lng": 144.9759955
+  },
+  {
+    "code": "LUNI",
+    "name": "PLENTY RD / LATROBE UNIVERSITY",
+    "pole": "PRB212-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 212-D, Plenty Road, Down Direction",
+    "routes": [
+      "86",
+      "1186"
+    ],
+    "suburb": "THORNBURY",
+    "section": "Plenty Road : High Street Northcote - McKimmies Ro",
+    "lat": -37.716589,
+    "lng": 145.043127
+  },
+  {
+    "code": "MALB",
+    "name": "WHITEHORSE RD / UNION RD",
+    "pole": "WHR094-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 094-U, Whitehorse Road, Up Direction",
+    "routes": [
+      "109"
+    ],
+    "suburb": "BALWYN",
+    "section": "Whitehorse Road : Burke Road - Station Street",
+    "lat": -37.8148662,
+    "lng": 145.0975692
+  },
+  {
+    "code": "MALV",
+    "name": "WATTLETREE RD / BURKE RD",
+    "pole": "WTL090-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 090-D, Wattletree Road, Down Direction",
+    "routes": [
+      "5"
+    ],
+    "suburb": "PRAHAN",
+    "section": "Wattletree Road : Dandenong Road Prahran - Burke Road",
+    "lat": -37.864978,
+    "lng": 145.0496858
+  },
+  {
+    "code": "MAWI",
+    "name": "MALVERN RD / WILLIAMS RD",
+    "pole": "MLV065-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 065-D, Malvern Road, Down Direction",
+    "routes": [
+      "72",
+      "172"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Malvern Road : Commercial Road - Burke Road",
+    "lat": -37.84797,
+    "lng": 145.002706
+  },
+  {
+    "code": "MBPK",
+    "name": "MELBOURNE PARK",
+    "pole": "MEP012-MPO",
+    "status": "IN SERVICE",
+    "description": "Pole 012-M, Melbourne Park, Middle Direction",
+    "routes": [
+      "70",
+      "121",
+      "1121"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Melbourne Park : Batman Avenue - Swan Street",
+    "lat": -37.8195375,
+    "lng": 144.9788881
+  },
+  {
+    "code": "MCGV",
+    "name": "MELBOURNE CRICKET GROUND (SHUNT)",
+    "pole": "MEP036-MPO",
+    "status": "IN SERVICE",
+    "description": "Pole 036-M, Melbourne Park, Middle Direction",
+    "routes": [
+      "70",
+      "121",
+      "1121"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Melbourne Park : Batman Avenue - Swan Street",
+    "lat": -37.8227819,
+    "lng": 144.9842739
+  },
+  {
+    "code": "MGUE",
+    "name": "MONTAGUE ST / ST KILDA LIGHT RAIL",
+    "pole": "PMRST126D",
+    "status": "IN SERVICE",
+    "description": "TTID 2709, Stop 126 Montague Street & Port Melbourne Light Rail",
+    "routes": [
+      "109",
+      "1142"
+    ],
+    "suburb": "SOUTH MELBOURNE",
+    "section": "Port Melbourne Light Rail : Whiteman Street - Beac",
+    "lat": -37.8301895,
+    "lng": 144.9487625
+  },
+  {
+    "code": "MIDA",
+    "name": "DANKS ST / MILLS ST",
+    "pole": "DMP001ADPO",
+    "status": "IN SERVICE",
+    "description": "Pole 001AD, Danks Street, Down Direction",
+    "routes": [
+      "112"
+    ],
+    "suburb": "Middle Park, 3206",
+    "section": "Danks Street : Mills Street - Patterson Street",
+    "lat": -37.8495045,
+    "lng": 144.9559934
+  },
+  {
+    "code": "MIPL",
+    "name": "PLENTY RD / MILTON PDE",
+    "pole": "PRB315-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 315-D, Plenty Road, Down Direction",
+    "routes": [
+      "6",
+      "1116"
+    ],
+    "suburb": "BUNDOORA",
+    "section": "Plenty Road : High Street Northcote - McKimmies Ro",
+    "lat": -37.6954064,
+    "lng": 145.0597489
+  },
+  {
+    "code": "MLDP",
+    "name": "COLDBLO RD / MALVERN DEPOT",
+    "pole": "CBR002-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 002-D, Coldblo Road, Down Direction",
+    "routes": [
+      "69"
+    ],
+    "suburb": "MALVERN",
+    "section": "Coldblo Road : Glenferrie Road - Malvern Depot",
+    "lat": -37.8588392,
+    "lng": 145.0287373
+  },
+  {
+    "code": "MLND",
+    "name": "CAMERON ST / BRUNSWICK DEPOT",
+    "pole": "CST005-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 005-U, Cameron Street, Up Direction",
+    "routes": [
+      "1-1",
+      "22"
+    ],
+    "suburb": "BRUNSWICK",
+    "section": "Cameron Street : Moreland Road - Brunswick Depot",
+    "lat": -37.7562963,
+    "lng": 144.9619031
+  },
+  {
+    "code": "MLTH",
+    "name": "GLENFERRIE RD / MALVERN TOWN HALL",
+    "pole": "HSP127-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 127-U, High Street Prahran, Up Direction",
+    "routes": [
+      "6",
+      "16"
+    ],
+    "suburb": "MALVERN",
+    "section": "Glenferrie Road : Dandenong Road Prahran - Cotham",
+    "lat": -37.8567117,
+    "lng": 145.0294167
+  },
+  {
+    "code": "MOHO",
+    "name": "MORELAND RD / HOLMES ST",
+    "pole": "MLD001-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 001-D, Moreland Road, Down Direction",
+    "routes": [
+      "1",
+      "1-1",
+      "22",
+      "22-1"
+    ],
+    "suburb": "BRUNSWICK",
+    "section": "Moreland Road (East) : Nicholson Street, Coburg - Clara Street, Coburg",
+    "lat": -37.756717,
+    "lng": 144.97471
+  },
+  {
+    "code": "MOHO2",
+    "name": "MORELAND RD / HOLMES ST",
+    "pole": "MLD002-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 002-D, Moreland Road, Down Direction",
+    "routes": [
+      "1",
+      "1-1",
+      "22",
+      "22-1"
+    ],
+    "suburb": "BRUNSWICK",
+    "section": "Moreland Road : Holmes Street - Cameron Street",
+    "lat": -37.7566663,
+    "lng": 144.9742017
+  },
+  {
+    "code": "MPJN",
+    "name": "ASCOT VALE RD / DEAN ST",
+    "pole": "MAN144-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 144-D, Mt Alexander Road Newmarket, Down Direction",
+    "routes": [
+      "59",
+      "82",
+      "200"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Ascot Vale Road : Mt Alexander Road - Maribyrnong",
+    "lat": -37.7674991,
+    "lng": 144.9248456
+  },
+  {
+    "code": "MPND",
+    "name": "ASCOT VALE RD / DEAN ST SHUNT",
+    "pole": "MAN144-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 150-D, Pascoe Vale Road, Down Direction",
+    "routes": [
+      "59",
+      "82",
+      "200"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Ascot Vale Road : Mt Alexander Road - Maribyrnong Road",
+    "lat": -37.7674991,
+    "lng": 144.9248456
+  },
+  {
+    "code": "MPND2",
+    "name": "ASCOT VALE RD / DEAN ST SHUNT",
+    "pole": "PVR150-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 150-D, Pascoe Vale Road, Down Direction",
+    "routes": [
+      "59",
+      "82",
+      "200"
+    ],
+    "suburb": "MOONEE PONDS",
+    "section": "Pascoe Vale Road : Ascot Vale Road - Fletcher Street",
+    "lat": -37.7658227,
+    "lng": 144.9250093
+  },
+  {
+    "code": "MPRK",
+    "name": "MIDDLE PARK CROSSOVER",
+    "pole": "SKR146-DTP",
+    "status": "IN SERVICE",
+    "description": "Pole 146-D, St Kilda Light Rail, Down Direction",
+    "routes": [
+      "96",
+      "196"
+    ],
+    "suburb": "MIDDLE PARK",
+    "section": "Whiteman Street - Fitzroy Street",
+    "lat": -37.8507361,
+    "lng": 144.9669142
+  },
+  {
+    "code": "MRVR",
+    "name": "MARIBYRNONG RD / WOOD ST",
+    "pole": "MRA135-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 135-U, Maribyrnong Road, Up Direction",
+    "routes": [
+      "57",
+      "82"
+    ],
+    "suburb": "ASCOT VALE",
+    "section": "Maribyrnong Road : Ascot Vale Road - Raleigh Road",
+    "lat": -37.7705542,
+    "lng": 144.9061104
+  },
+  {
+    "code": "NBAL",
+    "name": "DONCASTER RD / BALWYN RD",
+    "pole": "DRB218-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 218-D, Doncaster Road, Down Direction",
+    "routes": [
+      "48"
+    ],
+    "suburb": "NORTH BALWYN",
+    "section": "Doncaster Road : High Street Kew - Balwyn Road",
+    "lat": -37.7945595,
+    "lng": 145.0843325
+  },
+  {
+    "code": "NCOB",
+    "name": "SYDNEY RD / BAKERS RD",
+    "pole": "SRC118-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 118-U, Sydney Road Coburg, Up Direction",
+    "routes": [
+      "19"
+    ],
+    "suburb": "COBURG",
+    "section": "Sydney Road Coburg : Moreland Road - Bakers Road",
+    "lat": -37.7279294,
+    "lng": 144.9637787
+  },
+  {
+    "code": "NIDR",
+    "name": "MATTHEWS AVE / KEILOR RD",
+    "pole": "MAV312-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 312-D, Matthews Avenue, Down Direction",
+    "routes": [
+      "59"
+    ],
+    "suburb": "NIDDRIE",
+    "section": "Matthews Avenue: Keilor Road - Dromana Avenue",
+    "lat": -37.7353614,
+    "lng": 144.8892157
+  },
+  {
+    "code": "NMKT",
+    "name": "RACECOURSE RD / NEWMARKET STATION",
+    "pole": "RCD034-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 034-U, Racecourse Road, Up Direction",
+    "routes": [
+      "57"
+    ],
+    "suburb": "NEWMARKET",
+    "section": "Racecourse Road : Flemington Road - Epsom Road",
+    "lat": -37.7879767,
+    "lng": 144.9287679
+  },
+  {
+    "code": "NPDP",
+    "name": "MILLER ST / PRESTON WORKSHOPS YARD",
+    "pole": "PR-DP165W-YPO",
+    "status": "IN SERVICE",
+    "description": "Pole 165W-Y, Preston Workshops, Yard Pole",
+    "routes": [],
+    "suburb": "PRESTON",
+    "section": "St Georges Road : Brunswick Street - Miller Street",
+    "lat": -37.7509979,
+    "lng": 144.995737
+  },
+  {
+    "code": "NPDP2",
+    "name": "MILLER ST / PRESTON WORKSHOPS",
+    "pole": "MLE008-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 008-D, Miller Street (East), Down Direction",
+    "routes": [],
+    "suburb": "PRESTON",
+    "section": "Miller Street (East) : St Georges Road - Plenty Ro",
+    "lat": -37.751716,
+    "lng": 144.9967463
+  },
+  {
+    "code": "NPRT",
+    "name": "NORTH PORT LIGHT RAIL",
+    "pole": "PMR128-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 128-U, Port Melbourne Light Rail, Up Direction",
+    "routes": [
+      "109",
+      "1142"
+    ],
+    "suburb": "PORT MELBOURNE",
+    "section": "Port Melbourne Light Rail : Whiteman Street - Beac",
+    "lat": -37.8400328,
+    "lng": 144.9333355
+  },
+  {
+    "code": "NRIC",
+    "name": "CHURCH ST / VICTORIA ST",
+    "pole": "CSR004-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 004-D, Church Street Richmond, Down Direction",
+    "routes": [
+      "24",
+      "78",
+      "79",
+      "109"
+    ],
+    "suburb": "NTH RICHMOND",
+    "section": "Church Street Richmond : Victoria Street - Chapel",
+    "lat": -37.811174,
+    "lng": 145.0004626
+  },
+  {
+    "code": "NRIC2",
+    "name": "VICTORIA ST / CHURCH ST SHUNT",
+    "pole": "VSR146-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 146-U, Victoria Street Richmond, Up Direction",
+    "routes": [
+      "24",
+      "78",
+      "79",
+      "109"
+    ],
+    "suburb": "NORTH RICHMOND",
+    "section": "Victoria Street Richmond : Hoddle Street - Barkers",
+    "lat": -37.8106679,
+    "lng": 145.0009049
+  },
+  {
+    "code": "NTHC",
+    "name": "PLENTY RD / DUNDAS ST",
+    "pole": "PRB023U-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 023U-U, Plenty Road, Up Direction",
+    "routes": [
+      "9",
+      "86",
+      "1186"
+    ],
+    "suburb": "PRESTON",
+    "section": "Miller Street (East) : St Georges Road - Plenty Ro",
+    "lat": -37.7522478,
+    "lng": 145.001875
+  },
+  {
+    "code": "ORDA",
+    "name": "DANDENONG RD / ORRONG RD",
+    "pole": "DRP050-MPO",
+    "status": "IN SERVICE",
+    "description": "Pole 050-M, Dandenong Road Prahran, Middle Direction",
+    "routes": [
+      "5",
+      "64"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Dandenong Road Prahran : Chapel Street Prahran - G",
+    "lat": -37.8602751,
+    "lng": 145.0109377
+  },
+  {
+    "code": "ORHI",
+    "name": "HIGH ST / ORRONG RD",
+    "pole": "HSP079-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 079-U, High Street Prahran, Up Direction",
+    "routes": [
+      "6"
+    ],
+    "suburb": "ARMADALE",
+    "section": "High Street Prahran : St Kilda Road - Malvern Road",
+    "lat": -37.8543996,
+    "lng": 145.0117808
+  },
+  {
+    "code": "ORMA",
+    "name": "MALVERN RD / ORRONG RD",
+    "pole": "MLV089-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 089-D, Malvern Road, Down Direction",
+    "routes": [
+      "72",
+      "220"
+    ],
+    "suburb": "TOORAK",
+    "section": "Malvern Road : Commercial Road - Burke Road",
+    "lat": -37.8491861,
+    "lng": 145.0120806
+  },
+  {
+    "code": "ORTO",
+    "name": "TOORAK RD / ORRONG RD",
+    "pole": "TRT124-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 124-U, Toorak Road South Yarra, Up Direction",
+    "routes": [
+      "8"
+    ],
+    "suburb": "TOORAK",
+    "section": "Toorak Road South Yarra : Park Street South Yarra",
+    "lat": -37.8416904,
+    "lng": 145.0133344
+  },
+  {
+    "code": "PACL",
+    "name": "PARK ST / CLARENDON ST",
+    "pole": "PSM065ADPO",
+    "status": "IN SERVICE",
+    "description": "Pole 065AD, Park Street South Melb (Rte 1), Down Direction",
+    "routes": [
+      "1",
+      "1-1",
+      "10",
+      "22"
+    ],
+    "suburb": "South Melbourne",
+    "section": "Clarendon Street : Spencer Street Bridge - Albert",
+    "lat": -37.8353006,
+    "lng": 144.9617636
+  },
+  {
+    "code": "PANI",
+    "name": "NICHOLSON ST / PARK ST",
+    "pole": "NSF177-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 177-D, Nicholson Street Fitzroy, Down Direction",
+    "routes": [
+      "96"
+    ],
+    "suburb": "North Fitzroy",
+    "section": "Nicholson Street Fitzroy : Spring Street - Blyth Street",
+    "lat": -37.7808505,
+    "lng": 144.977853
+  },
+  {
+    "code": "PAWE",
+    "name": "PARK ST / WELLS ST",
+    "pole": "PKS018-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 019-U, Park Street South Melbourne (Rte 55), Up Direction",
+    "routes": [
+      "98"
+    ],
+    "suburb": "ALBERT PARK",
+    "section": "Park Street South Melbourne (Rte 55) : St Kilda Ro",
+    "lat": -37.8329669,
+    "lng": 144.9697859
+  },
+  {
+    "code": "PKVL",
+    "name": "BRUNSWICK RD / ROYAL PDE",
+    "pole": "SRB165-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 165-U, Sydney Road Brunswick, Up Direction",
+    "routes": [
+      "19",
+      "19-1"
+    ],
+    "suburb": "PARKVILLE",
+    "section": "Royal Parade : Elizabeth Street - Sydney Road",
+    "lat": -37.7777206,
+    "lng": 144.9603678
+  },
+  {
+    "code": "PMLB",
+    "name": "PORT MELBOURNE STATION / LIGHT RAIL",
+    "pole": "PMR131-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 131-U, Port Melbourne Light Rail, Up Direction",
+    "routes": [
+      "109",
+      "1142"
+    ],
+    "suburb": "PORT MELBOURNE",
+    "section": "Port Melbourne Light Rail : Whiteman Street - Beac",
+    "lat": -37.8405331,
+    "lng": 144.9329715
+  },
+  {
+    "code": "PRCH",
+    "name": "CHURCH ST / SE FWY",
+    "pole": "CSR076-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 076-D, Church Street Richmond, Down Direction",
+    "routes": [
+      "78"
+    ],
+    "suburb": "RICHMOND",
+    "section": "Church Street Richmond : Victoria Street - Chapel Street Prahran",
+    "lat": -37.8325238,
+    "lng": 144.9968025
+  },
+  {
+    "code": "PRLY",
+    "name": "LYGON ST / PRINCES ST",
+    "pole": "LGB120-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 120-U, Lygon Street, Up Direction",
+    "routes": [
+      "1",
+      "22"
+    ],
+    "suburb": "CARLTON",
+    "section": "Lygon Street : Elgin Street - Holmes Street",
+    "lat": -37.792741,
+    "lng": 144.9684367
+  },
+  {
+    "code": "PRTJ",
+    "name": "WHITEMAN ST / PORT JUNCTION LIGHT RAIL",
+    "pole": "WHS008-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 008-U, Whiteman Street, Up Direction",
+    "routes": [
+      "96",
+      "109"
+    ],
+    "suburb": "South Melbourne",
+    "section": "Port Melbourne Light Rail : Whiteman Street - Beac",
+    "lat": -37.8267933,
+    "lng": 144.9551723
+  },
+  {
+    "code": "PTDP",
+    "name": "PLENTY RD / PRESTON DEPOT",
+    "pole": "PRB052A-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 052AD, Plenty Road, Down Direction",
+    "routes": [
+      "9",
+      "86",
+      "1186"
+    ],
+    "suburb": "PRESTON",
+    "section": "Plenty Road : High Street Northcote - McKimmies Ro",
+    "lat": -37.7447705,
+    "lng": 145.0067109
+  },
+  {
+    "code": "PUSW",
+    "name": "PUNT RD / SWAN ST (Crossover)",
+    "pole": "SWS056A-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 056A-U, Swan Street, Up Direction",
+    "routes": [
+      "70",
+      "121",
+      "1121"
+    ],
+    "suburb": "RICHMOND",
+    "section": "Swan Street : Melbourne Park - Wallen Road",
+    "lat": -37.8246242,
+    "lng": 144.9879583
+  },
+  {
+    "code": "PUWE",
+    "name": "WELLINGTON PARADE TERMINUS",
+    "pole": "WPE003-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 003-U, Wellington Parade, Up Direction",
+    "routes": [
+      "10",
+      "48",
+      "71",
+      "74",
+      "75",
+      "174"
+    ],
+    "suburb": "RICHMOND",
+    "section": "Bridge Road : Punt Road - Church Street, Hawthorn",
+    "lat": -37.8168556,
+    "lng": 144.9890062
+  },
+  {
+    "code": "QUBO",
+    "name": "BOURKE ST / QUEEN ST (BOURKE ST CROSSOVER)",
+    "pole": "BSC023-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 023-D, Bourke Street City, Down Direction",
+    "routes": [
+      "43",
+      "86",
+      "95",
+      "96",
+      "1235"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Bourke Street City : Spencer Street - Spring Street",
+    "lat": -37.8150265,
+    "lng": 144.9601738
+  },
+  {
+    "code": "QUSM",
+    "name": "QUEENS PDE / SMITH ST",
+    "pole": "QPD086A-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 086A-U, Queens Parade, Up Direction",
+    "routes": [
+      "86"
+    ],
+    "suburb": "CLIFTON HILL",
+    "section": "Queens Parade : Smith Street Collingwood - High St",
+    "lat": -37.790866,
+    "lng": 144.9858367
+  },
+  {
+    "code": "QUSW",
+    "name": "SWANSTON ST / QUEENSBERRY ST",
+    "pole": "SWC166-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 166-D, Swanston Street, Down Direction",
+    "routes": [
+      "1",
+      "2",
+      "3"
+    ],
+    "suburb": "CARLTON",
+    "section": "Swanston Street : Elgin Street - St Kilda Road",
+    "lat": -37.8038948,
+    "lng": 144.9635178
+  },
+  {
+    "code": "RCHX",
+    "name": "ROYAL CHILDRENS HOSPITAL (CROSSOVER)",
+    "pole": "FRD027-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 027-U, Flemington Road, Up Direction",
+    "routes": [
+      "12",
+      "30",
+      "48",
+      "109"
+    ],
+    "suburb": "PARKVILLE",
+    "section": "Flemington Road : Elizabeth Street - Mt Alexander Road Essendon",
+    "lat": -37.7951065,
+    "lng": 144.9495175
+  },
+  {
+    "code": "RCRD",
+    "name": "FLEMINGTON RD / RACECOURSE RD",
+    "pole": "FRD052-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 052-D, Flemington Road, Down Direction",
+    "routes": [
+      "57",
+      "59"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Flemington Road : Elizabeth Street - Mt Alexander",
+    "lat": -37.7897166,
+    "lng": 144.942511
+  },
+  {
+    "code": "RIGO",
+    "name": "RIVER ST / GORDON ST",
+    "pole": "RST042-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 042-U, River Street, Up Direction",
+    "routes": [
+      "82"
+    ],
+    "suburb": "MARIBYRNONG",
+    "section": "River Street : Rosamond Road - Gordon Street",
+    "lat": -37.7800538,
+    "lng": 144.8912766
+  },
+  {
+    "code": "RMDE",
+    "name": "BURWOOD RD / CHURCH ST",
+    "pole": "BRH045-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 045-D, Burwood Road, Down Direction",
+    "routes": [
+      "10",
+      "48",
+      "71",
+      "74",
+      "75",
+      "174"
+    ],
+    "suburb": "Hawthorn",
+    "section": "Burwood Road : Church Street, Hawthorn - Power Str",
+    "lat": -37.8198996,
+    "lng": 145.0165542
+  },
+  {
+    "code": "RMDW",
+    "name": "BRIDGE RD / RIVER ST",
+    "pole": "BRR161-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 161-D, Bridge Road, Down Direction",
+    "routes": [
+      "10",
+      "48",
+      "71",
+      "74",
+      "75",
+      "174"
+    ],
+    "suburb": "RICHMOND",
+    "section": "Bridge Road : Punt Road - Church Street, Hawthorn",
+    "lat": -37.8198153,
+    "lng": 145.012157
+  },
+  {
+    "code": "RPRK",
+    "name": "ROYAL PARK STATION",
+    "pole": "RPK059-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 059-D, Royal Park, Down Direction",
+    "routes": [
+      "58"
+    ],
+    "suburb": "PARKVILLE",
+    "section": "Royal Park : Flemington Road - Grantham Street",
+    "lat": -37.7808881,
+    "lng": 144.950623
+  },
+  {
+    "code": "RUBO",
+    "name": "BOURKE ST / RUSSELL ST (BOURKE ST CROSSOVER)",
+    "pole": "BSC052-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 052-U, Bourke Street City, Up Direction",
+    "routes": [
+      "86",
+      "96"
+    ],
+    "suburb": "Melbourne",
+    "section": "Bourke Street City : Spencer Street - Spring Street",
+    "lat": -37.8125857,
+    "lng": 144.9692369
+  },
+  {
+    "code": "RUCO",
+    "name": "COLLINS ST / RUSSELL ST",
+    "pole": "CSC043-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 043-D, Collins Street City, Down Direction",
+    "routes": [
+      "11",
+      "11-1",
+      "12",
+      "109"
+    ],
+    "suburb": "Melbourne",
+    "section": "Collins Street City : Spencer Street - Spring Stre",
+    "lat": -37.8146249,
+    "lng": 144.9691397
+  },
+  {
+    "code": "RVDL",
+    "name": "RIVERSDALE RD / COMPTON ST",
+    "pole": "RVR143-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 143-D, Riversdale Road, Down Direction",
+    "routes": [
+      "70"
+    ],
+    "suburb": "CAMBERWELL",
+    "section": "Riversdale Road : Wallen Road - Elgar Road",
+    "lat": -37.8342222,
+    "lng": 145.0832471
+  },
+  {
+    "code": "SBDP",
+    "name": "SOUTHBANK DEPOT",
+    "pole": "SB-DP010-YPO",
+    "status": "IN SERVICE",
+    "description": "Pole 010-Y, South Bank Depot, Yard Pole",
+    "routes": [
+      "109",
+      "1142"
+    ],
+    "suburb": "South Melbourne",
+    "section": "Port Melbourne Light Rail : Whiteman Street - Beac",
+    "lat": -37.8280718,
+    "lng": 144.9526833
+  },
+  {
+    "code": "SCFD",
+    "name": "HAWTHORN RD / NORTH RD",
+    "pole": "HRC122AUPO",
+    "status": "IN SERVICE",
+    "description": "Pole 122AU, Hawthorn Road, Up Direction",
+    "routes": [
+      "64",
+      "164"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Hawthorn Road : Dandenong Road Prahran - Nepean Hi",
+    "lat": -37.901488,
+    "lng": 145.0190502
+  },
+  {
+    "code": "SCJ1",
+    "name": "GLENHUNTLY RD / HAWTHORN RD",
+    "pole": "GHR119-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 119-U, Glenhuntly Road, Up Direction",
+    "routes": [
+      "64",
+      "67",
+      "164",
+      "167"
+    ],
+    "suburb": "GLENHUNTLY",
+    "section": "Glenhuntly Road : Brighton Road - Truganini Road",
+    "lat": -37.8869771,
+    "lng": 145.0221161
+  },
+  {
+    "code": "SHOW",
+    "name": "UNION RD / EPSOM RD",
+    "pole": "URD081ADPO",
+    "status": "IN SERVICE",
+    "description": "Pole 081AD, Union Road, Down Direction",
+    "routes": [
+      "57"
+    ],
+    "suburb": "ASCOTVALE",
+    "section": "Union Road : Epsom Road - Maribyrnong Road",
+    "lat": -37.7803195,
+    "lng": 144.9146786
+  },
+  {
+    "code": "SIMP",
+    "name": "WELLINGTON PDE / SIMPSON ST (CROSSOVER)",
+    "pole": "WPE090A-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 090A-U, Wellington Parade, Up Direction.",
+    "routes": [
+      "10",
+      "48",
+      "71",
+      "74",
+      "75",
+      "174"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Spring Street - Bridge Road",
+    "lat": -37.8166259,
+    "lng": 144.9864076
+  },
+  {
+    "code": "SKCO",
+    "name": "ST KILDA RD / COMMERCIAL RD (St Kilda Rd)",
+    "pole": "STK097-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 097-D, St Kilda Road, Down Direction",
+    "routes": [
+      "3",
+      "5",
+      "6",
+      "16",
+      "64",
+      "72"
+    ],
+    "suburb": "Melbourne",
+    "section": "Commercial Road : St Kilda Road - Chapel Street Pr",
+    "lat": -37.8447666,
+    "lng": 144.9787955
+  },
+  {
+    "code": "SKCO2",
+    "name": "ST KILDA RD / COMMERCIAL RD (Commercial Rd)",
+    "pole": "CMR002-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 002-U, Commercial Road, Up Direction",
+    "routes": [
+      "3",
+      "5",
+      "6",
+      "16",
+      "64",
+      "72"
+    ],
+    "suburb": "Melbourne",
+    "section": "Commercial Road : St Kilda Road - Chapel Street Pr",
+    "lat": -37.8450424,
+    "lng": 144.9793413
+  },
+  {
+    "code": "SKHI",
+    "name": "HIGH ST / ST KILDA RD (Crossover)",
+    "pole": "HSP002-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 002-U, High Street Prahran, Up Direction",
+    "routes": [
+      "3",
+      "5",
+      "6",
+      "16",
+      "64",
+      "67"
+    ],
+    "suburb": "MELBOURNE, 3004",
+    "section": "High Street Prahran : St Kilda Road - Malvern Road",
+    "lat": -37.8503613,
+    "lng": 144.981322
+  },
+  {
+    "code": "SKRS",
+    "name": "FITZROY ST / ST KILDA STATION",
+    "pole": "FZS019-MPO",
+    "status": "IN SERVICE",
+    "description": "Pole 019-M, Fitzroy Street, Middle Direction",
+    "routes": [
+      "4",
+      "16",
+      "17",
+      "20",
+      "96",
+      "116",
+      "196",
+      "1196"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Fitzroy Street St Kilda : St Kilda Rd - Esplanade",
+    "lat": -37.8596556,
+    "lng": 144.9775712
+  },
+  {
+    "code": "SMBH",
+    "name": "VICTORIA AV / BEACONSFIELD PDE",
+    "pole": "VAP135-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 135-U, Victoria Avenue, Up Direction",
+    "routes": [
+      "1",
+      "22"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Victoria Avenue : Bridport Street - Beaconsfield P",
+    "lat": -37.8471332,
+    "lng": 144.9486217
+  },
+  {
+    "code": "SMLB",
+    "name": "SOUTH MELBOURNE STATION / ST KILDA LIGHT RAIL",
+    "pole": "SKR072-UTP",
+    "status": "IN SERVICE",
+    "description": "Portal Structure 072-U, St Kilda Light Rail, Up Direction",
+    "routes": [
+      "96",
+      "196",
+      "1196"
+    ],
+    "suburb": "SOUTH MELBOURNE",
+    "section": "St Kilda Light Rail : Whiteman Street - Fitzroy St",
+    "lat": -37.8329593,
+    "lng": 144.9552435
+  },
+  {
+    "code": "SMLP",
+    "name": "ALBERT RD / SOUTH MELBOURNE LOOP",
+    "pole": "ARS081-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 081-U, Albert Road, Up Direction",
+    "routes": [
+      "12"
+    ],
+    "suburb": "South Melbourne",
+    "section": "Albert Road : Clarendon Street - Canterbury Road",
+    "lat": -37.8394878,
+    "lng": 144.9633003
+  },
+  {
+    "code": "SMSK",
+    "name": "PARK ST / FITZROY ST SHUNT 2SP",
+    "pole": "PSK064-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 064-U, Park Street St Kilda, Up Direction",
+    "routes": [
+      "4",
+      "112",
+      "16",
+      "17",
+      "20",
+      "96"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Park Street St Kilda : Patterson Street - Fitzroy",
+    "lat": -37.8609144,
+    "lng": 144.9741941
+  },
+  {
+    "code": "SMSK2",
+    "name": "FITZROY ST / PARK ST SHUNT",
+    "pole": "FZS027-MPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 027-M, Fitzroy St, St Kilda, M",
+    "routes": [
+      "4",
+      "112",
+      "16",
+      "17",
+      "20",
+      "96"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Fitzroy Street St Kilda : St Kilda Rd - Esplanade",
+    "lat": -37.8612391,
+    "lng": 144.9749038
+  },
+  {
+    "code": "SODO",
+    "name": "SOUTHBANK BLVD / DODDS ST",
+    "pole": "SBB006-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 006-U-001, Southbank Boulevard, Up Direction.",
+    "routes": [
+      "1",
+      "1-1",
+      "3",
+      "5",
+      "6",
+      "8",
+      "16",
+      "22",
+      "22-1",
+      "64",
+      "67",
+      "72"
+    ],
+    "suburb": "Melbourne",
+    "section": "Southbank Boulevard : St Kilda Road - Sturt Street",
+    "lat": -37.8234784,
+    "lng": 144.9691057
+  },
+  {
+    "code": "SORX",
+    "name": "STKILDA RD (Shrine Of Remembrance)",
+    "pole": "STK040-UPO",
+    "status": "IN SERVICE",
+    "description": "STKILDA RD (Shrine Of Remembrance)",
+    "routes": [
+      "1",
+      "1-1",
+      "3",
+      "5",
+      "6",
+      "8",
+      "16",
+      "22",
+      "22-1",
+      "64",
+      "67",
+      "72"
+    ],
+    "suburb": "Melbourne",
+    "section": "St Kilda Road : Flinders Street - Brighton Road",
+    "lat": -37.8309571,
+    "lng": 144.9712405
+  },
+  {
+    "code": "SPBO",
+    "name": "BOURKE ST / SPENCER ST (Bourke St SHUNT)",
+    "pole": "BSC004-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 004-D, Bourke Street City, Down Direction",
+    "routes": [
+      "43",
+      "86",
+      "95",
+      "96"
+    ],
+    "suburb": "MELBOURNE",
+    "section": "Spencer Street : LaTrobe Street - Flinders Street",
+    "lat": -37.81722,
+    "lng": 144.9534521
+  },
+  {
+    "code": "SPCO",
+    "name": "COLLINS ST / SPENCER ST (Collins St SHUNT)",
+    "pole": "CSC004-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 004-U, Collins Street City, Up Direction",
+    "routes": [
+      "10",
+      "11",
+      "12",
+      "31",
+      "48",
+      "74",
+      "96",
+      "109",
+      "112"
+    ],
+    "suburb": "MELBOURNE",
+    "section": "Spencer Street : LaTrobe Street - Flinders Street",
+    "lat": -37.8187849,
+    "lng": 144.9554765
+  },
+  {
+    "code": "SPFL",
+    "name": "FLINDERS ST / SPENCER ST",
+    "pole": "FSC001-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 001-U, Flinders Street City, Up Direction",
+    "routes": [
+      "10",
+      "11",
+      "35"
+    ],
+    "suburb": "MELBOURNE",
+    "section": "Spencer Street : LaTrobe Street - Flinders Street",
+    "lat": -37.8211977,
+    "lng": 144.9553237
+  },
+  {
+    "code": "STKB",
+    "name": "ACLAND ST / BARKLY ST",
+    "pole": "ASS077-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 077-U, Acland Street, Up Direction",
+    "routes": [
+      "96",
+      "196",
+      "1196"
+    ],
+    "suburb": "StKILDA",
+    "section": "Acland Street : Esplanade - Barkly Street",
+    "lat": -37.8690594,
+    "lng": 144.9800886
+  },
+  {
+    "code": "STKJ",
+    "name": "ST KILDA RD / ST KILDA JUNCTION",
+    "pole": "STK137-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 137-D, St Kilda Road, Down Direction",
+    "routes": [
+      "2",
+      "3",
+      "4",
+      "5",
+      "16",
+      "17",
+      "20",
+      "53",
+      "64",
+      "67",
+      "103",
+      "104",
+      "105"
+    ],
+    "suburb": "STKILDA",
+    "section": "St Kilda Road : Flinders Street - Brighton Road",
+    "lat": -37.8553551,
+    "lng": 144.9825565
+  },
+  {
+    "code": "SWCH",
+    "name": "SWAN ST / CHURCH ST",
+    "pole": "SWS079AUPO",
+    "status": "IN SERVICE",
+    "description": "Pole 079AU, Swan Street, Up Direction",
+    "routes": [
+      "70",
+      "78",
+      "79",
+      "121"
+    ],
+    "suburb": "RICHMOND",
+    "section": "Swan Street : Melbourne Park - Wallen Road",
+    "lat": -37.8257747,
+    "lng": 144.9980936
+  },
+  {
+    "code": "SYBL",
+    "name": "SYDNEY RD / BLYTH ST",
+    "pole": "SRB207-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 207-U, Sydney Road Brunswick, Up Direction",
+    "routes": [
+      "19"
+    ],
+    "suburb": "BRUNSWICK",
+    "section": "Sydney Road Brunswick : Royal Parade - Moreland Ro",
+    "lat": -37.7657181,
+    "lng": 144.9624444
+  },
+  {
+    "code": "THBY",
+    "name": "ST GEORGES RD / MILLER ST 2SP",
+    "pole": "SGN217-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 217-U, St Georges Road, Up Direction",
+    "routes": [
+      "11"
+    ],
+    "suburb": "Thornbury",
+    "section": "St Georges Road : Brunswick Street - Miller Street",
+    "lat": -37.7523619,
+    "lng": 144.9949392
+  },
+  {
+    "code": "THBY2",
+    "name": "MILLER ST / ST GEORGES RD",
+    "pole": "MLW004-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 004-D, Miller Street (West), Down Direction",
+    "routes": [
+      "11"
+    ],
+    "suburb": "Preston",
+    "section": "Miller Street (West) : St Georges Road - Gilbert Road",
+    "lat": -37.7517652,
+    "lng": 144.9945062
+  },
+  {
+    "code": "TOCH",
+    "name": "TOORAK RD / CHAPEL ST",
+    "pole": "TRT076-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 076-U, Toorak Road South Yarra, Up Direction",
+    "routes": [
+      "8",
+      "78",
+      "79"
+    ],
+    "suburb": "SOUTH YARRA",
+    "section": "Toorak Road South Yarra : Park Street South Yarra",
+    "lat": -37.8395553,
+    "lng": 144.9954513
+  },
+  {
+    "code": "TOHI",
+    "name": "HIGH ST / TOORAK RD",
+    "pole": "HSP156-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 156-U, High Street Prahran, Up Direction",
+    "routes": [
+      "6"
+    ],
+    "suburb": "GLEN IRIS",
+    "section": "High Street Prahran : St Kilda Road - Malvern Road",
+    "lat": -37.8581671,
+    "lng": 145.0405786
+  },
+  {
+    "code": "TOMI",
+    "name": "TOORAK RD / MILLSWYN ST",
+    "pole": "TRW016-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 016-U, Toorak Road West, South Yarra, Up Direction",
+    "routes": [
+      "58"
+    ],
+    "suburb": "SOUTH YARRA",
+    "section": "Toorak Road West South Yarra : St Kilda Road South",
+    "lat": -37.8376038,
+    "lng": 144.9800171
+  },
+  {
+    "code": "TOOP",
+    "name": "TOORAK RD / PUNT RD",
+    "pole": "TRT052-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 052-U, Toorak Road South Yarra, Up Direction",
+    "routes": [
+      "8"
+    ],
+    "suburb": "SOUTH YARRA",
+    "section": "Toorak Road South Yarra : Park Street South Yarra",
+    "lat": -37.8383793,
+    "lng": 144.9863514
+  },
+  {
+    "code": "TRAK",
+    "name": "TOORAK RD / GLENFERRIE RD",
+    "pole": "TRT168-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 168-U, Toorak Road South Yarra, Up Direction",
+    "routes": [
+      "8"
+    ],
+    "suburb": "TOORAK",
+    "section": "Toorak Road South Yarra : Park Street South Yarra",
+    "lat": -37.8437087,
+    "lng": 145.0301307
+  },
+  {
+    "code": "TYPL",
+    "name": "PLENTY RD / TYLER ST",
+    "pole": "PRB106-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 106-U, Plenty Road, Up Direction",
+    "routes": [
+      "86",
+      "1186"
+    ],
+    "suburb": "PRESTON",
+    "section": "Plenty Road : High Street Northcote - McKimmies Ro",
+    "lat": -37.731004,
+    "lng": 145.0147469
+  },
+  {
+    "code": "UNIV",
+    "name": "SWANSTON ST / ELGIN ST PLATFORM",
+    "pole": "SWC148-MPO",
+    "status": "IN SERVICE",
+    "description": "Pole 148-M, Swanston Street, Middle Direction",
+    "routes": [
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "suburb": "CARLTON",
+    "section": "Swanston Street : Elgin Street - St Kilda Road",
+    "lat": -37.798941,
+    "lng": 144.9642321
+  },
+  {
+    "code": "UNIV2",
+    "name": "SWANSTON ST / ELGIN ST SHUNT 1",
+    "pole": "SWC145-MPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 145-M, Swanston Street, Middle Direction",
+    "routes": [
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "suburb": "CARLTON",
+    "section": "Swanston Street : Elgin Street - St Kilda Road",
+    "lat": -37.798061,
+    "lng": 144.9644082
+  },
+  {
+    "code": "UNIV3",
+    "name": "SWANSTON ST / ELGIN ST SHUNT 2",
+    "pole": "SWC144-MPO",
+    "status": "IN SERVICE",
+    "description": "Pole 144-M, Swanston Street, Middle Direction",
+    "routes": [
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "suburb": "CARLTON",
+    "section": "Swanston Street : Elgin Street - St Kilda Road",
+    "lat": -37.7976908,
+    "lng": 144.9644693
+  },
+  {
+    "code": "VBDG",
+    "name": "VICTORIA ST SHUNT",
+    "pole": "VSR178A-MPO",
+    "status": "IN SERVICE",
+    "description": "Pole 178A-M, VSR, Middle direction",
+    "routes": [
+      "109"
+    ],
+    "suburb": "Richmond. 3121",
+    "section": "Victoria Street Richmond : Hoddle Street - Barkers",
+    "lat": -37.8116926,
+    "lng": 145.012253
+  },
+  {
+    "code": "VICT",
+    "name": "ELIZABETH ST / VICTORIA ST (Victoria St Shunt)",
+    "pole": "VSN012-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 012-U, Victoria Street North Melbourne, Up Direction",
+    "routes": [
+      "19",
+      "19-1",
+      "57",
+      "59",
+      "68"
+    ],
+    "suburb": "MELBOURNE",
+    "section": "Victoria Street North Melbourne : Elizabeth Street - Errol Street",
+    "lat": -37.8060755,
+    "lng": 144.9587844
+  },
+  {
+    "code": "VIHA",
+    "name": "COLLINS ST / DOCKLANDS VICTORIA HARBOUR TERMINUS",
+    "pole": "CSD044X-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 035X-U, CSD, Up Direction",
+    "routes": [
+      "11",
+      "31",
+      "48"
+    ],
+    "suburb": "DOCKLANDS",
+    "section": "Collins Street Docklands : Collins St Docklands Te",
+    "lat": -37.8209489,
+    "lng": 144.9421571
+  },
+  {
+    "code": "VIHO",
+    "name": "VICTORIA PDE / HODDLE ST",
+    "pole": "VPE116A-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 116A-U, Victoria Parade East Melbourne, Up Direction",
+    "routes": [
+      "23",
+      "24",
+      "109"
+    ],
+    "suburb": "COLLINGWOOD",
+    "section": "Victoria Parade East Melbourne : Latrobe Street -",
+    "lat": -37.809839,
+    "lng": 144.9907871
+  },
+  {
+    "code": "VILE",
+    "name": "VICTORIA PDE / LEVESON ST",
+    "pole": "VSN033-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 033-U, Victoria Street North Melbourne, Up Direction",
+    "routes": [
+      "57",
+      "59-1"
+    ],
+    "suburb": "North Melbourne",
+    "section": "Victoria Street North Melbourne : Elizabeth Street",
+    "lat": -37.8052229,
+    "lng": 144.9509703
+  },
+  {
+    "code": "VINI",
+    "name": "VICTORIA PDE / NICHOLSON ST",
+    "pole": "VPE068-UPO",
+    "status": "IN SERVICE",
+    "description": "Traffic Light Pole - Not Yarra Trams Pole (nearest asset is VPE068-UPO)",
+    "routes": [
+      "23",
+      "24",
+      "35",
+      "86",
+      "98"
+    ],
+    "suburb": "EAST MELBOURNE 3002",
+    "section": "Victoria Parade East Melbourne : Latrobe Street - Hoddle Street",
+    "lat": -37.8080201,
+    "lng": 144.973025
+  },
+  {
+    "code": "VSTH",
+    "name": "BURWOOD HWY / HANOVER RD",
+    "pole": "BHE250-MPO",
+    "status": "IN SERVICE",
+    "description": "Pole 250-M, Burwood Highway, Middle Direction",
+    "routes": [
+      "75"
+    ],
+    "suburb": "VERMONT SOUTH",
+    "section": "Burwood Highway : Toorak Road - Hanover road",
+    "lat": -37.8564371,
+    "lng": 145.1818695
+  },
+  {
+    "code": "WADA",
+    "name": "DANDENONG RD / WATTLETREE RD",
+    "pole": "DRP059-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 059-D, Dandenong Road Prahran, Down Direction",
+    "routes": [
+      "55",
+      "57",
+      "59",
+      "68"
+    ],
+    "suburb": "North Melbourne",
+    "section": "Dandenong Road Prahran : Chapel Street Prahran - Glenferrie Road",
+    "lat": -37.8607578,
+    "lng": 145.0148857
+  },
+  {
+    "code": "WAFO",
+    "name": "FOOTSCRAY RD / WATERFRONT WAY",
+    "pole": "FSR010-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 010-U, Footscray Road, Up Direction",
+    "routes": [
+      "30"
+    ],
+    "suburb": "DOCKLANDS",
+    "section": "Footscray Road : -",
+    "lat": -37.8113771,
+    "lng": 144.9406301
+  },
+  {
+    "code": "WAFO2",
+    "name": "FOOTSCRAY RD / LITTLE DOCKLANDS DR",
+    "pole": "FSR006-MPO",
+    "status": "IN SERVICE",
+    "description": "Pole 006-M, Footscray Road, Middle Position",
+    "routes": [
+      "30"
+    ],
+    "suburb": "DOCKLANDS",
+    "section": "Footscray Road : -",
+    "lat": -37.8118924,
+    "lng": 144.9415595
+  },
+  {
+    "code": "WARI",
+    "name": "RIVERSDALE RD / WARRIGAL RD",
+    "pole": "RVR180-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 180-D, Riversdale Road, Down Direction",
+    "routes": [
+      "70"
+    ],
+    "suburb": "BURWOOD",
+    "section": "Riversdale Road : Wallen Road - Elgar Road",
+    "lat": -37.8358969,
+    "lng": 145.0981071
+  },
+  {
+    "code": "WBWK",
+    "name": "MELVILLE RD / MORELAND RD (AT CROSSOVER NTH MELVILLE RD)",
+    "pole": "MLR184-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 184-D, Melville Road, Down Direction",
+    "routes": [
+      "55",
+      "68(SUN)"
+    ],
+    "suburb": "PASCOE VALE SOUTH",
+    "section": "Melville Road : Dawson Street - Bell Street",
+    "lat": -37.7514633,
+    "lng": 144.9459925
+  },
+  {
+    "code": "WCCT",
+    "name": "SPENCER ST / WORLD TRADE CENTRE",
+    "pole": "SSB003-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 003-D, Spencer Street Bridge, Down Direction",
+    "routes": [
+      "96",
+      "109",
+      "112"
+    ],
+    "suburb": "DOCKLANDS 3008",
+    "section": "Spencer Street Bridge : Flinders Street - Clarendon Street",
+    "lat": -37.8218865,
+    "lng": 144.9555885
+  },
+  {
+    "code": "WCOB",
+    "name": "MELVILLE RD / BELL ST",
+    "pole": "MLR223A-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 223A-U, Melville Road, Up Direction",
+    "routes": [
+      "55",
+      "68 (SUN)"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Melville Road : Dawson Street - Bell Street",
+    "lat": -37.7403882,
+    "lng": 144.9456048
+  },
+  {
+    "code": "WEHI",
+    "name": "HIGH ST / WESTGARTH ST",
+    "pole": "HSN138-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 138-U, High Street Northcote, Up Direction",
+    "routes": [
+      "86"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "High Street Northcote : Queens Parade - Plenty Roa",
+    "lat": -37.7811925,
+    "lng": 144.9967766
+  },
+  {
+    "code": "WERA",
+    "name": "RALEIGH RD / WEST ST",
+    "pole": "RRD201-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 201-D, Raleigh Road, Down Direction",
+    "routes": [
+      "57",
+      "82"
+    ],
+    "suburb": "WEST MARIBYRNONG",
+    "section": "Raleigh Road : Maribyrnong Road - Cordite Avenue",
+    "lat": -37.7695229,
+    "lng": 144.8833327
+  },
+  {
+    "code": "WHCL",
+    "name": "CLARENDON ST / WHITEMAN ST",
+    "pole": "CSM011-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 011-D, Clarendon Street, Down Direction",
+    "routes": [
+      "96",
+      "112"
+    ],
+    "suburb": "SOUTH MELBOURNE",
+    "section": "Clarendon Street : Spencer Street Bridge - Albert Road",
+    "lat": -37.824345,
+    "lng": 144.9564122
+  },
+  {
+    "code": "WHME",
+    "name": "WHITEHORSE RD / MEADOW GVE",
+    "pole": "WHR016-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 016-D, Whitehorse Road, Down Direction",
+    "routes": [
+      "23",
+      "72"
+    ],
+    "suburb": "CAMBERWELL",
+    "section": "Whitehorse Road : Burke Road - Station Street",
+    "lat": -37.8110453,
+    "lng": 145.0668803
+  },
+  {
+    "code": "WIND",
+    "name": "DANDENONG RD / CHAPEL ST",
+    "pole": "QSW033-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 033-D, Queensway, Down Direction",
+    "routes": [
+      "5",
+      "64",
+      "78",
+      "79"
+    ],
+    "suburb": "WINDSOR",
+    "section": "Chapel Street Prahran: Church Street Richmond - Brighton Road",
+    "lat": -37.8575854,
+    "lng": 144.9921778
+  },
+  {
+    "code": "WMAR",
+    "name": "CORDITE AV TERMINUS",
+    "pole": "CAV218-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 218-D, Cordite Avenue, Down Direction",
+    "routes": [
+      "57"
+    ],
+    "suburb": "WEST MARIBYRNONG",
+    "section": "Cordite Avenue : Wests Road - Central Park Avenue",
+    "lat": -37.7688923,
+    "lng": 144.8781058
+  },
+  {
+    "code": "WPRK",
+    "name": "RIVERSDALE RD / ELGAR RD",
+    "pole": "RVR212-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 212-D, Riversdale Road, Down Direction",
+    "routes": [
+      "70"
+    ],
+    "suburb": "SURREY HILLS",
+    "section": "Riversdale Road : Wallen Road - Elgar Road",
+    "lat": -37.8375119,
+    "lng": 145.1102797
+  },
+  {
+    "code": "WPTN",
+    "name": "GILBERT RD / REGENT ST",
+    "pole": "GBR097-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 097-D, Gilbert Road, Down Direction",
+    "routes": [
+      "11"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "Gilbert Road : Miller Street - Union Street",
+    "lat": -37.729245,
+    "lng": 144.9914806
+  },
+  {
+    "code": "WTRE",
+    "name": "WATTLETREE RD (Near Glenferrie Rd Intersection)",
+    "pole": "WTL036-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 036-U, Wattletree Road, Up Direction",
+    "routes": [
+      "5"
+    ],
+    "suburb": "MALVERN",
+    "section": "Wattletree Road: Dandenong Road Prahran - Burke Road",
+    "lat": -37.8624504,
+    "lng": 145.0294214
+  },
+  {
+    "code": "WUHA",
+    "name": "WURUNDJERI WAY / FLINDERS ST",
+    "pole": "FSD026-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 026-U, Flinders Street Docklands, Up Direction",
+    "routes": [
+      "35",
+      "70",
+      "75"
+    ],
+    "suburb": "DOCKLANDS",
+    "section": "Harbour Esplanade : Docklands Drive - Flinders Str",
+    "lat": -37.8223827,
+    "lng": 144.9479872
+  },
+  {
+    "code": "YOVI",
+    "name": "YOUNG ST / VICTORIA ST (SHUNT)",
+    "pole": "VPE082-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 082-D, Victoria Parade East Melbourne, Down Direction",
+    "routes": [
+      "12",
+      "30",
+      "48",
+      "109"
+    ],
+    "suburb": "EAST MELBOURNE",
+    "section": "Victoria Parade East Melbourne : Latrobe Street - Hoddle Street",
+    "lat": -37.8083466,
+    "lng": 144.9779949
+  },
+  {
+    "code": "LISP",
+    "name": "LITTLE COLLINS ST / SPENCER ST",
+    "pole": "SNC010-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 010-U, Spencer Street, Up Direction",
+    "routes": [
+      "43",
+      "86",
+      "95",
+      "96"
+    ],
+    "suburb": "MELBOURNE",
+    "section": "Spencer Street : LaTrobe Street - Flinders Street",
+    "lat": -37.8184268,
+    "lng": 144.9537262
+  },
+  {
+    "code": "VICT2",
+    "name": "ELIZABETH ST / VICTORIA ST (Elizabeth St Shunt)",
+    "pole": "EZT053-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 053-D, Elizabeth Street, Down Direction",
+    "routes": [
+      "19",
+      "19-1",
+      "57",
+      "59",
+      "68"
+    ],
+    "suburb": "MELBOURNE",
+    "section": "Victoria Street North Melbourne : Elizabeth Street - Errol Street",
+    "lat": -37.8057077,
+    "lng": 144.9591188
+  },
+  {
+    "code": "VICX",
+    "name": "VICTORIA ST (Victoria St Shunt - RTE 58 Diversion)",
+    "pole": "VSM004-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 004-U, Victoria Street Melbourne, Up Direction",
+    "routes": [
+      "19",
+      "19-1",
+      "57",
+      "59",
+      "68"
+    ],
+    "suburb": "MELBOURNE",
+    "section": "Victoria Street North Melbourne : Elizabeth Street - Errol Street",
+    "lat": -37.8064769,
+    "lng": 144.9623028
+  },
+  {
+    "code": "HAVX",
+    "name": "CARSLISLE / HAVELOCK STS (Crossover)",
+    "pole": "CSK013-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 013-D, Carlisle Street, Down Direction",
+    "routes": [
+      "4",
+      "16",
+      "17",
+      "20",
+      "79",
+      "96",
+      "116",
+      "196"
+    ],
+    "suburb": "STKILDA",
+    "section": "Carlisle Street : Esplanade - Balaclava Road",
+    "lat": -37.8668581,
+    "lng": 144.9793594
+  },
+  {
+    "code": "WIWE",
+    "name": "WILLIAMSON RD / WESTS RD",
+    "pole": "WLR088A-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 088AU, Williamson Road, Up Direction",
+    "routes": [
+      "82"
+    ],
+    "suburb": "UNKNOWN",
+    "section": "",
+    "lat": -37.7752063,
+    "lng": 144.8819462
+  },
+  {
+    "code": "WIND2",
+    "name": "DANDENONG RD / CHAPEL ST (Crossover)",
+    "pole": "DRP005-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 005-U, Dandenong Road Prahran, Up Direction",
+    "routes": [
+      "5",
+      "64",
+      "78",
+      "79"
+    ],
+    "suburb": "WINDSOR",
+    "section": "Queensway : St Kilda Road - Dandenong Road Prahran",
+    "lat": -37.8579702,
+    "lng": 144.9934226
+  }
+]
