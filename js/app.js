@@ -362,11 +362,32 @@ trams.forEach(function(t){
   t.mk=m;
 });
 
+// ═══════════════════════════════════════════════════════════════
+// OpsView Disruption Logic v5 — Geographic boundary enforcement
+//
+// ROOT CAUSE: routeBlockParams projects crossover lat/lngs onto
+// each route's own shape. For shared-track sections like Collins
+// St, the same physical crossover is at param=6004m on Route 12
+// but param=1241m on Route 48 — because each route starts from
+// a different terminus. The param check works eventually, but
+// trams visually pass through the purple zone on their way to
+// their route-specific boundary.
+//
+// FIX: In the animation loop, for turnback trams, add a
+// GEOGRAPHIC check alongside the param check. If the tram is
+// within 80m of the disruption point, force the reversal
+// regardless of param position.
+//
+// This is a ONE-BLOCK replacement of the anim() function.
+// Everything else (applyDisruptionToTrams, 
+// checkDisruptionOnTerminusReversal) stays as-is.
+// ═══════════════════════════════════════════════════════════════
+
 function anim(){
   var now=Date.now(),needStats=false;
   trams.forEach(function(t){
     var seg=segMs(t.route);
- 
+
     // ── DISRUPTION: TRAPPED — freeze in place, accumulate delay ──
     if(t.blockState==='trapped'){
       if(!t._trappedAt){t._trappedAt=now;t._preTrapDv=t.dv;}
@@ -377,30 +398,51 @@ function anim(){
       needStats=true;
       return;
     }
- 
+
     // ── DISRUPTION: ESCAPING — heading away from incident ──
     // Falls through to normal movement. Cleared at terminus.
- 
+
     // ── DISRUPTION: TURNBACK — reverse at crossover boundary ──
     if(t.blockState==='turnback_south'||t.blockState==='turnback_north'){
       var arr=routeParamArr[t.route];
       if(arr){
-        // Current position in fwd param space
         var fwdCurIdx=(t.dir==='Outbound')?t.si:(arr.length-1-t.si);
         fwdCurIdx=Math.max(0,Math.min(arr.length-1,fwdCurIdx));
         var curParam=arr[fwdCurIdx];
- 
-        var isOutbound=(t.dir==='Outbound');
-        var paramIncreasing=isOutbound;
- 
-        // Has the tram reached or crossed the boundary?
-        // turnback_south: tram is approaching from below, param increasing → triggers at curParam >= blockParam
-        // turnback_north: tram is approaching from above, param decreasing → triggers at curParam <= blockParam
+
+        // ── PARAM-BASED boundary check (route-specific) ──
         var atBoundary=false;
         if(t.blockState==='turnback_south'&&curParam>=t.blockParam) atBoundary=true;
         if(t.blockState==='turnback_north'&&curParam<=t.blockParam) atBoundary=true;
- 
-        // Look-ahead: will the NEXT step cross?
+
+        // ── GEOGRAPHIC proximity check (cross-route safe) ──
+        // On shared track, the param boundary may be far away on THIS
+        // route's shape, but the tram is physically about to enter the
+        // blocked section. Check distance to the disruption's crossovers.
+        if(!atBoundary&&t.blockedByDis){
+          var dis=null;
+          for(var di=0;di<disruptions.length;di++){
+            if(disruptions[di].id===t.blockedByDis){dis=disruptions[di];break;}
+          }
+          if(dis){
+            var pos=tPos(t);
+            // Check proximity to the crossover this tram should turn at
+            var xo=(t.blockState==='turnback_south')?dis.southXO:dis.northXO;
+            if(xo){
+              var distToXO=geoDist(pos[0],pos[1],xo.la,xo.lo);
+              if(distToXO<80) atBoundary=true; // within 80m of crossover = close enough
+            }
+            // Also check: is the tram inside the blocked zone geographically?
+            // (between the two crossovers)
+            if(!atBoundary&&dis.southXO&&dis.northXO){
+              var distToDis=geoDist(pos[0],pos[1],dis.la,dis.lo);
+              // If tram is within 60m of the disruption point itself, definitely reverse
+              if(distToDis<60) atBoundary=true;
+            }
+          }
+        }
+
+        // Look-ahead: will the NEXT step cross the param boundary?
         var nextCrosses=false;
         if(!atBoundary&&now-t.lt>=seg){
           var nextSi2=t.si+1;
@@ -412,7 +454,7 @@ function anim(){
             if(t.blockState==='turnback_north'&&nextParam<=t.blockParam) nextCrosses=true;
           }
         }
- 
+
         if(atBoundary||nextCrosses){
           // ── REVERSE IN PLACE at crossover ──
           var oldSi=t.si,pathLen=t.path.length;
@@ -434,7 +476,7 @@ function anim(){
       }
       // Not yet at boundary — fall through to normal advance
     }
- 
+
     // ── NORMAL MOVEMENT ──
     if(now-t.lt>=seg){
       t.lt=now;t.pr=0;t.si++;
@@ -448,12 +490,12 @@ function anim(){
         var dd2=DIR_DATA[t.route];if(dd2)t.updnDest=t.updn==='Down'?dd2.dn:dd2.up;
         if(Math.random()<.3)t.dv+=Math.floor(Math.random()*61)-30;
         t.dv=Math.max(-180,Math.min(900,t.dv));
- 
+
         // ── Clear escaping state at terminus ──
         if(t.blockState==='escaping'){
           delete t.blockedByDis;delete t.blockState;delete t._disBaselineDv;
         }
- 
+
         // ── Check if tram should now short-work ──
         if(disruptions.length>0&&!t.blockedByDis){
           checkDisruptionOnTerminusReversal(t);
