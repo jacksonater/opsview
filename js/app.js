@@ -378,30 +378,38 @@ function anim(){
       return;
     }
  
-    // ── DISRUPTION: ESCAPING — heading away from incident, normal movement ──
-    // (falls through to normal advance below — no special handling needed
-    //  except clearing state at terminus, which happens in the terminus block)
+    // ── DISRUPTION: ESCAPING — heading away from incident ──
+    // Falls through to normal movement. Cleared at terminus.
  
-    // ── DISRUPTION: TURNBACK — reverse at the crossover boundary ──
+    // ── DISRUPTION: TURNBACK — reverse at crossover boundary ──
     if(t.blockState==='turnback_south'||t.blockState==='turnback_north'){
       var arr=routeParamArr[t.route];
       if(arr){
+        // Current position in fwd param space
         var fwdCurIdx=(t.dir==='Outbound')?t.si:(arr.length-1-t.si);
         fwdCurIdx=Math.max(0,Math.min(arr.length-1,fwdCurIdx));
         var curParam=arr[fwdCurIdx];
  
-        var atBoundary=(t.blockState==='turnback_south'&&curParam>=t.blockParam)||
-                       (t.blockState==='turnback_north'&&curParam<=t.blockParam);
+        var isOutbound=(t.dir==='Outbound');
+        var paramIncreasing=isOutbound;
  
+        // Has the tram reached or crossed the boundary?
+        // turnback_south: tram is approaching from below, param increasing → triggers at curParam >= blockParam
+        // turnback_north: tram is approaching from above, param decreasing → triggers at curParam <= blockParam
+        var atBoundary=false;
+        if(t.blockState==='turnback_south'&&paramIncreasing&&curParam>=t.blockParam) atBoundary=true;
+        if(t.blockState==='turnback_north'&&!paramIncreasing&&curParam<=t.blockParam) atBoundary=true;
+ 
+        // Look-ahead: will the NEXT step cross?
         var nextCrosses=false;
         if(!atBoundary&&now-t.lt>=seg){
           var nextSi2=t.si+1;
           if(nextSi2<t.path.length){
-            var fwdNextIdx=(t.dir==='Outbound')?nextSi2:(arr.length-2-t.si);
+            var fwdNextIdx=(t.dir==='Outbound')?nextSi2:(arr.length-1-nextSi2);
             fwdNextIdx=Math.max(0,Math.min(arr.length-1,fwdNextIdx));
             var nextParam=arr[fwdNextIdx];
-            nextCrosses=(t.blockState==='turnback_south'&&nextParam>=t.blockParam)||
-                        (t.blockState==='turnback_north'&&nextParam<=t.blockParam);
+            if(t.blockState==='turnback_south'&&paramIncreasing&&nextParam>=t.blockParam) nextCrosses=true;
+            if(t.blockState==='turnback_north'&&!paramIncreasing&&nextParam<=t.blockParam) nextCrosses=true;
           }
         }
  
@@ -415,11 +423,9 @@ function anim(){
           t.updn=t.updn==='Down'?'Up':'Down';
           var rb=R[t.route];t.dest=t.dir==='Outbound'?rb.d:rb.o;
           var ddb=DIR_DATA[t.route];if(ddb)t.updnDest=t.updn==='Down'?ddb.dn:ddb.up;
-          // Punctuality impact: downstream signposts will all be missed
+          // Punctuality impact
           t.dv=Math.min(900,t.dv+600);
-          // Clear disruption state — tram heads back to terminus normally.
-          // checkDisruptionOnTerminusReversal will re-assign on arrival,
-          // creating the short-working loop.
+          // Clear state — tram heads to terminus, re-evaluated there
           delete t.blockedByDis;delete t.blockState;delete t.blockParam;
           if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
           needStats=true;
@@ -443,16 +449,12 @@ function anim(){
         if(Math.random()<.3)t.dv+=Math.floor(Math.random()*61)-30;
         t.dv=Math.max(-180,Math.min(900,t.dv));
  
-        // ── DISRUPTION: Clear escaping state at terminus ──
+        // ── Clear escaping state at terminus ──
         if(t.blockState==='escaping'){
           delete t.blockedByDis;delete t.blockState;delete t._disBaselineDv;
         }
  
-        // ── DISRUPTION: Check if this tram should now short-work ──
-        // Catches: (a) escaping trams starting their return trip
-        //          (b) previously unaffected trams departing toward the zone
-        //          (c) trams that reversed at crossover, returned to terminus,
-        //              and are now departing again toward the disruption
+        // ── Check if tram should now short-work ──
         if(disruptions.length>0&&!t.blockedByDis){
           checkDisruptionOnTerminusReversal(t);
         }
@@ -480,7 +482,7 @@ function applyDisruptionToTrams(dis){
   var affectDown=(dis.dir==='Both directions'||dis.dir==='Down only');
   var affectUp  =(dis.dir==='Both directions'||dis.dir==='Up only');
  
-  // Project the disruption point onto each affected route (needed for heading check)
+  // Project disruption point onto each affected route
   var disParamByRoute={};
   affectedRoutes.forEach(function(rk){
     var shape=R[rk]?R[rk].fwd:null;
@@ -520,51 +522,64 @@ function applyDisruptionToTrams(dis){
     var arr=routeParamArr[t.route];
     if(!arr)return;
  
+    // Get tram's current position in fwd-shape param space
     var fwdIdx=(t.dir==='Outbound')?t.si:(arr.length-1-t.si);
     fwdIdx=Math.max(0,Math.min(arr.length-1,fwdIdx));
     var param=arr[fwdIdx];
     var isOutbound=(t.dir==='Outbound');
  
-    // Get disruption point on this route for heading comparison
-    var disParam=disParamByRoute[t.route]||((southParam+northParam)/2);
+    // Determine if tram's fwd-param is INCREASING or DECREASING as it moves
+    // Outbound trams follow fwd shape: param increases each step
+    // Inbound trams follow rev shape: param DECREASES each step
+    var paramIncreasing=isOutbound;
  
     if(param>southParam&&param<northParam){
-      // ── TRAM IS BETWEEN THE CROSSOVERS ──
-      // Is the incident AHEAD of the tram (blocking its forward path)?
+      // ── TRAM IS INSIDE THE BLOCKED ZONE ──
+      var disParam=disParamByRoute[t.route]||((southParam+northParam)/2);
+ 
+      // Is the tram heading toward or away from the incident?
       var headingToward;
-      if(isOutbound){
-        // Outbound = fwd param increasing. Incident ahead if disParam > tram param
+      if(paramIncreasing){
         headingToward=(disParam>=param);
       } else {
-        // Inbound = fwd param decreasing. Incident ahead if disParam <= tram param
         headingToward=(disParam<=param);
       }
  
       if(headingToward){
-        // Incident is ahead — tram is genuinely trapped
+        // Incident ahead — trapped
         t.blockedByDis=dis.id;t.blockState='trapped';
         t._trappedAt=Date.now();t._preTrapDv=t.dv;
       } else {
-        // Incident is BEHIND — tram can escape out of the zone
-        // Let it continue normally; on next terminus reversal it will short-work
+        // Incident behind — can escape, will short-work on return
         t.blockedByDis=dis.id;t.blockState='escaping';
         t._disBaselineDv=t.dv;
       }
-    } else if(isOutbound&&param<=southParam){
-      t.blockedByDis=dis.id;t.blockState='turnback_south';t.blockParam=southParam;
-      t._disBaselineDv=t.dv;
-    } else if(!isOutbound&&param>=northParam){
-      t.blockedByDis=dis.id;t.blockState='turnback_north';t.blockParam=northParam;
-      t._disBaselineDv=t.dv;
+ 
+    } else if(param<=southParam){
+      // ── TRAM IS SOUTH OF THE ZONE ──
+      // Only needs turnback if it's heading toward the zone (param increasing)
+      if(paramIncreasing){
+        t.blockedByDis=dis.id;t.blockState='turnback_south';t.blockParam=southParam;
+        t._disBaselineDv=t.dv;
+      }
+      // If param is decreasing, tram is heading away — unaffected
+ 
+    } else if(param>=northParam){
+      // ── TRAM IS NORTH OF THE ZONE ──
+      // Only needs turnback if it's heading toward the zone (param decreasing)
+      if(!paramIncreasing){
+        t.blockedByDis=dis.id;t.blockState='turnback_north';t.blockParam=northParam;
+        t._disBaselineDv=t.dv;
+      }
+      // If param is increasing, tram is heading away — unaffected
     }
-    // Trams already on the far side heading away — unaffected
  
     if(t.blockedByDis&&t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
   });
 }
 
 function checkDisruptionOnTerminusReversal(t){
-  if(t.blockedByDis)return; // already assigned to a disruption
+  if(t.blockedByDis)return;
  
   for(var di=0;di<disruptions.length;di++){
     var dis=disruptions[di];
@@ -587,13 +602,17 @@ function checkDisruptionOnTerminusReversal(t){
     fwdIdx=Math.max(0,Math.min(arr.length-1,fwdIdx));
     var param=arr[fwdIdx];
     var isOutbound=(t.dir==='Outbound');
+    var paramIncreasing=isOutbound;
  
-    if(isOutbound&&param<=southParam){
+    // South of zone and heading toward it?
+    if(param<=southParam&&paramIncreasing){
       t.blockedByDis=dis.id;t.blockState='turnback_south';t.blockParam=southParam;
       t._disBaselineDv=t.dv;
       if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
       return;
-    } else if(!isOutbound&&param>=northParam){
+    }
+    // North of zone and heading toward it?
+    if(param>=northParam&&!paramIncreasing){
       t.blockedByDis=dis.id;t.blockState='turnback_north';t.blockParam=northParam;
       t._disBaselineDv=t.dv;
       if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
