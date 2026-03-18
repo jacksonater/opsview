@@ -590,6 +590,7 @@ function init(){
   // ── CHECK IF A SIM TRAM SHOULD BE DISRUPTED ──
   function checkSimTramDisruption(t, disruptions){
     var pos = t._simPos;
+    if(!pos && t.path && t.path[0]) pos = {lat: t.path[0].la, lng: t.path[0].lo};
     if(!pos) return;
 
     for(var di = 0; di < disruptions.length; di++){
@@ -660,11 +661,13 @@ function init(){
     t._preTrapDv = t.dv;
 
     // Build short-working path from tram's current position to crossover
-    // using the GTFS route shape
-    var routeShape = R[t.route] ? R[t.route].fwd : null;
+    // using the GTFS route shape (raw [[lat,lng],...] arrays)
+    var routeData = R[t.route];
+    var routeShape = routeData ? routeData.shape : null;
     if(!routeShape || routeShape.length < 2){
       // Fallback: just trap
       t.blockState = 'trapped';
+      if(t.mk && t.vis) t.mk.setIcon(mkIcon(t));
       return;
     }
 
@@ -675,28 +678,46 @@ function init(){
     // Find nearest shape point to crossover
     var xoIdx = nearestShapeIdx(routeShape, xo.la, xo.lo);
 
-    // Build sub-shape between tram and crossover
-    var startIdx = Math.min(tramIdx, xoIdx);
-    var endIdx = Math.max(tramIdx, xoIdx);
+    // Build sub-shape between tram and crossover (plus some overshoot
+    // to the nearest terminus for the bounce-back)
+    // Extend path beyond the tram toward the terminus it came from
+    var minIdx = Math.min(tramIdx, xoIdx);
+    var maxIdx = Math.max(tramIdx, xoIdx);
+    
+    // Extend to terminus: go further away from the XO
+    var termIdx;
+    if(xoIdx > tramIdx){
+      // XO is ahead (higher index), terminus is behind (lower index)
+      termIdx = Math.max(0, minIdx - 15); // extend 15 shape pts toward terminus
+    } else {
+      // XO is behind (lower index), terminus is ahead (higher index)
+      termIdx = Math.min(routeShape.length - 1, maxIdx + 15);
+    }
+
+    var startI = Math.min(termIdx, minIdx);
+    var endI = Math.max(termIdx, maxIdx);
+
     var subShape = [];
-    for(var i = startIdx; i <= endIdx; i++){
+    for(var i = startI; i <= endI; i++){
       subShape.push([routeShape[i][0], routeShape[i][1]]);
     }
     if(subShape.length < 2){
       subShape = [[pos.lat, pos.lng], [xo.la, xo.lo]];
     }
 
-    // Determine initial direction along sub-shape
-    // If tram is at the low index end, direction = +1 (toward XO)
-    // If tram is at the high index end, direction = -1
-    var initDir = (tramIdx <= xoIdx) ? 1 : -1;
+    // Determine which end of the sub-shape the tram is at
+    var tramSubIdx = nearestShapeIdx(subShape, pos.lat, pos.lng);
+    var xoSubIdx = nearestShapeIdx(subShape, xo.la, xo.lo);
+    
+    // Initial direction: toward the crossover
+    var initDir = (tramSubIdx < xoSubIdx) ? 1 : -1;
 
     // Average tram speed: ~20 km/h = ~5.5 m/s
     t._shortWork = {
       active: true,
       xoLat: xo.la, xoLng: xo.lo,
       shape: subShape,
-      shapeIdx: (initDir === 1) ? 0 : subShape.length - 1,
+      shapeIdx: tramSubIdx,
       direction: initDir,
       speed: 5.5,
       consumedTrips: [],
@@ -717,10 +738,14 @@ function init(){
   }
 
   // ── FIND NEAREST SHAPE POINT INDEX ──
+  // shape can be [[lat,lng],...] arrays or [{la,lo},...] objects
   function nearestShapeIdx(shape, lat, lng){
     var bestD = Infinity, bestI = 0;
     for(var i = 0; i < shape.length; i++){
-      var d = geoDist(lat, lng, shape[i][0], shape[i][1]);
+      var ptLat = Array.isArray(shape[i]) ? shape[i][0] : shape[i].la;
+      var ptLng = Array.isArray(shape[i]) ? shape[i][1] : shape[i].lo;
+      if(ptLat == null || ptLng == null) continue;
+      var d = geoDist(lat, lng, ptLat, ptLng);
       if(d < bestD){ bestD = d; bestI = i; }
     }
     return bestI;
