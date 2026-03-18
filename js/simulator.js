@@ -1074,7 +1074,7 @@ function init(){
       var dToSouth = geoDist(sp.lat, sp.lng, southXO.la, southXO.lo);
       var dToNorth = geoDist(sp.lat, sp.lng, northXO.la, northXO.lo);
       var dToDis = geoDist(sp.lat, sp.lng, dis.la, dis.lo);
-      if(dToDis < xoSpan * 0.8 && dToSouth < xoSpan && dToNorth < xoSpan){
+      if(dToSouth < xoSpan * 1.1 && dToNorth < xoSpan * 1.1){
         disrupted.push({code: code, name: sp.name, lat: sp.lat, lng: sp.lng});
       }
     });
@@ -1123,6 +1123,8 @@ function init(){
           if(tripEnd < tripStart) tripEnd += 86400;
 
           // Does this trip overlap with the disruption window?
+          // Zero-duration disruption = no impact
+          if(disEndSim <= disStartSim) return;
           if(tripEnd <= disStartSim || tripStart >= disEndSim) return;
 
           // Which signposts on this trip are in the disrupted zone?
