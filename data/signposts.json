@@ -3492,10 +3492,10 @@
     "routes": [
       "NIL"
     ],
-    "suburb": "",
-    "section": "",
-    "lat": -37.7669222,
-    "lng": 144.9802252
+    "suburb": "East Brunswick",
+    "section": "Nicholson Street Fitzroy : Spring Street - Blyth Street",
+    "lat": -37.7669221844,
+    "lng": 144.9802252425
   },
   {
     "code": "EMAL",
@@ -3612,5 +3612,220 @@
     "section": "",
     "lat": -37.8175868,
     "lng": 144.9645689
+  },
+  {
+    "code": "CWDP",
+    "name": "RIVERSDALE RD / CAMBERWELL DEPOT",
+    "lat": -37.831193596,
+    "lng": 145.0545245095,
+    "routes": [
+      "70",
+      "75"
+    ],
+    "suburb": "Hawthorn East",
+    "pole": "RVR072-UPO",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "Riversdale Road : Wallen Road - Elgar Road"
+  },
+  {
+    "code": "CWLJ",
+    "name": "BURKE RD / CAMBERWELL JUNCTION",
+    "lat": -37.8317022478,
+    "lng": 145.0565371392,
+    "routes": [
+      "70",
+      "72",
+      "75"
+    ],
+    "suburb": "Camberwell",
+    "pole": "BRK072-DPO",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "Burke Road : Malvern Road - Cotham Road"
+  },
+  {
+    "code": "CWRS",
+    "name": "BURKE RD / CAMBERWELL STATION",
+    "lat": -37.826210109,
+    "lng": 145.0577685988,
+    "routes": [
+      "72"
+    ],
+    "suburb": "Camberwell",
+    "pole": "BRK091-UPO-001",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "Burke Road : Malvern Road - Cotham Road"
+  },
+  {
+    "code": "EBTN",
+    "name": "HAWTHORN RD / NEPEAN HWY",
+    "lat": -37.9142737835,
+    "lng": 145.016984376,
+    "routes": [
+      "64"
+    ],
+    "suburb": "Brighton East",
+    "pole": "HRC166-DPO",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "Hawthorn Road : Dandenong Road Prahran - Nepean Hi"
+  },
+  {
+    "code": "EBWD",
+    "name": "BURWOOD HWY / BLACKBURN RD",
+    "lat": -37.8524556805,
+    "lng": 145.1505105247,
+    "routes": [
+      "75"
+    ],
+    "suburb": "Burwood",
+    "pole": "BHE175-MPO",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "Burwood Highway : Toorak Road - Hanover road"
+  },
+  {
+    "code": "ECOB",
+    "name": "NICHOLSON ST / BELL ST (TERMINUS)",
+    "lat": -37.7433268192,
+    "lng": 144.9781678778,
+    "routes": [
+      "1"
+    ],
+    "suburb": "East Coburg",
+    "pole": "NEC044-UPO-001",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "Nicholson Street East Coburg : Holmes Street Brunswick - Bell Street"
+  },
+  {
+    "code": "EDON",
+    "name": "MT ALEXANDER RD / BULLA RD",
+    "lat": -37.745291972,
+    "lng": 144.910928119,
+    "routes": [
+      "59"
+    ],
+    "suburb": "Essendon",
+    "pole": "MAE241-UPO",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "Mt Alexander Road Essendon : Fletcher Street - Kei"
+  },
+  {
+    "code": "ELLY",
+    "name": "ELGIN ST / LYGON ST",
+    "lat": -37.7969846712,
+    "lng": 144.9669305796,
+    "routes": [
+      "1",
+      "6"
+    ],
+    "suburb": "Carlton",
+    "pole": "EGS135ADPO",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "Elgin Street : Swanston Street - Lygon Street"
+  },
+  {
+    "code": "ESRS",
+    "name": "MT ALEXANDER RD / FLETCHER ST",
+    "lat": -37.7551099727,
+    "lng": 144.9176910474,
+    "routes": [
+      "59"
+    ],
+    "suburb": "Essendon",
+    "pole": "MAE205-DPO",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "Fletcher Street : Pascoe Vale Road - Mt Alexander"
+  },
+  {
+    "code": "FCRY",
+    "name": "LEEDS ST / FOOTSCRAY TERMINUS",
+    "lat": -37.8011555789,
+    "lng": 144.9010246818,
+    "routes": [
+      "82"
+    ],
+    "suburb": "Footscray",
+    "pole": "LST003-DPO",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "Leeds Street : Hopkins Street - Irving Street"
+  },
+  {
+    "code": "FERI",
+    "name": "RIVERSDALE RD / FERMANAGH RD",
+    "lat": -37.8317458788,
+    "lng": 145.0605897529,
+    "routes": [
+      "70"
+    ],
+    "suburb": "Camberwell",
+    "pole": "RVR087-DPO",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "Riversdale Road : Wallen Road - Elgar Road"
+  },
+  {
+    "code": "GARD",
+    "name": "MALVERN RD / BURKE RD",
+    "lat": -37.8517238188,
+    "lng": 145.0527287965,
+    "routes": [
+      "72"
+    ],
+    "suburb": "Gardiner",
+    "pole": "BRK009-UPO",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "Burke Road : Malvern Road - Cotham Road"
+  },
+  {
+    "code": "GLEN",
+    "name": "GLENFERRIE RD / MALVERN RD",
+    "lat": -37.8517822832,
+    "lng": 145.0300975854,
+    "routes": [
+      "72"
+    ],
+    "suburb": "Malvern",
+    "pole": "GFH055-UPO",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "Glenferrie Road : Dandenong Road Prahran - Cotham"
+  },
+  {
+    "code": "GLIR",
+    "name": "HIGH ST / MALVERN RD",
+    "lat": -37.8600745211,
+    "lng": 145.0564334095,
+    "routes": [
+      "6"
+    ],
+    "suburb": "Glen Iris",
+    "pole": "HSP198-UPO",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "High Street Prahran : St Kilda Road - Malvern Road"
+  },
+  {
+    "code": "GLRI",
+    "name": "RIVERSDALE RD / GLENFERRIE RD",
+    "lat": -37.828779895,
+    "lng": 145.0339675485,
+    "routes": [
+      "70",
+      "75"
+    ],
+    "suburb": "Hawthorn",
+    "pole": "RVR022-UPO",
+    "status": "IN SERVICE",
+    "description": "",
+    "section": "Riversdale Road : Wallen Road - Elgar Road"
   }
 ]

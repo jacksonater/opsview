@@ -1,9 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════
 // OpsView Timetable Simulator
 // Replaces random tram generation with real timetable-driven placement.
-// Loads data/timetable.json (3,200+ trips across 24 routes).
-// 12 routes have real HASTUS signpost schedules; 12 use synthetic timing
-// interpolated along GTFS route shapes.
+// Loads data/timetable.json (6,100+ trips across 24 routes, 569 runs).
+// All 24 routes use real signpost schedules and timing points.
+// Post-midnight services use times >86400 (e.g. 25:30 = 91800s).
 //
 // Usage: set a time of day via the time picker, press play, trams appear
 // at their scheduled positions and advance between signposts in real time
@@ -436,7 +436,7 @@ function init(){
       '<div class="dr"><span class="dlb">Direction</span><span class="dva">' + arr + ' ' + t.updn + '</span></div>' +
       '<div class="dr"><span class="dlb">Destination</span><span class="dva">' + t.updnDest + '</span></div>' +
       '<div class="dr"><span class="dlb">Source</span><span class="dva" style="font-size:9px;color:var(--tx3)">' +
-        (t._simTrip && t._simTrip.isSynthetic ? 'Synthetic' : 'HASTUS') + '</span></div>' +
+        (t._simTrip && t._simTrip.isSynthetic ? 'Synthetic' : 'Timetable') + '</span></div>' +
       '</div>' +
       '<div class="ds"><div class="dst">Position</div>' +
       '<div class="dr"><span class="dlb">Current Stop</span><span class="dva">' + (t._nearStop || '—') + '</span></div>' +
