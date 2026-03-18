@@ -552,8 +552,9 @@ function applyDisruptionToTrams(dis){
     // A tram is "between" the crossovers if:
     // - its distance to the disruption is less than both crossover-to-disruption distances
     //   (it's closer to the incident than either crossover is), OR
-    // - the sum of its distances to both crossovers is within 20% of the crossover span
-    //   (triangle inequality — it's roughly on the line between them)
+    // Tighter check: tram must be within 60% of the crossover span from the
+    // disruption point, AND closer to both crossovers than the span itself.
+    // This prevents trams on parallel routes from being misclassified.
     var isBetween=(dToDis < xoSpan * 0.6) && (dToSouth < xoSpan) && (dToNorth < xoSpan);
  
     if(isBetween){
@@ -639,7 +640,7 @@ function clearDisruptionFromTrams(disId){
     }
   });
 }
-              
+
 function refreshIcons(){
   trams.forEach(function(t){if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));});
   var z=map.getZoom(),b=document.getElementById('zoomBadge');
