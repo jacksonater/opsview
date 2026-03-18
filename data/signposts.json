@@ -3148,5 +3148,469 @@
     "section": "Queensway : St Kilda Road - Dandenong Road Prahran",
     "lat": -37.8579702,
     "lng": 144.9934226
+  },
+  {
+    "code": "COEL",
+    "name": "COLLINS ST / ELIZABETH ST (Collins St Crossover)",
+    "pole": "CSC025-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 025-D, Collins Street City, Down Direction",
+    "routes": [],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8164633,
+    "lng": 144.9628073
+  },
+  {
+    "code": "COSP",
+    "name": "COLLINS ST / SPRING ST",
+    "pole": "CSC056-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 056-U, Collins Street City, Up Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8134815,
+    "lng": 144.9737286
+  },
+  {
+    "code": "COWI",
+    "name": "WILLIAM ST / COLLINS ST",
+    "pole": "WSC058-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 058-U, William Street, Up Direction",
+    "routes": [
+      "CURLY DECORATIONS ON SPANS AT XMAS"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8177577,
+    "lng": 144.9593046
+  },
+  {
+    "code": "CSTW",
+    "name": "COLLINS ST WEST",
+    "pole": "CSD018-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 018-U, Collins Street Docklands, Up Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8194341,
+    "lng": 144.9532546
+  },
+  {
+    "code": "DODR",
+    "name": "DOCKLANDS DR",
+    "pole": "DLD054-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 054-D, Docklands Drive, Down Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8150469,
+    "lng": 144.9370886
+  },
+  {
+    "code": "LASP",
+    "name": "SPENCER ST / LA TROBE ST 3SP",
+    "pole": "SNC030-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 030-U, Spencer Street, Up Direction",
+    "routes": [
+      "OUTSIDE REMAND CENTRE"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8129282,
+    "lng": 144.9511747
+  },
+  {
+    "code": "FLSP",
+    "name": "SPRING ST / FLINDERS ST",
+    "pole": "SPS001-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 001-D, Spring Street, Down Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8151799,
+    "lng": 144.9746787
+  },
+  {
+    "code": "FLSW",
+    "name": "FLINDERS AT / SWANSTON ST",
+    "pole": "SWC212-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 212-D, Swanston Street, Down Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8167215,
+    "lng": 144.9672334
+  },
+  {
+    "code": "FSTW",
+    "name": "FLINDERS ST WEST DOCKLANDS",
+    "pole": "FSD003-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 003-U, Flinders Street Docklands, Up Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8214561,
+    "lng": 144.9536831
+  },
+  {
+    "code": "FLEL",
+    "name": "FLINDERS ST / ELIZABETH ST",
+    "pole": "FSC030-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 030-D, Flinders Street City, Down Direction",
+    "routes": [
+      "SET UP PEDS CONTROL FOR STEP LADDER"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8181265,
+    "lng": 144.9647512
+  },
+  {
+    "code": "DADA",
+    "name": "DAWSON ST / DALY ST",
+    "pole": "DST117-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 117-D, Dawson Street, Down Direction",
+    "routes": [
+      "PEDESTRIAN CROSSING"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.769549,
+    "lng": 144.944176
+  },
+  {
+    "code": "GHRS",
+    "name": "GLENHUNTLY RD / GLENHUNTLY STATION",
+    "pole": "GHR169-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 169-U, Glenhuntly Road, Up Direction",
+    "routes": [
+      "ABOVE PARKING AT SHOPS"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8893932,
+    "lng": 145.0414162
+  },
+  {
+    "code": "GHDP",
+    "name": "GLENHUNTLY RD / GLENHUNTLY DEPOT",
+    "pole": "GHR131-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 131-U, Glenhuntly Road, Up Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.887531,
+    "lng": 145.026489
+  },
+  {
+    "code": "CISK",
+    "name": "ST KILDA RD / CITY RD",
+    "pole": "STK002-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 002-D, St Kilda Road, Down Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8209496,
+    "lng": 144.9691228
+  },
+  {
+    "code": "CIKI",
+    "name": "CITY RD / KINGSWAY",
+    "pole": "KWY014-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 014-D, Kingsway, Down Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8286561,
+    "lng": 144.9629886
+  },
+  {
+    "code": "DUWI",
+    "name": "WILLIAM ST / FRANKLIN ST",
+    "pole": "WSC028-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 028-D, William Street, Down Direction (Pole 27A)",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8095225,
+    "lng": 144.9552485
+  },
+  {
+    "code": "ESDP",
+    "name": "MT ALEXANDER RD / ESSENDON DEPOT",
+    "pole": "MAN101-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 101B-D, Mt Alexander Road Newmarket, Down Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.7792653,
+    "lng": 144.9308492
+  },
+  {
+    "code": "FLMA",
+    "name": "FLINDERS ST / MARKET ST",
+    "pole": "FSC019-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 019-U, Flinders Street City, Up Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.819455,
+    "lng": 144.9610051
+  },
+  {
+    "code": "FLRU",
+    "name": "FLINDERS ST / RUSSELL ST",
+    "pole": "FSC045-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 045-D, Flinders Street City, Down Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8165759,
+    "lng": 144.9700863
+  },
+  {
+    "code": "COBU",
+    "name": "SYDNEY RD / BELL ST",
+    "pole": "SRC076-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 076-U, Sydney Road Coburg, Up Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.7406061,
+    "lng": 144.9668559
+  },
+  {
+    "code": "GARO",
+    "name": "ROYAL PDE / GATEHOUSE ST",
+    "pole": "RPP106-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 106-D, Royal Parade, Down Direction",
+    "routes": [
+      "HIGH-REQ LITTLE STEP LADDER"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.7924558,
+    "lng": 144.958328
+  },
+  {
+    "code": "CLFH",
+    "name": "QUEENS PDE / CLIFTON HILL",
+    "pole": "QPD118-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 118-D, Queens Parade, Down Direction",
+    "routes": [
+      "WATCH FOR BUSES"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.785856,
+    "lng": 144.9941055
+  },
+  {
+    "code": "EPTN",
+    "name": "PLENTY RD / BOLDERWOOD PDE",
+    "pole": "PRB137ADPO",
+    "status": "IN SERVICE",
+    "description": "Pole 137AD, Plenty Road, Down Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.725342,
+    "lng": 145.022761
+  },
+  {
+    "code": "GESM",
+    "name": "GERTRUDE ST / SMITH ST",
+    "pole": "GTR028-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 028-U, Gertrude street, Up Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8064085,
+    "lng": 144.982755
+  },
+  {
+    "code": "EBWK",
+    "name": "NICHOLSON ST / BLYTH ST",
+    "pole": "NSF228-DPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 228-D, Nicholson Street Fitzroy, Down Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.7669222,
+    "lng": 144.9802252
+  },
+  {
+    "code": "EMAL",
+    "name": "WAVERLEY RD / DARLING ST",
+    "pole": "WEM004-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 004-U, Waverley Road, Up Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8773014,
+    "lng": 145.0585122
+  },
+  {
+    "code": "EMBA",
+    "name": "BALACLAVA RD / EMPRESS RD",
+    "pole": "BRC071-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 071-D, Balaclava Road, Down Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8696764,
+    "lng": 145.0012304
+  },
+  {
+    "code": "GLOR",
+    "name": "GLENHUNTLY RD / ORRONG RD",
+    "pole": "GHR082-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 082-D, Glenhuntly Road, Down Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.885194,
+    "lng": 145.0083506
+  },
+  {
+    "code": "GIVI",
+    "name": "VICTORIA PDE / GISBORNE ST",
+    "pole": "VPE076-UPO",
+    "status": "IN SERVICE",
+    "description": "Pole 076-U, Victoria Parade East Melbourne, Up Direction",
+    "routes": [
+      "11",
+      "12",
+      "24",
+      "109"
+    ],
+    "suburb": "EAST MELBOURNE",
+    "section": "",
+    "lat": -37.8082943676,
+    "lng": 144.9756531571
+  },
+  {
+    "code": "EXHB",
+    "name": "NICHOLSON ST / GERTRUDE ST",
+    "pole": "NSF089-UPO-001",
+    "status": "IN SERVICE",
+    "description": "Pole 089-U, Nicholson Street Fitzroy, Up Direction",
+    "routes": [
+      "86",
+      "96"
+    ],
+    "suburb": "FITZROY",
+    "section": "",
+    "lat": -37.8055183279,
+    "lng": 144.973737275
+  },
+  {
+    "code": "DOD1",
+    "name": "DOCKLANDS DR TERMINUS",
+    "pole": "",
+    "status": "IN SERVICE",
+    "description": "Estimated from route terminus",
+    "routes": [
+      "35"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8144,
+    "lng": 144.9388
+  },
+  {
+    "code": "DODR2",
+    "name": "DOCKLANDS DR 2",
+    "pole": "DLD053-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 053-D, Docklands Drive, Down Direction",
+    "routes": [
+      "NIL"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8149754,
+    "lng": 144.9372804
+  },
+  {
+    "code": "FLEL2",
+    "name": "ELIZABETH ST / FLINDERS ST TERMINUS",
+    "pole": "EZT003-DPO",
+    "status": "IN SERVICE",
+    "description": "Pole 003-D, Elizabeth Street, Down Direction",
+    "routes": [
+      "WATCH TRAFFIC CLOSE TO POLE"
+    ],
+    "suburb": "",
+    "section": "",
+    "lat": -37.8175868,
+    "lng": 144.9645689
   }
 ]
