@@ -89,9 +89,11 @@ function init(){
       .then(function(r){ return r.json(); })
       .then(function(d){
         signpostLookup = {};
-        d.forEach(function(s){ signpostLookup[s.code] = {lat: s.lat, lng: s.lng, name: s.name}; });
+        if(Array.isArray(d)){
+          d.forEach(function(s){ signpostLookup[s.code] = {lat: s.lat, lng: s.lng, name: s.name}; });
+        }
       })
-      .catch(function(e){ console.warn('Simulator: signposts.json not found', e); });
+      .catch(function(e){ console.warn('Simulator: signposts.json not loaded', e); signpostLookup = {}; });
   }
 
   // ── TIME HELPERS ──
@@ -181,54 +183,13 @@ function init(){
       if(at >= t1 && at <= t2){
         var frac = (t2 === t1) ? 0 : (at - t1) / (t2 - t1);
 
-        if(trip.isSynthetic){
-          // Synthetic: use GTFS shape from app.js
-          var shape = R[trip.route] ? R[trip.route].fwd : null;
-          if(!shape) return null;
-          var totalPts = shape.length;
-          var ptsPerSeg = totalPts / (wps.length - 1);
-          var startIdx = Math.floor(i * ptsPerSeg);
-          var endIdx = Math.min(Math.floor((i+1) * ptsPerSeg), totalPts - 1);
-
-          // Sub-interpolate within this shape segment
-          var subFrac = frac;
-          var si = startIdx + Math.floor(subFrac * (endIdx - startIdx));
-          si = Math.min(si, totalPts - 2);
-          var subFrac2 = (subFrac * (endIdx - startIdx)) - Math.floor(subFrac * (endIdx - startIdx));
-
-          // For Up direction, reverse the shape traversal
-          var isUp = (trip.dir === 'Up');
-          var ai, bi;
-          if(isUp){
-            ai = totalPts - 1 - si;
-            bi = totalPts - 2 - si;
-            if(bi < 0) bi = 0;
-          } else {
-            ai = si;
-            bi = si + 1;
-            if(bi >= totalPts) bi = totalPts - 1;
-          }
-
-          var ptA = shape[ai];
-          var ptB = shape[bi];
-          return {
-            lat: ptA[0] + (ptB[0] - ptA[0]) * subFrac2,
-            lng: ptA[1] + (ptB[1] - ptA[1]) * subFrac2,
-            nearStop: R[trip.route].fwd[si] ? R[trip.route].fwd[si].n : 'En route',
-            nextStop: R[trip.route].fwd[Math.min(si+2, totalPts-1)] ? R[trip.route].fwd[Math.min(si+2, totalPts-1)].n : 'Terminus',
-            wpIdx: i
-          };
-        }
-
-        // Real trip: interpolate between signpost coordinates
+        // Use signpost lookup for names, fall back to waypoint coords
         var sp1 = signpostLookup ? signpostLookup[wps[i].c] : null;
         var sp2 = signpostLookup ? signpostLookup[wps[i+1].c] : null;
-        // Fallback to waypoint embedded coords
         var lat1 = sp1 ? sp1.lat : wps[i].a;
         var lng1 = sp1 ? sp1.lng : wps[i].o;
         var lat2 = sp2 ? sp2.lat : wps[i+1].a;
         var lng2 = sp2 ? sp2.lng : wps[i+1].o;
-
         var spName1 = sp1 ? sp1.name : wps[i].c;
         var spName2 = sp2 ? sp2.name : wps[i+1].c;
 
@@ -242,7 +203,7 @@ function init(){
       }
     }
 
-    // Past last waypoint or before first — use last known
+    // Past last waypoint — use last known position
     var lastWp = wps[wps.length - 1];
     var sp = signpostLookup ? signpostLookup[lastWp.c] : null;
     return {
@@ -558,13 +519,16 @@ function init(){
     else hr.appendChild(simCtrl);
 
     // Time input change = jump to that time
-    document.getElementById('simTimeInput').addEventListener('change', function(){
-      if(SIM_MODE){
-        simTime = hhmmToSecs(this.value);
-        rebuildSimTrams();
-        updateSimClock();
-      }
-    });
+    var timeEl = simCtrl.querySelector('#simTimeInput');
+    if(timeEl){
+      timeEl.addEventListener('change', function(){
+        if(SIM_MODE){
+          simTime = hhmmToSecs(this.value);
+          rebuildSimTrams();
+          updateSimClock();
+        }
+      });
+    }
   }
 
   // ── PUBLIC API ──
@@ -590,24 +554,25 @@ function init(){
 
       rebuildSimTrams();
 
-      document.getElementById('simPlayBtn').innerHTML = '&#10074;&#10074;'; // pause
-      document.getElementById('simPlayBtn').style.color = 'var(--yel)';
-      document.getElementById('simStopBtn').style.display = '';
-      document.getElementById('liveStatus').textContent = 'TIMETABLE SIM';
-      document.getElementById('liveStatus').style.color = '#f5a623';
+      var playBtn = document.getElementById('simPlayBtn');
+      var stopBtn = document.getElementById('simStopBtn');
+      var liveEl = document.getElementById('liveStatus');
+      if(playBtn){ playBtn.innerHTML = '&#10074;&#10074;'; playBtn.style.color = 'var(--yel)'; }
+      if(stopBtn) stopBtn.style.display = '';
+      if(liveEl){ liveEl.textContent = 'TIMETABLE SIM'; liveEl.style.color = '#f5a623'; }
 
       simAnimFrame = requestAnimationFrame(simAnim);
     } else if(simPlaying){
       // Pause
       simPlaying = false;
-      document.getElementById('simPlayBtn').innerHTML = '&#9654;';
-      document.getElementById('simPlayBtn').style.color = 'var(--grn)';
+      var pb1 = document.getElementById('simPlayBtn');
+      if(pb1){ pb1.innerHTML = '&#9654;'; pb1.style.color = 'var(--grn)'; }
     } else {
       // Resume
       simPlaying = true;
       simLastRealMs = Date.now();
-      document.getElementById('simPlayBtn').innerHTML = '&#10074;&#10074;';
-      document.getElementById('simPlayBtn').style.color = 'var(--yel)';
+      var pb2 = document.getElementById('simPlayBtn');
+      if(pb2){ pb2.innerHTML = '&#10074;&#10074;'; pb2.style.color = 'var(--yel)'; }
       simAnimFrame = requestAnimationFrame(simAnim);
     }
   };
@@ -628,10 +593,12 @@ function init(){
     // Restore original trams (they were removed from map but still in memory)
     // Actually, we need to recreate them since we replaced window.trams
     // Force page reload is cleanest — but let's try restoring
-    document.getElementById('simPlayBtn').innerHTML = '&#9654;';
-    document.getElementById('simPlayBtn').style.color = 'var(--grn)';
-    document.getElementById('simStopBtn').style.display = 'none';
-    document.getElementById('liveStatus').textContent = '';
+    var pb3 = document.getElementById('simPlayBtn');
+    var sb3 = document.getElementById('simStopBtn');
+    var le3 = document.getElementById('liveStatus');
+    if(pb3){ pb3.innerHTML = '&#9654;'; pb3.style.color = 'var(--grn)'; }
+    if(sb3) sb3.style.display = 'none';
+    if(le3) le3.textContent = '';
     restoreRealClock();
 
     // Reload page to cleanly restore mock mode
@@ -650,11 +617,17 @@ function init(){
 
   // ── INITIALISE ──
   Promise.all([loadTimetable(), loadSignposts()]).then(function(){
-    buildSimUI();
-    simInitialised = true;
-    console.log('Simulator ready — ' +
-      Object.keys(timetableData).length + ' routes, ' +
-      'click play to start');
+    try {
+      buildSimUI();
+      simInitialised = true;
+      console.log('Simulator ready — ' +
+        (timetableData ? Object.keys(timetableData).length : 0) + ' routes, ' +
+        'click play to start');
+    } catch(e) {
+      console.error('Simulator UI init failed:', e);
+    }
+  }).catch(function(e){
+    console.error('Simulator data load failed:', e);
   });
 }
 
