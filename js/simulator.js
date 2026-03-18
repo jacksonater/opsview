@@ -1032,6 +1032,282 @@ function init(){
   window.simGetTripImpacts = function(){ return tripImpacts; };
   window.simClearDisruption = simClearDisruption;
 
+  // ═══════════════════════════════════════════════════════════
+  // ATTRIBUTION REPORT BUILDER
+  // On disruption clear, computes which signposts were in the
+  // disrupted zone, which trips missed them, and classifies
+  // each as SHORT / CANCELLED / LATE.
+  // ═══════════════════════════════════════════════════════════
+
+  // Find signposts that fall within a disruption zone (between two crossovers)
+  function findDisruptedSignposts(dis, route){
+    if(!signpostLookup || !timetableData) return [];
+    var routeRuns = timetableData[route];
+    if(!routeRuns) return [];
+
+    // Get the disruption boundary
+    var southXO = dis.southXO;
+    var northXO = dis.northXO;
+    if(!southXO || !northXO) return [];
+
+    var xoSpan = geoDist(southXO.la, southXO.lo, northXO.la, northXO.lo);
+
+    // Find all unique signpost codes used on this route
+    var allCodes = {};
+    Object.keys(routeRuns).forEach(function(runId){
+      routeRuns[runId].forEach(function(trip){
+        trip.w.forEach(function(wp){
+          if(!allCodes[wp.c]){
+            var sp = signpostLookup[wp.c];
+            allCodes[wp.c] = sp ? {lat: sp.lat, lng: sp.lng, name: sp.name} :
+                                  {lat: wp.a, lng: wp.o, name: wp.c};
+          }
+        });
+      });
+    });
+
+    // Check which signposts fall between the crossovers
+    var disrupted = [];
+    Object.keys(allCodes).forEach(function(code){
+      var sp = allCodes[code];
+      if(!sp.lat || !sp.lng) return;
+      var dToSouth = geoDist(sp.lat, sp.lng, southXO.la, southXO.lo);
+      var dToNorth = geoDist(sp.lat, sp.lng, northXO.la, northXO.lo);
+      var dToDis = geoDist(sp.lat, sp.lng, dis.la, dis.lo);
+      if(dToDis < xoSpan * 0.8 && dToSouth < xoSpan && dToNorth < xoSpan){
+        disrupted.push({code: code, name: sp.name, lat: sp.lat, lng: sp.lng});
+      }
+    });
+    return disrupted;
+  }
+
+  // Build the full attribution report for a cleared disruption
+  function buildAttributionReport(dis, disStartSim, disEndSim){
+    if(!timetableData) return null;
+
+    var affectedRoutes = dis.routes || [dis.route];
+    var report = {
+      disId: dis.id,
+      type: dis.type,
+      location: dis.la.toFixed(5) + ', ' + dis.lo.toFixed(5),
+      startTime: secsToHHMM(disStartSim),
+      endTime: secsToHHMM(disEndSim),
+      durationMin: Math.round((disEndSim - disStartSim) / 60),
+      routes: affectedRoutes,
+      disruptedSignposts: {},
+      tripDetails: [],
+      summary: {short: 0, cancelled: 0, late: 0, total: 0, runs: 0}
+    };
+
+    var allAffectedRuns = new Set();
+
+    affectedRoutes.forEach(function(route){
+      // Find disrupted signposts for this route
+      var dspots = findDisruptedSignposts(dis, route);
+      report.disruptedSignposts[route] = dspots.map(function(s){return s.code;});
+
+      var routeRuns = timetableData[route];
+      if(!routeRuns) return;
+
+      // Check each run's trips
+      Object.keys(routeRuns).forEach(function(runId){
+        var trips = routeRuns[runId];
+        var runAffected = false;
+
+        trips.forEach(function(trip){
+          var wps = trip.w;
+          if(!wps || wps.length < 2) return;
+
+          var tripStart = wps[0].t;
+          var tripEnd = wps[wps.length - 1].t;
+          if(tripEnd < tripStart) tripEnd += 86400;
+
+          // Does this trip overlap with the disruption window?
+          if(tripEnd <= disStartSim || tripStart >= disEndSim) return;
+
+          // Which signposts on this trip are in the disrupted zone?
+          var missedSignposts = [];
+          var tripSignposts = wps.map(function(w){return w.c;});
+          var dsCodes = report.disruptedSignposts[route] || [];
+          tripSignposts.forEach(function(code){
+            if(dsCodes.indexOf(code) >= 0) missedSignposts.push(code);
+          });
+
+          // If no signposts missed, this trip doesn't traverse the zone
+          if(missedSignposts.length === 0) return;
+
+          // Classify impact
+          var impact;
+          if(tripStart < disStartSim){
+            impact = 'SHORT';  // in progress when disruption started
+          } else if(tripEnd <= disEndSim){
+            impact = 'CANCELLED'; // entirely within disruption window
+          } else {
+            impact = 'LATE'; // starts during, ends after — may resume
+          }
+
+          runAffected = true;
+          report.tripDetails.push({
+            run: runId,
+            seq: trip.q,
+            route: route,
+            dir: trip.d,
+            start: secsToHHMM(tripStart),
+            end: secsToHHMM(tripEnd),
+            from: wps[0].c,
+            to: wps[wps.length - 1].c,
+            impact: impact,
+            missedSignposts: missedSignposts,
+            status: 'Attributed — awaiting AVM'
+          });
+
+          report.summary[impact.toLowerCase()]++;
+          report.summary.total++;
+        });
+
+        if(runAffected) allAffectedRuns.add(runId);
+      });
+    });
+
+    report.summary.runs = allAffectedRuns.size;
+
+    // Sort by start time
+    report.tripDetails.sort(function(a, b){ return a.start.localeCompare(b.start); });
+
+    return report;
+  }
+
+  // ── RENDER ATTRIBUTION IN DISRUPTION LOG ──
+  // Override renderDisLog to add attribution detail for cleared disruptions
+  var _origRenderDisLog = window.renderDisLog;
+
+  function renderDisLogWithAttribution(){
+    // Call original render first
+    if(_origRenderDisLog) _origRenderDisLog();
+
+    // Now enhance cleared entries with attribution data
+    var body = document.getElementById('dislogBody');
+    if(!body) return;
+
+    var logEntries = window.disruptionLog || [];
+    logEntries.forEach(function(e){
+      if(e.status !== 'cleared' || !e._attribution) return;
+
+      // Find the row for this entry and append attribution detail
+      var existingDetail = document.getElementById('attrDetail_' + e.id);
+      if(existingDetail) return; // already rendered
+
+      // Find the dislog-row for this entry
+      var rows = body.querySelectorAll('.dislog-row');
+      for(var ri = 0; ri < rows.length; ri++){
+        var row = rows[ri];
+        if(row.innerHTML.indexOf('Rt ' + e.route) >= 0 && row.innerHTML.indexOf(e.time) >= 0){
+          var detail = document.createElement('div');
+          detail.id = 'attrDetail_' + e.id;
+          detail.className = 'attr-detail';
+          detail.innerHTML = renderAttributionHTML(e._attribution);
+          row.parentNode.insertBefore(detail, row.nextSibling);
+          break;
+        }
+      }
+    });
+  }
+
+  function renderAttributionHTML(rpt){
+    if(!rpt) return '';
+    var h = '';
+    h += '<div class="attr-summary" onclick="this.nextElementSibling.classList.toggle(\'open\')">';
+    h += '<span class="attr-toggle">&#x25B6;</span> ';
+    h += '<b>Attribution:</b> ';
+    h += '<span style="color:#ff5252">' + rpt.summary.short + ' short</span>';
+    if(rpt.summary.cancelled > 0) h += ' · <span style="color:#e040fb">' + rpt.summary.cancelled + ' cancelled</span>';
+    h += ' · <span style="color:#f5a623">' + rpt.summary.late + ' late</span>';
+    h += ' · ' + rpt.summary.runs + ' runs · ' + rpt.summary.total + ' trips';
+    h += '</div>';
+
+    h += '<div class="attr-table-wrap">';
+    
+    // Disrupted signposts
+    Object.keys(rpt.disruptedSignposts).forEach(function(route){
+      var codes = rpt.disruptedSignposts[route];
+      if(codes.length > 0){
+        h += '<div class="attr-sp-row"><b>Rt ' + route + ' disrupted signposts:</b> ' + codes.join(' → ') + '</div>';
+      }
+    });
+
+    // Trip table
+    h += '<table class="attr-tbl">';
+    h += '<thead><tr><th>Run</th><th>Seq</th><th>Dir</th><th>Start</th><th>End</th><th>From→To</th><th>Impact</th><th>Missed</th><th>Status</th></tr></thead>';
+    h += '<tbody>';
+    rpt.tripDetails.forEach(function(td){
+      var impCol = td.impact === 'SHORT' ? '#ff5252' : td.impact === 'CANCELLED' ? '#e040fb' : '#f5a623';
+      h += '<tr>';
+      h += '<td>' + td.run + '</td>';
+      h += '<td>' + td.seq + '</td>';
+      h += '<td>' + td.dir + '</td>';
+      h += '<td>' + td.start + '</td>';
+      h += '<td>' + td.end + '</td>';
+      h += '<td style="font-size:8px">' + td.from + '→' + td.to + '</td>';
+      h += '<td style="color:' + impCol + ';font-weight:700">' + td.impact + '</td>';
+      h += '<td style="font-size:8px;color:var(--tx3)">' + td.missedSignposts.join(', ') + '</td>';
+      h += '<td style="font-size:8px;color:var(--tx3)">' + td.status + '</td>';
+      h += '</tr>';
+    });
+    h += '</tbody></table>';
+    h += '</div>';
+
+    return h;
+  }
+
+  // Hook into disruption clear to generate attribution
+  var _origRemoveDis = window.removeDis;
+  window.removeDis = function(id){
+    // Capture disruption data before it's removed
+    var dis = (window.disruptions || []).find(function(d){return d.id === id;});
+    var disStartSim = null;
+
+    // Find the disruption's sim start time from the log
+    var logEntry = (window.disruptionLog || []).find(function(e){return e.id === id && e.status === 'active';});
+    if(logEntry && logEntry._simStartTime != null){
+      disStartSim = logEntry._simStartTime;
+    }
+
+    // Generate attribution report if in sim mode
+    if(SIM_MODE && dis && disStartSim != null){
+      var report = buildAttributionReport(dis, disStartSim, simTime);
+      if(report && logEntry){
+        logEntry._attribution = report;
+      }
+    }
+
+    // Call original removeDis
+    if(_origRemoveDis) _origRemoveDis(id);
+
+    // Re-render with attribution
+    if(SIM_MODE) setTimeout(renderDisLogWithAttribution, 100);
+  };
+
+  // Also hook into addToDisLog to record sim start time
+  var _origAddToDisLog = window.addToDisLog;
+  window.addToDisLog = function(dis){
+    if(_origAddToDisLog) _origAddToDisLog(dis);
+    // Tag the log entry with sim start time
+    if(SIM_MODE && window.disruptionLog){
+      var entry = window.disruptionLog.find(function(e){return e.id === dis.id;});
+      if(entry) entry._simStartTime = simTime;
+    }
+  };
+
+  // Override renderDisLog
+  window.renderDisLog = function(){
+    if(_origRenderDisLog) _origRenderDisLog();
+    if(SIM_MODE) renderDisLogWithAttribution();
+  };
+
+  // Expose for external use
+  window.simBuildAttributionReport = buildAttributionReport;
+  window.simFindDisruptedSignposts = findDisruptedSignposts;
+
   // ── INITIALISE ──
   Promise.all([loadTimetable(), loadSignposts()]).then(function(){
     try {
