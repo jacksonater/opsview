@@ -554,8 +554,7 @@ function applyDisruptionToTrams(dis){
     //   (it's closer to the incident than either crossover is), OR
     // - the sum of its distances to both crossovers is within 20% of the crossover span
     //   (triangle inequality — it's roughly on the line between them)
-    var sumToXOs=dToSouth+dToNorth;
-    var isBetween=(sumToXOs < xoSpan * 1.2) && (dToDis < xoSpan);
+    var isBetween=(dToDis < xoSpan * 0.6) && (dToSouth < xoSpan) && (dToNorth < xoSpan);
  
     if(isBetween){
       // ── TRAPPED: between crossovers at creation ──
@@ -626,6 +625,21 @@ function checkDisruptionOnTerminusReversal(t){
   }
 }
 
+function clearDisruptionFromTrams(disId){
+  trams.forEach(function(t){
+    if(t.blockedByDis===disId){
+      delete t.blockedByDis;
+      delete t.blockState;
+      delete t.blockParam;
+      delete t._turnbackXO;
+      delete t._trappedAt;
+      delete t._preTrapDv;
+      delete t._disBaselineDv;
+      if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
+    }
+  });
+}
+              
 function refreshIcons(){
   trams.forEach(function(t){if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));});
   var z=map.getZoom(),b=document.getElementById('zoomBadge');
