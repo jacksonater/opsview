@@ -494,3 +494,17 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 .dp-attr-preview-count{font-size:9px;color:var(--tx3);font-weight:400;text-transform:none;letter-spacing:0}
 .dp-attr-row{display:flex;align-items:center;gap:6px;font-size:9px;padding:2px 0;border-bottom:1px solid #1f2d3d22;color:var(--tx2)}
 .dp-attr-row:last-child{border-bottom:none}
+
+/* ── Attribution Detail in Disruption Log ── */
+.attr-detail{padding:6px 14px;background:var(--pnl2);border-bottom:1px solid var(--bdr)}
+.attr-summary{font-size:10px;cursor:pointer;padding:4px 0;font-family:'JetBrains Mono',monospace;user-select:none}
+.attr-summary:hover{color:var(--grn)}
+.attr-toggle{display:inline-block;transition:transform .2s;font-size:8px}
+.attr-table-wrap{display:none;margin-top:6px;max-height:300px;overflow-y:auto}
+.attr-table-wrap.open{display:block}
+.attr-table-wrap .open .attr-toggle{transform:rotate(90deg)}
+.attr-sp-row{font-size:9px;color:var(--tx2);padding:2px 0;font-family:'JetBrains Mono',monospace}
+.attr-tbl{width:100%;border-collapse:collapse;font-size:9px;font-family:'JetBrains Mono',monospace}
+.attr-tbl th{text-align:left;padding:2px 4px;border-bottom:1px solid var(--bdr);color:var(--tx3);font-weight:600;font-size:8px;white-space:nowrap}
+.attr-tbl td{padding:2px 4px;border-bottom:1px solid #ffffff06;white-space:nowrap}
+.attr-tbl tr:hover td{background:#ffffff08}
