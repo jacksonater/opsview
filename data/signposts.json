@@ -3576,14 +3576,14 @@
     "name": "DOCKLANDS DR TERMINUS",
     "pole": "",
     "status": "IN SERVICE",
-    "description": "Estimated from route terminus",
+    "description": "Pole 054-D, Docklands Drive (same as DODR)",
     "routes": [
       "35"
     ],
     "suburb": "",
     "section": "",
-    "lat": -37.8144,
-    "lng": 144.9388
+    "lat": -37.8150469,
+    "lng": 144.9370886
   },
   {
     "code": "DODR2",
