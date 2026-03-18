@@ -405,7 +405,7 @@ function anim(){
   var now=Date.now(),needStats=false;
   trams.forEach(function(t){
     var seg=segMs(t.route);
-
+ 
     // ── DISRUPTION: TRAPPED — freeze in place, accumulate delay ──
     if(t.blockState==='trapped'){
       if(!t._trappedAt){t._trappedAt=now;t._preTrapDv=t.dv;}
@@ -416,45 +416,33 @@ function anim(){
       needStats=true;
       return;
     }
-
-    // ── DISRUPTION: ESCAPING — heading away from incident ──
-    // Falls through to normal movement. Cleared at terminus.
-
+ 
     // ── DISRUPTION: TURNBACK — geographic enforcement ──
     if(t.blockState==='turnback_south'||t.blockState==='turnback_north'){
-      // Find the disruption this tram is assigned to
-      var dis=null;
-      for(var di=0;di<disruptions.length;di++){
-        if(disruptions[di].id===t.blockedByDis){dis=disruptions[di];break;}
-      }
-      if(dis){
+      var xo=t._turnbackXO;
+      if(xo){
         var pos=tPos(t);
+        var distToXO=geoDist(pos[0],pos[1],xo.la,xo.lo);
+ 
+        // Also find the disruption for secondary check
+        var dis=null;
+        for(var di=0;di<disruptions.length;di++){
+          if(disruptions[di].id===t.blockedByDis){dis=disruptions[di];break;}
+        }
+ 
         var shouldReverse=false;
-
-        if(t.blockState==='turnback_south'&&dis.southXO){
-          // Tram should turn at the south crossover
-          // Check: is the tram at or past the south crossover (heading toward the zone)?
-          var distToXO=geoDist(pos[0],pos[1],dis.southXO.la,dis.southXO.lo);
-          var distToDis=geoDist(pos[0],pos[1],dis.la,dis.lo);
-          var xoToDis=geoDist(dis.southXO.la,dis.southXO.lo,dis.la,dis.lo);
-          // The tram should reverse when it's closer to the disruption than the crossover is,
-          // OR when it's within 100m of the crossover
-          if(distToXO<100||distToDis<xoToDis) shouldReverse=true;
+ 
+        // Primary: within 50m of the assigned crossover
+        if(distToXO<50) shouldReverse=true;
+ 
+        // Secondary: if tram is closer to the disruption than the crossover is
+        // (meaning it has passed the crossover and is inside the zone)
+        if(!shouldReverse&&dis){
+          var xoToDis=geoDist(xo.la,xo.lo,dis.la,dis.lo);
+          var tramToDis=geoDist(pos[0],pos[1],dis.la,dis.lo);
+          if(tramToDis<xoToDis*0.9) shouldReverse=true;
         }
-
-        if(t.blockState==='turnback_north'&&dis.northXO){
-          var distToXO=geoDist(pos[0],pos[1],dis.northXO.la,dis.northXO.lo);
-          var distToDis=geoDist(pos[0],pos[1],dis.la,dis.lo);
-          var xoToDis=geoDist(dis.northXO.la,dis.northXO.lo,dis.la,dis.lo);
-          if(distToXO<100||distToDis<xoToDis) shouldReverse=true;
-        }
-
-        // Fallback: if no crossover data, reverse within 200m of disruption
-        if(!dis.southXO&&!dis.northXO){
-          var distToDis=geoDist(pos[0],pos[1],dis.la,dis.lo);
-          if(distToDis<200) shouldReverse=true;
-        }
-
+ 
         if(shouldReverse){
           // ── REVERSE IN PLACE ──
           var oldSi=t.si,pathLen=t.path.length;
@@ -465,10 +453,9 @@ function anim(){
           t.updn=t.updn==='Down'?'Up':'Down';
           var rb=R[t.route];t.dest=t.dir==='Outbound'?rb.d:rb.o;
           var ddb=DIR_DATA[t.route];if(ddb)t.updnDest=t.updn==='Down'?ddb.dn:ddb.up;
-          // Punctuality impact
           t.dv=Math.min(900,t.dv+600);
           // Clear state — tram heads to terminus, re-evaluated there
-          delete t.blockedByDis;delete t.blockState;delete t.blockParam;
+          delete t.blockedByDis;delete t.blockState;delete t._turnbackXO;
           if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
           needStats=true;
           return;
@@ -476,9 +463,15 @@ function anim(){
       }
       // Not yet at boundary — fall through to normal advance
     }
-
+ 
     // ── NORMAL MOVEMENT ──
     if(now-t.lt>=seg){
+      // FIFO hold: if shared track module has held this tram, skip advance
+      if(t._fifoHeld){
+        // Don't advance si, but still update position for smooth rendering
+        if(t.mk&&t.vis)t.mk.setLatLng(tPos(t));
+        return;
+      }
       t.lt=now;t.pr=0;t.si++;
       if(t.si>=t.path.length-1){
         // ── TERMINUS REVERSAL ──
@@ -490,12 +483,12 @@ function anim(){
         var dd2=DIR_DATA[t.route];if(dd2)t.updnDest=t.updn==='Down'?dd2.dn:dd2.up;
         if(Math.random()<.3)t.dv+=Math.floor(Math.random()*61)-30;
         t.dv=Math.max(-180,Math.min(900,t.dv));
-
+ 
         // ── Clear escaping state at terminus ──
         if(t.blockState==='escaping'){
           delete t.blockedByDis;delete t.blockState;delete t._disBaselineDv;
         }
-
+ 
         // ── Check if tram should now short-work ──
         if(disruptions.length>0&&!t.blockedByDis){
           checkDisruptionOnTerminusReversal(t);
@@ -530,104 +523,70 @@ function applyDisruptionToTrams(dis){
   var affectedRoutes=dis.routes||[dis.route];
   var affectDown=(dis.dir==='Both directions'||dis.dir==='Down only');
   var affectUp  =(dis.dir==='Both directions'||dis.dir==='Up only');
-
-  var disParamByRoute={};
-  affectedRoutes.forEach(function(rk){
-    var shape=R[rk]?R[rk].fwd:null;
-    if(shape) disParamByRoute[rk]=routeParam(dis.la,dis.lo,shape).param;
-  });
-
-  console.log('=== applyDisruptionToTrams ===');
-  console.log('Affected routes:', affectedRoutes.join(', '));
-  console.log('Direction scope: affectDown='+affectDown+', affectUp='+affectUp);
-
-  affectedRoutes.forEach(function(rk){
-    var bp=dis.routeBlockParams?dis.routeBlockParams[rk]:null;
-    if(bp) console.log('Route '+rk+': southParam='+Math.round(bp.southParam)+'m, northParam='+Math.round(bp.northParam)+'m, disParam='+Math.round(disParamByRoute[rk]||0)+'m');
-  });
-
+ 
   trams.forEach(function(t){
     if(affectedRoutes.indexOf(t.route)<0||t.blockedByDis)return;
     if(t.updn==='Down'&&!affectDown)return;
     if(t.updn==='Up'  &&!affectUp  )return;
-
+ 
+    var pos=tPos(t);
+ 
+    // No crossover data — fallback to proximity trap
     if(!dis.southXO&&!dis.northXO){
-      var pos=tPos(t);
       if(geoDist(pos[0],pos[1],dis.la,dis.lo)<300){
         t.blockedByDis=dis.id;t.blockState='trapped';
         t._trappedAt=Date.now();t._preTrapDv=t.dv;
         if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
-        console.log(t.id+' Rt'+t.route+' → TRAPPED (no XO fallback)');
       }
       return;
     }
-
-    var bp=dis.routeBlockParams?dis.routeBlockParams[t.route]:null;
-    if(!bp){
-      var shape=R[t.route]?R[t.route].fwd:null;
-      if(!shape)return;
-      var arr2=routeParamArr[t.route];
-      var routeMax2=arr2?arr2[arr2.length-1]:99999;
-      var sp=dis.southXO?routeParam(dis.southXO.la,dis.southXO.lo,shape).param:0;
-      var np=dis.northXO?routeParam(dis.northXO.la,dis.northXO.lo,shape).param:routeMax2;
-      if(sp>np){var tmp=sp;sp=np;np=tmp;}
-      bp={southParam:sp,northParam:np};
-    }
-    var southParam=bp.southParam,northParam=bp.northParam;
-
-    var arr=routeParamArr[t.route];
-    if(!arr)return;
-
-    var fwdIdx=(t.dir==='Outbound')?t.si:(arr.length-1-t.si);
-    fwdIdx=Math.max(0,Math.min(arr.length-1,fwdIdx));
-    var param=arr[fwdIdx];
-    var isOutbound=(t.dir==='Outbound');
-    var paramIncreasing=isOutbound;
-
-    var disParam=disParamByRoute[t.route]||((southParam+northParam)/2);
-
-    var decision='UNAFFECTED (heading away)';
-
-    if(param>southParam&&param<northParam){
-      var headingToward;
-      if(paramIncreasing){
-        headingToward=(disParam>=param);
-      } else {
-        headingToward=(disParam<=param);
-      }
-      if(headingToward){
-        t.blockedByDis=dis.id;t.blockState='trapped';
-        t._trappedAt=Date.now();t._preTrapDv=t.dv;
-        decision='TRAPPED (inside zone, heading toward)';
-      } else {
-        t.blockedByDis=dis.id;t.blockState='escaping';
+ 
+    // Geographic classification: is the tram between the crossovers?
+    var dToSouth=dis.southXO?geoDist(pos[0],pos[1],dis.southXO.la,dis.southXO.lo):99999;
+    var dToNorth=dis.northXO?geoDist(pos[0],pos[1],dis.northXO.la,dis.northXO.lo):99999;
+    var dToDis=geoDist(pos[0],pos[1],dis.la,dis.lo);
+    var xoSpan=dis.southXO&&dis.northXO?geoDist(dis.southXO.la,dis.southXO.lo,dis.northXO.la,dis.northXO.lo):9999;
+    var southToDis=dis.southXO?geoDist(dis.southXO.la,dis.southXO.lo,dis.la,dis.lo):9999;
+    var northToDis=dis.northXO?geoDist(dis.northXO.la,dis.northXO.lo,dis.la,dis.lo):9999;
+ 
+    // A tram is "between" the crossovers if:
+    // - its distance to the disruption is less than both crossover-to-disruption distances
+    //   (it's closer to the incident than either crossover is), OR
+    // - the sum of its distances to both crossovers is within 20% of the crossover span
+    //   (triangle inequality — it's roughly on the line between them)
+    var sumToXOs=dToSouth+dToNorth;
+    var isBetween=(sumToXOs < xoSpan * 1.2) && (dToDis < xoSpan);
+ 
+    if(isBetween){
+      // ── TRAPPED: between crossovers at creation ──
+      t.blockedByDis=dis.id;t.blockState='trapped';
+      t._trappedAt=Date.now();t._preTrapDv=t.dv;
+    } else {
+      // ── OUTSIDE THE ZONE ──
+      // Which crossover is this tram closer to?
+      // Assign turnback to the nearer crossover (the one it will approach first)
+      var nearerIsSouth=(dToSouth<dToNorth);
+ 
+      // But only assign if the tram is heading TOWARD the zone.
+      // We determine this by checking if the tram is on the same side as its
+      // nearer crossover — if it's closer to the south XO, it's south of the zone.
+      // It's heading toward the zone if it would naturally advance toward that XO.
+      // For the demo, we assign turnback to ALL trams on affected routes outside
+      // the zone — the geographic check in the anim loop prevents them from
+      // entering, and they'll reverse at the crossover.
+      if(nearerIsSouth&&dis.southXO){
+        t.blockedByDis=dis.id;t.blockState='turnback_south';
+        t._turnbackXO=dis.southXO; // store the actual crossover object
         t._disBaselineDv=t.dv;
-        decision='ESCAPING (inside zone, heading away)';
-      }
-    } else if(param<=southParam){
-      if(paramIncreasing){
-        t.blockedByDis=dis.id;t.blockState='turnback_south';t.blockParam=southParam;
+      } else if(!nearerIsSouth&&dis.northXO){
+        t.blockedByDis=dis.id;t.blockState='turnback_north';
+        t._turnbackXO=dis.northXO;
         t._disBaselineDv=t.dv;
-        decision='TURNBACK_SOUTH (south of zone, heading toward, blockParam='+Math.round(southParam)+'m)';
-      } else {
-        decision='UNAFFECTED (south of zone, heading away — param decreasing)';
-      }
-    } else if(param>=northParam){
-      if(!paramIncreasing){
-        t.blockedByDis=dis.id;t.blockState='turnback_north';t.blockParam=northParam;
-        t._disBaselineDv=t.dv;
-        decision='TURNBACK_NORTH (north of zone, heading toward, blockParam='+Math.round(northParam)+'m)';
-      } else {
-        decision='UNAFFECTED (north of zone, heading away — param increasing)';
       }
     }
-
-    console.log(t.id+' Rt'+t.route+' dir='+t.dir+' updn='+t.updn+' param='+Math.round(param)+'m paramInc='+paramIncreasing+' → '+decision);
-
+ 
     if(t.blockedByDis&&t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
   });
-
-  console.log('=== END applyDisruptionToTrams ===');
 }
 
 function checkDisruptionOnTerminusReversal(t){
@@ -643,44 +602,28 @@ function checkDisruptionOnTerminusReversal(t){
     if(t.updn==='Down'&&!affectDown)continue;
     if(t.updn==='Up'  &&!affectUp  )continue;
  
-    var bp=dis.routeBlockParams?dis.routeBlockParams[t.route]:null;
-    if(!bp)continue;
-    var southParam=bp.southParam,northParam=bp.northParam;
+    if(!dis.southXO&&!dis.northXO)continue;
  
-    var arr=routeParamArr[t.route];
-    if(!arr)continue;
+    // Tram just reversed at a terminus — it's now heading toward the zone.
+    // Assign turnback to the nearer crossover.
+    var pos=tPos(t);
+    var dToSouth=dis.southXO?geoDist(pos[0],pos[1],dis.southXO.la,dis.southXO.lo):99999;
+    var dToNorth=dis.northXO?geoDist(pos[0],pos[1],dis.northXO.la,dis.northXO.lo):99999;
  
-    var fwdIdx=(t.dir==='Outbound')?t.si:(arr.length-1-t.si);
-    fwdIdx=Math.max(0,Math.min(arr.length-1,fwdIdx));
-    var param=arr[fwdIdx];
-    var isOutbound=(t.dir==='Outbound');
-    var paramIncreasing=isOutbound;
- 
-    // South of zone and heading toward it?
-    if(param<=southParam&&paramIncreasing){
-      t.blockedByDis=dis.id;t.blockState='turnback_south';t.blockParam=southParam;
+    if(dToSouth<dToNorth&&dis.southXO){
+      t.blockedByDis=dis.id;t.blockState='turnback_south';
+      t._turnbackXO=dis.southXO;
       t._disBaselineDv=t.dv;
       if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
       return;
-    }
-    // North of zone and heading toward it?
-    if(param>=northParam&&!paramIncreasing){
-      t.blockedByDis=dis.id;t.blockState='turnback_north';t.blockParam=northParam;
+    } else if(dis.northXO){
+      t.blockedByDis=dis.id;t.blockState='turnback_north';
+      t._turnbackXO=dis.northXO;
       t._disBaselineDv=t.dv;
       if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
       return;
     }
   }
-}
-              
-function clearDisruptionFromTrams(disId){
-  trams.forEach(function(t){
-    if(t.blockedByDis===disId){
-      delete t.blockedByDis;delete t.blockState;delete t.blockParam;
-      delete t._trappedAt;delete t._preTrapDv;
-      if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
-    }
-  });
 }
 
 function refreshIcons(){

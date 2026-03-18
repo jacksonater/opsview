@@ -183,5 +183,19 @@
 <script src="js/app.js"></script>
 <!-- Attribution engine (deferred — waits for opsview-ready) -->
 <script src="js/attribution.js"></script>
+<!-- After the existing script tags for app.js, gis.js, dmp.js, attribution.js -->
+<script>var SHARED_TRACK_DATA = [];</script>
+<script src="data/shared_track.json" 
+  onload="/* loaded via fetch below */" 
+  onerror="console.warn('shared_track.json not found')"></script>
+<script>
+  // Load shared track data then init module
+  fetch('data/shared_track.json').then(r=>r.json()).then(function(d){
+    window.SHARED_TRACK_DATA = d;
+    var s = document.createElement('script');
+    s.src = 'js/shared_track.js';
+    document.body.appendChild(s);
+  }).catch(function(e){ console.warn('Shared track data not loaded:', e); });
+</script>
 </body>
 </html>
