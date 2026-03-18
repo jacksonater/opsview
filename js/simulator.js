@@ -71,6 +71,25 @@ function init(){
   var simInitialised = false;
   var SIM_MODE = false;       // true = simulator active, false = original mock mode
 
+  // ── DISRUPTION TRACKING ──
+  // tripImpacts: log of trips affected by disruptions
+  // Each entry: {run, seq, route, disId, impact:'short'|'cancelled'|'late', scheduledStart, scheduledEnd}
+  var tripImpacts = [];
+
+  // Per-tram short-working state (during disruption)
+  // When a tram is in turnback mode, it bounces between its crossover and
+  // the nearest terminus/turnaround, using the GTFS shape for movement.
+  // _shortWork: {
+  //   active: true,
+  //   xoLat, xoLng: crossover position (the boundary)
+  //   termLat, termLng: the terminus/end the tram runs back to
+  //   shape: array of [lat,lng] for the short-working path
+  //   shapeIdx: current position along the shape
+  //   direction: 1 or -1 (forward/backward along shape)
+  //   speed: metres per sim-second
+  //   consumedTrips: [{run, seq}] — trips that should have run but didn't
+  // }
+
   // Fleet IDs
   var fleetIdx = 0;
   var FL = [];
@@ -345,7 +364,7 @@ function init(){
     window._simSelectedTram = t;
   }
 
-  // ── ANIMATION LOOP ──
+  // ── ANIMATION LOOP (DISRUPTION-AWARE) ──
   function simAnim(){
     if(!SIM_MODE || !simPlaying){
       simAnimFrame = null;
@@ -358,7 +377,8 @@ function init(){
 
     // Advance sim time by (real delta * speed scale)
     var scale = parseInt(document.getElementById('spdSel').value) || 5;
-    simTime += (realDeltaMs / 1000) * scale;
+    var simDeltaSecs = (realDeltaMs / 1000) * scale;
+    simTime += simDeltaSecs;
     simTime = simTime % 86400;
 
     // Update clock display
@@ -371,8 +391,79 @@ function init(){
       rescanTrips();
     }
 
+    // Get active disruptions
+    var disruptions = window.disruptions || [];
+
     // Update positions of existing trams
     simTrams.forEach(function(t){
+      // ── TRAPPED: freeze in place, accumulate delay ──
+      if(t.blockState === 'trapped'){
+        t.dv = Math.min(900, (t._preTrapDv||0) + Math.round((simTime - (t._trappedAtSim||simTime))));
+        // Update icon (shows STOP)
+        if(t.mk && t.vis) t.mk.setIcon(mkIcon(t));
+        return;
+      }
+
+      // ── SHORT-WORKING: bouncing between crossover and safe terminus ──
+      if(t._shortWork && t._shortWork.active){
+        var sw = t._shortWork;
+        var distPerFrame = sw.speed * simDeltaSecs; // metres to move this frame
+        
+        // Advance along shape
+        var shape = sw.shape;
+        if(!shape || shape.length < 2){ return; }
+        
+        var moved = 0;
+        while(moved < distPerFrame && sw.shapeIdx >= 0 && sw.shapeIdx < shape.length - 1){
+          var ci = sw.shapeIdx;
+          var ni = ci + sw.direction;
+          if(ni < 0 || ni >= shape.length){
+            // Hit end — reverse
+            sw.direction *= -1;
+            // Flip tram direction display
+            t.updn = t.updn === 'Down' ? 'Up' : 'Down';
+            t.dir = t.dir === 'Outbound' ? 'Inbound' : 'Outbound';
+            var dd = DIR_DATA[t.route];
+            if(dd) t.updnDest = t.updn === 'Down' ? dd.dn : dd.up;
+            t.dest = t.updnDest;
+            break;
+          }
+          var segLen = geoDist(shape[ci][0], shape[ci][1], shape[ni][0], shape[ni][1]);
+          if(moved + segLen > distPerFrame){
+            // Partial segment — interpolate
+            var frac = (distPerFrame - moved) / segLen;
+            var lat = shape[ci][0] + (shape[ni][0] - shape[ci][0]) * frac;
+            var lng = shape[ci][1] + (shape[ni][1] - shape[ci][1]) * frac;
+            t.path = [{la: lat, lo: lng, n: t._nearStop}];
+            moved = distPerFrame;
+          } else {
+            sw.shapeIdx = ni;
+            moved += segLen;
+          }
+        }
+        
+        // Update position from shape
+        var idx = Math.max(0, Math.min(sw.shapeIdx, shape.length - 1));
+        t.path = [{la: shape[idx][0], lo: shape[idx][1], n: 'Short working'}];
+        t._simPos = {lat: shape[idx][0], lng: shape[idx][1]};
+        t._nearStop = 'Short working';
+        t._nextStop = t.updnDest;
+        
+        // Accumulate delay
+        t.dv = Math.min(900, (t._preTrapDv||0) + Math.round((simTime - (t._trappedAtSim||simTime)) * 0.5));
+        
+        // Track consumed trips — check if any scheduled trips for this run
+        // have started and ended while we're short-working
+        trackConsumedTrips(t);
+
+        if(t.mk && t.vis){
+          t.mk.setLatLng([shape[idx][0], shape[idx][1]]);
+          t.mk.setIcon(mkIcon(t));
+        }
+        return;
+      }
+
+      // ── NORMAL TIMETABLE MOVEMENT ──
       if(!t._simTrip) return;
       var pos = interpolatePosition(t._simTrip, simTime);
       if(!pos) return;
@@ -381,9 +472,12 @@ function init(){
       t._nearStop = pos.nearStop;
       t._nextStop = pos.nextStop;
       t.dv = calcDeviation(t._simTrip, simTime);
-
-      // Update path for tPos compatibility
       t.path = [{la: pos.lat, lo: pos.lng, n: pos.nearStop}];
+
+      // ── CHECK: has this tram entered a disruption zone? ──
+      if(!t.blockedByDis && disruptions.length > 0){
+        checkSimTramDisruption(t, disruptions);
+      }
 
       if(t.mk && t.vis && !t.searchHide){
         t.mk.setLatLng([pos.lat, pos.lng]);
@@ -396,13 +490,308 @@ function init(){
     // Update selected tram detail
     if(window._simSelectedTram){
       var sel = window._simSelectedTram;
-      if(sel._simTrip) openSimDetail(sel);
+      if(sel._simTrip || sel._shortWork) openSimDetail(sel);
     }
 
     simAnimFrame = requestAnimationFrame(simAnim);
   }
 
+  // ── CHECK IF A SIM TRAM SHOULD BE DISRUPTED ──
+  function checkSimTramDisruption(t, disruptions){
+    var pos = t._simPos;
+    if(!pos) return;
+
+    for(var di = 0; di < disruptions.length; di++){
+      var dis = disruptions[di];
+      var affectedRoutes = dis.routes || [dis.route];
+      if(affectedRoutes.indexOf(t.route) < 0) continue;
+
+      var affectDown = (dis.dir === 'Both directions' || dis.dir === 'Down only');
+      var affectUp   = (dis.dir === 'Both directions' || dis.dir === 'Up only');
+      if(t.updn === 'Down' && !affectDown) continue;
+      if(t.updn === 'Up'   && !affectUp)   continue;
+
+      // No crossover data — proximity trap
+      if(!dis.southXO && !dis.northXO){
+        if(geoDist(pos.lat, pos.lng, dis.la, dis.lo) < 300){
+          trapSimTram(t, dis);
+        }
+        return;
+      }
+
+      // Geographic classification
+      var dToSouth = dis.southXO ? geoDist(pos.lat, pos.lng, dis.southXO.la, dis.southXO.lo) : 99999;
+      var dToNorth = dis.northXO ? geoDist(pos.lat, pos.lng, dis.northXO.la, dis.northXO.lo) : 99999;
+      var dToDis = geoDist(pos.lat, pos.lng, dis.la, dis.lo);
+      var xoSpan = (dis.southXO && dis.northXO) ? geoDist(dis.southXO.la, dis.southXO.lo, dis.northXO.la, dis.northXO.lo) : 9999;
+
+      var isBetween = (dToDis < xoSpan * 0.6) && (dToSouth < xoSpan) && (dToNorth < xoSpan);
+
+      if(isBetween){
+        trapSimTram(t, dis);
+      } else {
+        // Outside — assign turnback to nearer crossover
+        var nearerIsSouth = (dToSouth < dToNorth);
+        var xo = nearerIsSouth ? dis.southXO : dis.northXO;
+        if(xo){
+          startShortWorking(t, dis, xo);
+        }
+      }
+      return; // only process first matching disruption
+    }
+  }
+
+  // ── TRAP A TRAM (between crossovers) ──
+  function trapSimTram(t, dis){
+    t.blockedByDis = dis.id;
+    t.blockState = 'trapped';
+    t._trappedAtSim = simTime;
+    t._preTrapDv = t.dv;
+    
+    // Log trip impact
+    if(t._simTrip){
+      tripImpacts.push({
+        run: t._simTrip.run, seq: t._simTrip.seq, route: t.route,
+        disId: dis.id, impact: 'short', 
+        scheduledStart: t._simTrip.tripStart, scheduledEnd: t._simTrip.tripEnd,
+        impactTime: simTime
+      });
+    }
+    if(t.mk && t.vis) t.mk.setIcon(mkIcon(t));
+  }
+
+  // ── START SHORT-WORKING (turnback at crossover) ──
+  function startShortWorking(t, dis, xo){
+    t.blockedByDis = dis.id;
+    t.blockState = 'turnback_south'; // generic label for icon
+    t._turnbackXO = xo;
+    t._trappedAtSim = simTime;
+    t._preTrapDv = t.dv;
+
+    // Build short-working path from tram's current position to crossover
+    // using the GTFS route shape
+    var routeShape = R[t.route] ? R[t.route].fwd : null;
+    if(!routeShape || routeShape.length < 2){
+      // Fallback: just trap
+      t.blockState = 'trapped';
+      return;
+    }
+
+    // Find nearest shape point to tram
+    var pos = t._simPos || {lat: t.path[0].la, lng: t.path[0].lo};
+    var tramIdx = nearestShapeIdx(routeShape, pos.lat, pos.lng);
+    
+    // Find nearest shape point to crossover
+    var xoIdx = nearestShapeIdx(routeShape, xo.la, xo.lo);
+
+    // Build sub-shape between tram and crossover
+    var startIdx = Math.min(tramIdx, xoIdx);
+    var endIdx = Math.max(tramIdx, xoIdx);
+    var subShape = [];
+    for(var i = startIdx; i <= endIdx; i++){
+      subShape.push([routeShape[i][0], routeShape[i][1]]);
+    }
+    if(subShape.length < 2){
+      subShape = [[pos.lat, pos.lng], [xo.la, xo.lo]];
+    }
+
+    // Determine initial direction along sub-shape
+    // If tram is at the low index end, direction = +1 (toward XO)
+    // If tram is at the high index end, direction = -1
+    var initDir = (tramIdx <= xoIdx) ? 1 : -1;
+
+    // Average tram speed: ~20 km/h = ~5.5 m/s
+    t._shortWork = {
+      active: true,
+      xoLat: xo.la, xoLng: xo.lo,
+      shape: subShape,
+      shapeIdx: (initDir === 1) ? 0 : subShape.length - 1,
+      direction: initDir,
+      speed: 5.5,
+      consumedTrips: [],
+      lastTripCheck: simTime
+    };
+
+    // Log initial trip impact
+    if(t._simTrip){
+      tripImpacts.push({
+        run: t._simTrip.run, seq: t._simTrip.seq, route: t.route,
+        disId: dis.id, impact: 'short',
+        scheduledStart: t._simTrip.tripStart, scheduledEnd: t._simTrip.tripEnd,
+        impactTime: simTime
+      });
+    }
+
+    if(t.mk && t.vis) t.mk.setIcon(mkIcon(t));
+  }
+
+  // ── FIND NEAREST SHAPE POINT INDEX ──
+  function nearestShapeIdx(shape, lat, lng){
+    var bestD = Infinity, bestI = 0;
+    for(var i = 0; i < shape.length; i++){
+      var d = geoDist(lat, lng, shape[i][0], shape[i][1]);
+      if(d < bestD){ bestD = d; bestI = i; }
+    }
+    return bestI;
+  }
+
+  // ── TRACK CONSUMED TRIPS DURING SHORT-WORKING ──
+  function trackConsumedTrips(t){
+    if(!t._shortWork || !timetableData) return;
+    var sw = t._shortWork;
+    
+    // Check every ~60 sim seconds
+    if(simTime - sw.lastTripCheck < 60) return;
+    sw.lastTripCheck = simTime;
+
+    // Find the run this tram belongs to
+    var runId = t._simTrip ? t._simTrip.run : null;
+    if(!runId) return;
+    var routeRuns = timetableData[t.route];
+    if(!routeRuns || !routeRuns[runId]) return;
+
+    var trips = routeRuns[runId];
+    for(var ti = 0; ti < trips.length; ti++){
+      var trip = trips[ti];
+      var wps = trip.w;
+      if(!wps || wps.length < 2) continue;
+
+      var tripStart = wps[0].t;
+      var tripEnd = wps[wps.length - 1].t;
+      if(tripEnd < tripStart) tripEnd += 86400;
+
+      // Trip has ended while we're short-working?
+      var adjTime = simTime;
+      if(adjTime < tripStart - 3600) adjTime += 86400;
+
+      if(adjTime > tripEnd){
+        var key = runId + '/' + trip.q;
+        if(sw.consumedTrips.indexOf(key) < 0){
+          sw.consumedTrips.push(key);
+          tripImpacts.push({
+            run: runId, seq: trip.q, route: t.route,
+            disId: t.blockedByDis, impact: 'cancelled',
+            scheduledStart: tripStart, scheduledEnd: tripEnd,
+            impactTime: simTime
+          });
+        }
+      }
+    }
+  }
+
+  // ── CLEAR DISRUPTION FROM SIM TRAMS ──
+  function simClearDisruption(disId){
+    simTrams.forEach(function(t){
+      if(t.blockedByDis !== disId) return;
+
+      // Find the best trip to cut back into
+      var resumed = tryResumeTrip(t);
+
+      // Clear disruption state
+      delete t.blockedByDis;
+      delete t.blockState;
+      delete t._turnbackXO;
+      delete t._trappedAtSim;
+      delete t._preTrapDv;
+      if(t._shortWork) t._shortWork.active = false;
+      delete t._shortWork;
+
+      if(!resumed){
+        // No trip found — tram is effectively out of service until next scheduled trip
+        // The rescan will pick it up when the next trip starts
+      }
+
+      if(t.mk && t.vis) t.mk.setIcon(mkIcon(t));
+    });
+  }
+
+  // ── RESUME TRIP AFTER DISRUPTION CLEAR ──
+  // Find the next trip for this run where the tram can reach a signpost
+  // at the right time going the right direction
+  function tryResumeTrip(t){
+    if(!timetableData) return false;
+    var runId = t._simTrip ? t._simTrip.run : null;
+    if(!runId) return false;
+    var routeRuns = timetableData[t.route];
+    if(!routeRuns || !routeRuns[runId]) return false;
+
+    var pos = t._simPos || {lat: t.path[0].la, lng: t.path[0].lo};
+    var tramDir = t.updn; // 'Down' or 'Up'
+    var trips = routeRuns[runId];
+
+    // Average tram speed for reachability: ~20 km/h = 333 m/min
+    var SPEED_M_PER_SEC = 5.5;
+
+    for(var ti = 0; ti < trips.length; ti++){
+      var trip = trips[ti];
+      var wps = trip.w;
+      if(!wps || wps.length < 2) continue;
+
+      // Skip trips that have already ended
+      var tripEnd = wps[wps.length - 1].t;
+      if(tripEnd < wps[0].t) tripEnd += 86400;
+      var adjTime = simTime;
+      if(adjTime < wps[0].t - 3600) adjTime += 86400;
+      if(adjTime > tripEnd) continue;
+
+      // Trip direction must match tram's current direction
+      if(trip.d !== tramDir) continue;
+
+      // Scan signposts on this trip — can the tram reach any of them in time?
+      for(var wi = 0; wi < wps.length; wi++){
+        var wp = wps[wi];
+        var wpTime = wp.t;
+        if(wpTime < wps[0].t) wpTime += 86400;
+        
+        // Must be in the future
+        if(wpTime <= adjTime) continue;
+
+        // Distance from tram to this signpost
+        var wpLat = wp.a, wpLng = wp.o;
+        if(signpostLookup && signpostLookup[wp.c]){
+          wpLat = signpostLookup[wp.c].lat;
+          wpLng = signpostLookup[wp.c].lng;
+        }
+        if(!wpLat || !wpLng) continue;
+
+        var dist = geoDist(pos.lat, pos.lng, wpLat, wpLng);
+        var timeAvailable = wpTime - adjTime; // seconds until this signpost is scheduled
+        var timeNeeded = dist / SPEED_M_PER_SEC;
+
+        if(timeNeeded <= timeAvailable){
+          // Can reach this signpost in time — cut in here
+          t._simTrip = {
+            route: t.route,
+            run: runId,
+            seq: trip.q,
+            dir: trip.d,
+            waypoints: wps,
+            isSynthetic: !!trip.syn,
+            tripStart: wps[0].t,
+            tripEnd: wps[wps.length - 1].t,
+            currentTime: simTime
+          };
+          t.run = runId + '/' + trip.q;
+
+          // Log as late resumption
+          tripImpacts.push({
+            run: runId, seq: trip.q, route: t.route,
+            disId: t.blockedByDis, impact: 'late',
+            scheduledStart: wps[0].t, scheduledEnd: wps[wps.length-1].t,
+            impactTime: simTime,
+            resumeSignpost: wp.c,
+            resumeIdx: wi
+          });
+
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   // ── RESCAN: add new trips, remove ended ones ──
+  // Skip trams that are disrupted (trapped or short-working)
   function rescanTrips(){
     var active = getActiveTrips(simTime);
     var activeKeys = {};
@@ -410,9 +799,10 @@ function init(){
       activeKeys[trip.run + '/' + trip.seq] = trip;
     });
 
-    // Remove ended trips
+    // Remove ended trips — BUT NOT disrupted trams
     for(var i = simTrams.length - 1; i >= 0; i--){
       var t = simTrams[i];
+      if(t.blockedByDis) continue; // don't remove disrupted trams
       var key = t._simTrip ? (t._simTrip.run + '/' + t._simTrip.seq) : '';
       if(!activeKeys[key]){
         if(t.mk) map.removeLayer(t.mk);
@@ -420,15 +810,19 @@ function init(){
       }
     }
 
-    // Add new trips
+    // Add new trips — but not for runs that have a disrupted tram
     var existingKeys = {};
+    var disruptedRuns = {};
     simTrams.forEach(function(t){
       if(t._simTrip) existingKeys[t._simTrip.run + '/' + t._simTrip.seq] = true;
+      if(t.blockedByDis && t._simTrip) disruptedRuns[t._simTrip.run] = true;
     });
 
     active.forEach(function(trip){
       var key = trip.run + '/' + trip.seq;
-      if(existingKeys[key]) return; // already tracked
+      if(existingKeys[key]) return;
+      // Don't spawn new trips for runs that have a disrupted tram
+      if(disruptedRuns[trip.run]) return;
 
       var pos = interpolatePosition(trip, simTime);
       if(!pos) return;
@@ -547,10 +941,27 @@ function init(){
       simTime = hhmmToSecs(timeInput.value);
       simLastRealMs = Date.now();
 
-      // Cancel original animation
-      // (the original anim() is a requestAnimationFrame loop, it will keep
-      //  running but we've swapped window.trams so it becomes a no-op on
-      //  markers that have been removed)
+      // Clear any existing disruption impacts
+      tripImpacts = [];
+
+      // Override disruption functions to work with sim trams
+      window._origApplyDis = window.applyDisruptionToTrams;
+      window._origClearDis = window.clearDisruptionFromTrams;
+      window.applyDisruptionToTrams = function(dis){
+        // Use sim-aware disruption application
+        var affectedRoutes = dis.routes || [dis.route];
+        simTrams.forEach(function(t){
+          if(affectedRoutes.indexOf(t.route) < 0 || t.blockedByDis) return;
+          var affectDown = (dis.dir === 'Both directions' || dis.dir === 'Down only');
+          var affectUp   = (dis.dir === 'Both directions' || dis.dir === 'Up only');
+          if(t.updn === 'Down' && !affectDown) return;
+          if(t.updn === 'Up'   && !affectUp) return;
+          checkSimTramDisruption(t, [dis]);
+        });
+      };
+      window.clearDisruptionFromTrams = function(disId){
+        simClearDisruption(disId);
+      };
 
       rebuildSimTrams();
 
@@ -578,11 +989,14 @@ function init(){
   };
 
   window.simStop = function(){
-    // Exit sim mode, restore original mock trams
     SIM_MODE = false;
     simPlaying = false;
     if(simAnimFrame) cancelAnimationFrame(simAnimFrame);
     simAnimFrame = null;
+
+    // Restore original disruption functions
+    if(window._origApplyDis) window.applyDisruptionToTrams = window._origApplyDis;
+    if(window._origClearDis) window.clearDisruptionFromTrams = window._origClearDis;
 
     // Remove sim markers
     simTrams.forEach(function(t){
@@ -613,7 +1027,10 @@ function init(){
   };
 
   window.simGetTime = function(){ return secsToHHMM(simTime); };
-  window.SIM_MODE = function(){ return SIM_MODE; };
+  window.simGetTimeSecs = function(){ return simTime; };
+  window.simIsActive = function(){ return SIM_MODE; };
+  window.simGetTripImpacts = function(){ return tripImpacts; };
+  window.simClearDisruption = simClearDisruption;
 
   // ── INITIALISE ──
   Promise.all([loadTimetable(), loadSignposts()]).then(function(){
