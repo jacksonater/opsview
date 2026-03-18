@@ -340,25 +340,116 @@ function init(){
     var dp = document.getElementById('dp');
     var did = document.getElementById('did');
     var dbd = document.getElementById('dbd');
+    if(!dp || !did || !dbd) return;
 
-    // Format deviation
     var devStr = window.devTxt(t.dv);
-    var devCol = window.scHex(sc(t.dv));
+    var c = sc(t.dv);
+    var devCol = window.scHex(c);
+    var routeCol = (R[t.route] ? R[t.route].c : '#888');
     var arr = t.updn === 'Down' ? '\u25BC' : '\u25B2';
 
-    did.innerHTML = '<span style="color:' + (R[t.route]?R[t.route].c:'#888') + '">' + t.id + '</span>';
+    did.innerHTML = '<span style="color:' + routeCol + '">' + t.id + '</span>';
+
+    // Compute punctuality/reliability from trip signposts
+    var puncPct = '—';
+    var reliStr = '—';
+    var tripSignposts = '';
+
+    if(t._simTrip && t._simTrip.waypoints){
+      var wps = t._simTrip.waypoints;
+      var totalSP = wps.length;
+      // How many signposts has the tram passed? (time-based)
+      var passed = 0;
+      var adjTime = simTime;
+      for(var wi = 0; wi < wps.length; wi++){
+        var wpT = wps[wi].t;
+        if(adjTime < wpT - 3600) adjTime += 86400;
+        if(adjTime >= wpT) passed++;
+      }
+      reliStr = passed + '/' + totalSP;
+
+      // Punctuality: how many passed signposts were on time (within 120s)?
+      var onTime = 0;
+      for(var wi2 = 0; wi2 < Math.min(passed, wps.length); wi2++){
+        if(Math.abs(t.dv) <= 119) onTime++;
+      }
+      puncPct = passed > 0 ? Math.round(onTime / passed * 100) + '%' : '—';
+
+      // Build signpost schedule table for current trip
+      tripSignposts = '<div class="ds"><div class="dst">Trip Signposts — ' + t.run + '</div>';
+      tripSignposts += '<table style="width:100%;font-size:9px;font-family:\'JetBrains Mono\',monospace;border-collapse:collapse">';
+      tripSignposts += '<tr style="color:var(--tx3);font-size:8px"><th style="text-align:left;padding:2px 3px">Seq</th><th style="text-align:left;padding:2px 3px">Code</th><th style="text-align:left;padding:2px 3px">Name</th><th style="padding:2px 3px">Sched</th><th style="padding:2px 3px">Status</th></tr>';
+
+      for(var si = 0; si < wps.length; si++){
+        var wp = wps[si];
+        var spName = signpostLookup && signpostLookup[wp.c] ? signpostLookup[wp.c].name : wp.c;
+        var schedTime = secsToHHMM(wp.t);
+        var wpAdj = wp.t;
+        var status = '';
+        var rowStyle = '';
+
+        if(simTime >= wpAdj || (simTime + 86400) >= wpAdj){
+          // Passed this signpost
+          var devAtSP = t.dv; // simplified — use tram's current deviation
+          if(Math.abs(devAtSP) <= 119) status = '<span style="color:var(--grn)">\u2713 On time</span>';
+          else if(devAtSP > 0) status = '<span style="color:var(--blu)">' + window.devTxt(devAtSP) + '</span>';
+          else status = '<span style="color:var(--yel)">' + window.devTxt(devAtSP) + '</span>';
+        } else {
+          status = '<span style="color:var(--tx3)">—</span>';
+          rowStyle = 'opacity:0.5';
+        }
+
+        // Highlight if this signpost is in a disrupted zone
+        var isDisrupted = false;
+        if(t.blockedByDis){
+          isDisrupted = true; // simplified — all signposts on a disrupted tram are potentially affected
+        }
+
+        tripSignposts += '<tr style="border-bottom:1px solid var(--bdr);' + rowStyle + '">';
+        tripSignposts += '<td style="padding:2px 3px;color:var(--tx3)">' + si + '</td>';
+        tripSignposts += '<td style="padding:2px 3px;font-weight:600">' + wp.c + '</td>';
+        tripSignposts += '<td style="padding:2px 3px;font-size:8px;color:var(--tx2)">' + spName + '</td>';
+        tripSignposts += '<td style="padding:2px 3px;text-align:center">' + schedTime + '</td>';
+        tripSignposts += '<td style="padding:2px 3px;text-align:center">' + status + '</td>';
+        tripSignposts += '</tr>';
+      }
+      tripSignposts += '</table></div>';
+    }
+
+    // Disruption status section
+    var disSection = '';
+    if(t.blockedByDis){
+      var stateLabel = t.blockState === 'trapped' ? '\u25A0 TRAPPED' : '\u21C4 SHORT-WORKING';
+      var stateCol = t.blockState === 'trapped' ? '#ff5252' : '#f5a623';
+      disSection = '<div class="ds"><div class="dst" style="color:' + stateCol + '">\u26A0 Disruption</div>' +
+        '<div class="dr"><span class="dlb">Status</span><span class="dva" style="color:' + stateCol + '">' + stateLabel + '</span></div>' +
+        '<div class="dr"><span class="dlb">Blocked By</span><span class="dva">Disruption #' + t.blockedByDis + '</span></div>' +
+        '</div>';
+    }
 
     dbd.innerHTML =
-      '<div class="dr"><span class="dl">Route</span><span class="dv" style="color:' + (R[t.route]?R[t.route].c:'#888') + '">' + t.route + ' ' + arr + ' ' + t.updn + '</span></div>' +
-      '<div class="dr"><span class="dl">Run</span><span class="dv">' + t.run + '</span></div>' +
-      '<div class="dr"><span class="dl">Destination</span><span class="dv">' + t.updnDest + '</span></div>' +
-      '<div class="dr"><span class="dl">Current Stop</span><span class="dv">' + (t._nearStop || '—') + '</span></div>' +
-      '<div class="dr"><span class="dl">Next Stop</span><span class="dv">' + (t._nextStop || '—') + '</span></div>' +
-      '<div class="dr"><span class="dl">Direction</span><span class="dv">' + t.dir + ' (' + t.updn + ')</span></div>' +
-      '<div class="dr"><span class="dl">Deviation</span><span class="dv" style="color:' + devCol + '">' + devStr + '</span></div>' +
-      '<div class="dr"><span class="dl">Source</span><span class="dv" style="color:var(--tx3);font-size:9px">' +
-        (t._simTrip && t._simTrip.isSynthetic ? 'Synthetic timetable' : 'HASTUS schedule') + '</span></div>' +
-      '<div class="dr"><span class="dl">Driver</span><span class="dv" style="color:var(--tx3)">Pending feed integration</span></div>';
+      '<div class="ds"><div class="dst">Service</div>' +
+      '<div class="dr"><span class="dlb">Tram #</span><span class="dva">' + t.id + '</span></div>' +
+      '<div class="dr"><span class="dlb">Run #</span><span class="dva">' + (t._simTrip ? t._simTrip.run : '—') + '</span></div>' +
+      '<div class="dr"><span class="dlb">Trip</span><span class="dva">' + t.run + '</span></div>' +
+      '<div class="dr"><span class="dlb">Route</span><span class="dva" style="color:' + routeCol + '">' + t.route + '</span></div>' +
+      '<div class="dr"><span class="dlb">Direction</span><span class="dva">' + arr + ' ' + t.updn + '</span></div>' +
+      '<div class="dr"><span class="dlb">Destination</span><span class="dva">' + t.updnDest + '</span></div>' +
+      '<div class="dr"><span class="dlb">Source</span><span class="dva" style="font-size:9px;color:var(--tx3)">' +
+        (t._simTrip && t._simTrip.isSynthetic ? 'Synthetic' : 'HASTUS') + '</span></div>' +
+      '</div>' +
+      '<div class="ds"><div class="dst">Position</div>' +
+      '<div class="dr"><span class="dlb">Current Stop</span><span class="dva">' + (t._nearStop || '—') + '</span></div>' +
+      '<div class="dr"><span class="dlb">Next Stop</span><span class="dva">' + (t._nextStop || '—') + '</span></div>' +
+      '</div>' +
+      '<div class="ds"><div class="dst">Performance</div>' +
+      '<div class="dr"><span class="dlb">Deviation</span><span class="dva"><span class="dvb ' + c + '">' + devStr + '</span></span></div>' +
+      '<div class="dr"><span class="dlb">Punctuality</span><span class="dva">' + puncPct + '</span></div>' +
+      '<div class="dr"><span class="dlb">Reliability</span><span class="dva">' + reliStr + '</span></div>' +
+      '</div>' +
+      disSection +
+      '<div class="ds"><div class="dst">Crew</div><div class="dpn">Driver \u2014 Pending feed integration</div></div>' +
+      tripSignposts;
 
     dp.classList.add('open');
     window._simSelectedTram = t;
@@ -1218,46 +1309,143 @@ function init(){
   function renderAttributionHTML(rpt){
     if(!rpt) return '';
     var h = '';
-    h += '<div class="attr-summary" onclick="this.nextElementSibling.classList.toggle(\'open\')">';
+
+    // ── Summary bar ──
+    h += '<div class="attr-summary" onclick="var w=this.nextElementSibling;w.classList.toggle(\'open\');this.querySelector(\'.attr-toggle\').classList.toggle(\'open\')">';
     h += '<span class="attr-toggle">&#x25B6;</span> ';
-    h += '<b>Attribution:</b> ';
+    h += '<b>Attribution Report</b> &nbsp;';
+    h += rpt.summary.runs + ' runs · ' + rpt.summary.total + ' trips · ';
     h += '<span style="color:#ff5252">' + rpt.summary.short + ' short</span>';
     if(rpt.summary.cancelled > 0) h += ' · <span style="color:#e040fb">' + rpt.summary.cancelled + ' cancelled</span>';
     h += ' · <span style="color:#f5a623">' + rpt.summary.late + ' late</span>';
-    h += ' · ' + rpt.summary.runs + ' runs · ' + rpt.summary.total + ' trips';
+    h += ' &nbsp;<span style="color:var(--tx3);font-size:8px">(' + rpt.durationMin + 'min disruption)</span>';
     h += '</div>';
 
     h += '<div class="attr-table-wrap">';
-    
-    // Disrupted signposts
+
+    // ── Disrupted signposts per route ──
     Object.keys(rpt.disruptedSignposts).forEach(function(route){
       var codes = rpt.disruptedSignposts[route];
       if(codes.length > 0){
-        h += '<div class="attr-sp-row"><b>Rt ' + route + ' disrupted signposts:</b> ' + codes.join(' → ') + '</div>';
+        var rcol = (window.R && window.R[route]) ? window.R[route].c : '#888';
+        h += '<div class="attr-sp-row"><span style="color:'+rcol+';font-weight:700">Rt ' + route + '</span> disrupted signposts: <span style="color:#ff5252">' + codes.join(' \u2192 ') + '</span></div>';
       }
     });
 
-    // Trip table
+    // ── Trip table (MAT style) ──
     h += '<table class="attr-tbl">';
-    h += '<thead><tr><th>Run</th><th>Seq</th><th>Dir</th><th>Start</th><th>End</th><th>From→To</th><th>Impact</th><th>Missed</th><th>Status</th></tr></thead>';
+    h += '<thead><tr>';
+    h += '<th></th><th>Route</th><th>Run</th><th>Seq</th><th>Dir</th>';
+    h += '<th>Start</th><th>End</th>';
+    h += '<th>From</th><th>To</th>';
+    h += '<th>Missed Signposts</th>';
+    h += '<th>Reliability</th>';
+    h += '<th>Impact</th>';
+    h += '<th>Status</th>';
+    h += '</tr></thead>';
     h += '<tbody>';
-    rpt.tripDetails.forEach(function(td){
+
+    rpt.tripDetails.forEach(function(td, idx){
       var impCol = td.impact === 'SHORT' ? '#ff5252' : td.impact === 'CANCELLED' ? '#e040fb' : '#f5a623';
-      h += '<tr>';
+      var rcol = (window.R && window.R[td.route]) ? window.R[td.route].c : '#888';
+      var rowId = 'attrRow_' + rpt.disId + '_' + idx;
+      var detailId = 'attrDet_' + rpt.disId + '_' + idx;
+
+      // Calculate reliability
+      var totalSP = 0;
+      var missedCount = td.missedSignposts ? td.missedSignposts.length : 0;
+      // Look up the trip in timetable to get total signpost count
+      if(timetableData && timetableData[td.route]){
+        var routeRuns = timetableData[td.route];
+        if(routeRuns[td.run]){
+          var trips = routeRuns[td.run];
+          for(var ti = 0; ti < trips.length; ti++){
+            if(trips[ti].q === td.seq){
+              totalSP = trips[ti].w.length;
+              break;
+            }
+          }
+        }
+      }
+      var hitSP = totalSP - missedCount;
+      var reliStr = totalSP > 0 ? hitSP + '/' + totalSP : '\u2014';
+      var reliCol = totalSP > 0 ? (hitSP === totalSP ? 'var(--grn)' : hitSP >= totalSP * 0.8 ? 'var(--yel)' : '#ff5252') : 'var(--tx3)';
+
+      h += '<tr id="' + rowId + '" style="cursor:pointer" onclick="var d=document.getElementById(\'' + detailId + '\');if(d)d.classList.toggle(\'open\')">';
+      h += '<td style="color:var(--tx3);font-size:8px">' + (idx + 1) + '</td>';
+      h += '<td><span style="color:' + rcol + ';font-weight:700">' + td.route + '</span></td>';
       h += '<td>' + td.run + '</td>';
       h += '<td>' + td.seq + '</td>';
       h += '<td>' + td.dir + '</td>';
       h += '<td>' + td.start + '</td>';
       h += '<td>' + td.end + '</td>';
-      h += '<td style="font-size:8px">' + td.from + '→' + td.to + '</td>';
+      h += '<td style="font-size:8px">' + td.from + '</td>';
+      h += '<td style="font-size:8px">' + td.to + '</td>';
+      h += '<td style="font-size:8px;color:#ff5252">' + (td.missedSignposts.length > 0 ? td.missedSignposts.join(', ') : '\u2014') + '</td>';
+      h += '<td style="color:' + reliCol + '">' + reliStr + '</td>';
       h += '<td style="color:' + impCol + ';font-weight:700">' + td.impact + '</td>';
-      h += '<td style="font-size:8px;color:var(--tx3)">' + td.missedSignposts.join(', ') + '</td>';
-      h += '<td style="font-size:8px;color:var(--tx3)">' + td.status + '</td>';
+      h += '<td style="font-size:8px;color:var(--tx3)">\u2705 Attributed</td>';
       h += '</tr>';
+
+      // Signpost drill-down row (hidden by default)
+      h += '<tr class="attr-detail-row" id="' + detailId + '">';
+      h += '<td colspan="13" style="padding:0">';
+      h += renderTripSignpostDetail(td);
+      h += '</td></tr>';
     });
+
     h += '</tbody></table>';
     h += '</div>';
 
+    return h;
+  }
+
+  // ── SIGNPOST DRILL-DOWN for a single trip ──
+  function renderTripSignpostDetail(td){
+    if(!timetableData) return '';
+    var routeRuns = timetableData[td.route];
+    if(!routeRuns || !routeRuns[td.run]) return '';
+
+    var trips = routeRuns[td.run];
+    var trip = null;
+    for(var ti = 0; ti < trips.length; ti++){
+      if(trips[ti].q === td.seq){ trip = trips[ti]; break; }
+    }
+    if(!trip) return '';
+
+    var wps = trip.w;
+    var missedSet = {};
+    if(td.missedSignposts) td.missedSignposts.forEach(function(c){ missedSet[c] = true; });
+
+    var h = '<div style="padding:6px 8px;background:var(--pnl);border-top:1px solid var(--bdr)">';
+    h += '<div style="font-size:9px;font-weight:700;color:var(--tx2);margin-bottom:4px">Signpost Detail \u2014 ' + td.run + ' Trip ' + td.seq + '</div>';
+    h += '<table style="width:100%;font-size:9px;font-family:\'JetBrains Mono\',monospace;border-collapse:collapse">';
+    h += '<tr style="color:var(--tx3);font-size:8px"><th style="text-align:left;padding:1px 4px">Seq</th><th style="text-align:left;padding:1px 4px">Code</th><th style="text-align:left;padding:1px 4px">Name</th><th style="padding:1px 4px">Scheduled</th><th style="padding:1px 4px">Status</th></tr>';
+
+    for(var wi = 0; wi < wps.length; wi++){
+      var wp = wps[wi];
+      var spName = signpostLookup && signpostLookup[wp.c] ? signpostLookup[wp.c].name : wp.c;
+      var schedTime = secsToHHMM(wp.t);
+      var isMissed = missedSet[wp.c];
+      var rowStyle = isMissed ? 'background:#ff525215;' : '';
+      var status;
+
+      if(isMissed){
+        status = '<span style="color:#ff5252;font-weight:700">\u2716 MISSED</span>';
+      } else {
+        status = '<span style="color:var(--grn)">\u2713</span>';
+      }
+
+      h += '<tr style="border-bottom:1px solid #ffffff06;' + rowStyle + '">';
+      h += '<td style="padding:1px 4px;color:var(--tx3)">' + wi + '</td>';
+      h += '<td style="padding:1px 4px;font-weight:' + (isMissed ? '700;color:#ff5252' : '600') + '">' + wp.c + '</td>';
+      h += '<td style="padding:1px 4px;font-size:8px;color:var(--tx2)">' + spName + '</td>';
+      h += '<td style="padding:1px 4px;text-align:center">' + schedTime + '</td>';
+      h += '<td style="padding:1px 4px;text-align:center">' + status + '</td>';
+      h += '</tr>';
+    }
+
+    h += '</table></div>';
     return h;
   }
 
