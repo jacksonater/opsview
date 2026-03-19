@@ -954,11 +954,10 @@ bFilt();
 function tgR(k){soloRoute=null;if(aR.has(k))aR.delete(k);else aR.add(k);aFilt();}
 function soloR(k){
   soloRoute=null;
-  // If all routes currently active, switch to showing just this one
-  if(aR.size===rks.length){aR.clear();aR.add(k);}
-  // Otherwise toggle this route in/out of the multi-selection
-  else if(aR.has(k)){aR.delete(k);if(aR.size===0)rks.forEach(function(r){aR.add(r);});}
-  else{aR.add(k);}
+  // If k is already the only active route, reset to all routes
+  if(aR.size===1&&aR.has(k)){rks.forEach(function(r){aR.add(r);});}
+  // Otherwise show only this route (exclusive filter)
+  else{aR.clear();aR.add(k);}
   aFilt();
 }
 window.fAll=function(){soloRoute=null;rks.forEach(function(k){aR.add(k);});aFilt();};
