@@ -496,7 +496,9 @@ body.rp-open .job-panel.has-jobs{right:428px}
 .attr-rule-a{background:#00e5a025;color:#00e5a0}
 .attr-rule-b{background:#4fc3f725;color:#4fc3f7}
 .attr-rule-c{background:#e040fb25;color:#e040fb}
+.attr-rule-d{background:#ffa04025;color:#ffa040}
 .attr-rule-12{background:#f5962325;color:#f59623}
+.attr-divert-badge{font-size:8px;padding:1px 4px;border-radius:2px;background:#ffa04020;color:#ffa040;border:1px solid #ffa04040;font-family:'JetBrains Mono',monospace;font-weight:700;flex-shrink:0}
 .attr-trip{display:flex;align-items:center;gap:6px;padding:5px 8px;margin:2px 0;background:var(--pnl2);border:1px solid var(--bdr);border-radius:3px;font-size:10px;transition:all .15s;cursor:default}
 .attr-trip:hover{border-color:var(--acc);background:#00e5a008}
 .attr-trip-id{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--txt);min-width:80px}
