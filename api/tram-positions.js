@@ -10,7 +10,10 @@
 
 const protobuf = require('protobufjs');
 
-const PTV_VP_URL = 'https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/tram/vehicle-positions';
+// New portal (opendata.transport.vic.gov.au) — uses KeyID header
+const PTV_VP_URL_NEW = 'https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/tram/vehicle-positions';
+// Old portal (data-exchange.vicroads.vic.gov.au) — uses Ocp-Apim-Subscription-Key
+const PTV_VP_URL_OLD = 'https://data-exchange-api.vicroads.vic.gov.au/opendata/gtfsr/v1/tram/vehicleposition';
 
 // Minimal GTFS-RT proto schema for vehicle positions
 const PROTO_SCHEMA = `
@@ -88,18 +91,48 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Fetch protobuf from PTV API (server-side — no CORS issues)
-    const response = await fetch(PTV_VP_URL, {
-      headers: {
-        'Ocp-Apim-Subscription-Key': apiKey
-      }
-    });
+    // Transport Victoria Open Data Portal:
+    //  - URL: api.opendata.transport.vic.gov.au
+    //  - Auth: KeyID header (JWT token from Data Platform API Tokens)
+    //  - Fallback: Ocp-Apim-Subscription-Key header (subscription key)
+    const attempts = [
+      { url: PTV_VP_URL_NEW, headers: { 'KeyID': apiKey }, label: 'KeyID → new portal' },
+      { url: PTV_VP_URL_NEW, headers: { 'Ocp-Apim-Subscription-Key': apiKey }, label: 'Ocp-Apim → new portal' },
+      { url: PTV_VP_URL_OLD, headers: { 'Ocp-Apim-Subscription-Key': apiKey }, label: 'Ocp-Apim → old portal' },
+    ];
 
-    if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      return res.status(response.status).json({
-        error: `PTV API returned ${response.status}`,
-        detail: text.substring(0, 200)
+    let response = null;
+    let lastStatus = 0;
+    let lastDetail = '';
+    const log = [];
+
+    for (let i = 0; i < attempts.length; i++) {
+      const attempt = attempts[i];
+      const url = attempt.url;
+      const headers = attempt.headers;
+      
+      try {
+        const resp = await fetch(url, { headers });
+        log.push({ attempt: i + 1, method: attempt.label, status: resp.status });
+        
+        if (resp.ok) {
+          response = resp;
+          break;
+        }
+        lastStatus = resp.status;
+        lastDetail = await resp.text().catch(() => '');
+      } catch (e) {
+        log.push({ attempt: i + 1, method: attempt.label, error: e.message });
+        lastDetail = e.message;
+      }
+    }
+
+    if (!response) {
+      return res.status(lastStatus || 500).json({
+        error: `All ${attempts.length} auth methods failed (last status: ${lastStatus})`,
+        detail: lastDetail.substring(0, 300),
+        attempts: log,
+        hint: 'You may need a new API key from opendata.transport.vic.gov.au'
       });
     }
 
