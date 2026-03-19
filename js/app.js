@@ -1046,7 +1046,8 @@ function updateLiveMarkers(){
     // Skip if route is filtered out
     if(routeKey&&!aR.has(routeKey)&&aR.size>0)return;
     
-    var tramLabel=v.label||v.id||'?';
+    var tramLabel=v.id?('T'+v.id):v.label||'?';
+    var tramClass=v.label||'';
     var devClass='green'; // Default — we don't have delay data from VP feed
     counts[devClass]++;
     
@@ -1066,7 +1067,8 @@ function updateLiveMarkers(){
       var towards=v.dirId===0?dd.dn:dd.up;
       document.getElementById('dbd').innerHTML=
         '<div class="ds"><div class="dst">Service (LIVE)</div>'+
-        '<div class="dr"><span class="dlb">Vehicle ID</span><span class="dva">'+v.id+'</span></div>'+
+        '<div class="dr"><span class="dlb">Tram #</span><span class="dva">T'+v.id+'</span></div>'+
+        '<div class="dr"><span class="dlb">Class</span><span class="dva">'+tramClass+'</span></div>'+
         '<div class="dr"><span class="dlb">Route</span><span class="dva" style="color:'+routeColor+'">'+(routeKey||'Unknown')+'</span></div>'+
         '<div class="dr"><span class="dlb">Direction</span><span class="dva">'+dirLabel+'</span></div>'+
         '<div class="dr"><span class="dlb">Towards</span><span class="dva">'+towards+'</span></div>'+
