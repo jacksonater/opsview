@@ -511,9 +511,13 @@ function init(){
           var ci = sw.shapeIdx;
           var ni = ci + sw.direction;
           if(ni < 0 || ni >= shape.length){
-            // Hit end — reverse
+            if(sw.isRecovery){
+              // Recovery path is one-way — stop at XO end without reversing;
+              // the distToXO check below will fire and call tryResumeTrip.
+              break;
+            }
+            // Normal disruption short-working: reverse direction at ends
             sw.direction *= -1;
-            // Flip tram direction display
             t.updn = t.updn === 'Down' ? 'Up' : 'Down';
             t.dir = t.dir === 'Outbound' ? 'Inbound' : 'Outbound';
             var dd = DIR_DATA[t.route];
@@ -552,7 +556,7 @@ function init(){
             sw.active = false;
             delete t._shortWork;
             delete t.blockState;
-            tryResumeTrip(t);
+            tryResumeTrip(t, sw.recoveryFor);
             if(t.mk && t.vis) t.mk.setIcon(mkIcon(t));
             return;
           }
@@ -918,7 +922,7 @@ function init(){
         }
         if(!action){
           // No suitable XO — find the next appropriate trip directly
-          var resumed = tryResumeTrip(t);
+          var resumed = tryResumeTrip(t, disId);
           action = {
             type: 'trip_change',
             tramId: t.id,
@@ -930,7 +934,7 @@ function init(){
         }
       } else {
         // Short delay — just resume normally
-        tryResumeTrip(t);
+        tryResumeTrip(t, disId);
         if(blockDuration > 0){
           action = {
             type: 'resume',
@@ -954,7 +958,7 @@ function init(){
   // ── RESUME TRIP AFTER DISRUPTION CLEAR ──
   // Find the next trip for this run where the tram can reach a signpost
   // at the right time going the right direction
-  function tryResumeTrip(t){
+  function tryResumeTrip(t, disIdHint){
     if(!timetableData) return false;
     var runId = t._simTrip ? t._simTrip.run : null;
     if(!runId) return false;
@@ -1022,7 +1026,7 @@ function init(){
           // Log as late resumption
           tripImpacts.push({
             run: runId, seq: trip.q, route: t.route,
-            disId: t.blockedByDis, impact: 'late',
+            disId: disIdHint !== undefined ? disIdHint : t.blockedByDis, impact: 'late',
             scheduledStart: wps[0].t, scheduledEnd: wps[wps.length-1].t,
             impactTime: simTime,
             resumeSignpost: wp.c,
@@ -1675,7 +1679,7 @@ function init(){
   }
 
   // ── CLEARANCE SUMMARY MODAL ──────────────────────────────────────────────
-  function renderClearanceModal(dis, recoveryActions, report, durationMin){
+  function renderClearanceModal(dis, recoveryActions, report, durationMin, disStartSim, disEndSim){
     // Remove any existing modal
     var existing = document.getElementById('clearanceModal');
     if(existing) existing.parentNode.removeChild(existing);
@@ -1705,9 +1709,12 @@ function init(){
     h += '<button class="clr-close" onclick="closeClearanceModal()">&#x2715;</button>';
     h += '</div>';
 
-    // Duration + location
+    // Duration + clock times + location
     h += '<div class="clr-meta">';
     h += '<div class="clr-meta-item"><span class="clr-meta-lbl">Duration</span><span class="clr-meta-val">'+durationMin+' min</span></div>';
+    if(disStartSim != null && disEndSim != null){
+      h += '<div class="clr-meta-item"><span class="clr-meta-lbl">Sim Time</span><span class="clr-meta-val">'+secsToHHMM(disStartSim)+'&thinsp;&rarr;&thinsp;'+secsToHHMM(disEndSim)+'</span></div>';
+    }
     if(dis.southXO || dis.northXO){
       var loc = dis.southXO && dis.northXO
         ? dis.southXO.pole+' &#x2194; '+dis.northXO.pole
@@ -1734,7 +1741,8 @@ function init(){
     if(recoveryActions && recoveryActions.length > 0){
       h += '<div class="clr-section-title">Recovery Actions</div>';
       h += '<div class="clr-recovery-list">';
-      recoveryActions.forEach(function(a){
+      var actionsToShow = recoveryActions.length > 5 ? recoveryActions.slice(0, 4) : recoveryActions;
+      actionsToShow.forEach(function(a){
         var rc = window.R && window.R[a.route] ? window.R[a.route].c : '#888';
         var icon = a.type === 'short' ? '&#x21C4;' : a.type === 'trip_change' ? '&#x21BB;' : '&#x25B6;';
         var label = a.type === 'short'
@@ -1750,6 +1758,9 @@ function init(){
         if(a.blockMin > 0) h += '<span class="clr-rec-delay">+'+a.blockMin+'m</span>';
         h += '</div>';
       });
+      if(recoveryActions.length > 5){
+        h += '<div class="clr-recovery-more">+' + (recoveryActions.length - 4) + ' more trams recovered</div>';
+      }
       h += '</div>';
     }
 
@@ -1758,7 +1769,7 @@ function init(){
     if(report && report.summary.total > 0){
       h += '<button class="clr-btn-primary" onclick="closeClearanceModal();openAttrPanel('+dis.id+')">&#x26A1; View Attribution</button>';
     }
-    h += '<button class="clr-btn-secondary" onclick="closeClearanceModal()">Dismiss</button>';
+    h += '<button class="clr-btn-secondary" onclick="closeClearanceModal()">Close</button>';
     h += '</div>';
 
     modal.innerHTML = h;
@@ -1807,7 +1818,7 @@ function init(){
       }
 
       var durationMin = (disStartSim != null) ? Math.max(0, Math.round((simTime - disStartSim) / 60)) : 0;
-      renderClearanceModal(dis, recoveryActions, report, durationMin);
+      renderClearanceModal(dis, recoveryActions, report, durationMin, disStartSim, simTime);
       setTimeout(renderDisLogWithAttribution, 100);
     }
   };

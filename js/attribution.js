@@ -333,8 +333,8 @@ function renderAttrPanel(disId) {
   var nA = results.decisions.filter(function(d) { return d.state === 'PRE_ACCEPTED'; }).length;
   var nR = results.decisions.filter(function(d) { return d.state === 'REVIEW'; }).length;
   var nL = results.decisions.filter(function(d) { return d.state === 'LOW_CONFIDENCE'; }).length;
-  h += '<div class="attr-summary"><div class="attr-kpi"><div class="attr-kpi-val" style="color:#00e5a0">' + nA + '</div><div class="attr-kpi-lbl">Pre-Accepted</div></div>';
-  h += '<div class="attr-kpi"><div class="attr-kpi-val" style="color:#f59623">' + nR + '</div><div class="attr-kpi-lbl">Review</div></div>';
+  h += '<div class="attr-summary"><div class="attr-kpi"><div class="attr-kpi-val" style="color:#00e5a0">' + nA + '</div><div class="attr-kpi-lbl">Attributed</div></div>';
+  h += '<div class="attr-kpi"><div class="attr-kpi-val" style="color:#f59623">' + nR + '</div><div class="attr-kpi-lbl">Needs Review</div></div>';
   h += '<div class="attr-kpi"><div class="attr-kpi-val" style="color:#e53e3e">' + nL + '</div><div class="attr-kpi-lbl">Low Conf</div></div></div>';
   var cc = Math.round(results.chain_confidence * 100), ccCol = cc >= 80 ? '#00e5a0' : cc >= 55 ? '#f59623' : '#e53e3e';
   h += '<div style="margin-bottom:12px"><div style="font-size:9px;color:var(--tx3);margin-bottom:3px">Chain Confidence (weakest link)</div>';
@@ -351,7 +351,7 @@ function renderAttrPanel(disId) {
       var t = d.trip, c = d.confidence, sc = Math.round(c.score * 100);
       var scCol = sc >= 80 ? '#00e5a0' : sc >= 55 ? '#f59623' : '#e53e3e';
       var stCls = d.state === 'PRE_ACCEPTED' ? 'attr-st-accept' : d.state === 'REVIEW' ? 'attr-st-review' : 'attr-st-low';
-      var stLbl = d.state === 'PRE_ACCEPTED' ? '✓ ACCEPT' : d.state === 'REVIEW' ? '⚠ REVIEW' : '✗ LOW';
+      var stLbl = d.state === 'PRE_ACCEPTED' ? '✓ ATTR' : d.state === 'REVIEW' ? '⚠ REVIEW' : '✗ LOW';
       var peakDev = 0; t.signposts.forEach(function(sp) { if (sp.delta !== null && Math.abs(sp.delta) > Math.abs(peakDev)) peakDev = sp.delta; });
       var devCol = peakDev <= 1 ? '#00e5a0' : peakDev <= 5 ? '#f5d623' : peakDev <= 10 ? '#f59623' : '#e040fb';
       var rtCol = R[t.route_id] ? R[t.route_id].c : '#888';
@@ -389,13 +389,14 @@ function renderAttrPanel(disId) {
     });
     h += '</div>';
   });
-  h += '<div class="attr-tunables"><div class="attr-tunables-title">⚙ Tunables (live re-run)</div>';
+  h += '<details class="attr-tunables-details"><summary class="attr-tunables-summary">⚙ Advanced — Confidence Tunables</summary>';
+  h += '<div class="attr-tunables">';
   h += '<div class="attr-tunable-row"><label>θ_jump</label><input type="range" min="1.0" max="4.0" step="0.1" value="' + ATTR_TUNABLES.theta_jump + '" oninput="updateAttrTunable(\'theta_jump\',this.value,' + disId + ')"><span class="attr-tv" id="atv_theta_jump">' + ATTR_TUNABLES.theta_jump + '</span></div>';
   h += '<div class="attr-tunable-row"><label>θ_accept</label><input type="range" min="0.50" max="0.95" step="0.05" value="' + ATTR_TUNABLES.theta_accept + '" oninput="updateAttrTunable(\'theta_accept\',this.value,' + disId + ')"><span class="attr-tv" id="atv_theta_accept">' + ATTR_TUNABLES.theta_accept + '</span></div>';
   h += '<div class="attr-tunable-row"><label>θ_review</label><input type="range" min="0.30" max="0.75" step="0.05" value="' + ATTR_TUNABLES.theta_review + '" oninput="updateAttrTunable(\'theta_review\',this.value,' + disId + ')"><span class="attr-tv" id="atv_theta_review">' + ATTR_TUNABLES.theta_review + '</span></div>';
-  h += '</div>';
-  h += '<div style="margin-top:12px;padding:8px;background:var(--bg2);border:1px solid var(--bdr);border-radius:3px;font-size:9px;color:var(--tx3)">';
-  h += '<b style="color:var(--acc)">AUDIT</b> — ' + results.decisions.length + ' decisions logged from ' + results.trips.length + ' trips evaluated. Pipeline: A\u2192B\u21921/2\u2192C\u21921/2\u2192D. Confidence weights sum to 1.0. All parameters tunable above \u2014 changes re-run the engine instantly.</div>';
+  h += '<div style="margin-top:8px;padding:6px 0;font-size:9px;color:var(--tx3)">';
+  h += '<b style="color:var(--acc)">AUDIT</b> — ' + results.decisions.length + ' decisions from ' + results.trips.length + ' trips. Pipeline: A\u2192B\u21921/2\u2192C\u21921/2\u2192D.</div>';
+  h += '</div></details>';
 
   // Override controls
   var ov = attrOverrides[disId] || {};
@@ -445,12 +446,12 @@ buildDisPopup = function(dis) {
     var byRule = {}; results.decisions.forEach(function(d) { byRule[d.rule] = (byRule[d.rule] || 0) + 1; });
     var ruleSum = Object.keys(byRule).map(function(r) { return 'Rule ' + r + ': ' + byRule[r]; }).join(' · ');
     preview = '<div class="dp-attr-preview"><div class="dp-attr-preview-hdr">⚡ Attribution Engine <span class="dp-attr-preview-count">' + results.decisions.length + ' trips</span></div>';
-    preview += '<div class="dp-attr-row"><span style="color:#00e5a0">✓ ' + nAcc + ' pre-accepted</span>&nbsp;&nbsp;<span style="color:#f59623">⚠ ' + nRev + ' review</span></div>';
+    preview += '<div class="dp-attr-row"><span style="color:#00e5a0">✓ ' + nAcc + ' attributed</span>&nbsp;&nbsp;<span style="color:#f59623">⚠ ' + nRev + ' review</span></div>';
     preview += '<div class="dp-attr-row" style="font-size:8px;color:var(--tx3)">' + ruleSum + '</div>';
     preview += '<div class="dp-attr-row" style="font-size:8px">Chain confidence: <span style="color:' + (results.chain_confidence >= 0.8 ? '#00e5a0' : results.chain_confidence >= 0.55 ? '#f59623' : '#e53e3e') + '">' + Math.round(results.chain_confidence * 100) + '%</span></div></div>';
   }
   var attrBtn = '<button class="dp-attr-btn" onclick="openAttrPanel(' + dis.id + ')">⚡ View Attribution Details</button>';
-  base = base.replace('<button class="dp-edit-btn"', preview + attrBtn + '<button class="dp-edit-btn"');
+  base = base.replace('<button class="dp-btn"', preview + attrBtn + '<button class="dp-btn"');
   return base;
 };
 

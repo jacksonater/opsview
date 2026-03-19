@@ -187,8 +187,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 .dp-impact-count{font-size:13px;font-weight:700;flex-shrink:0}
 .dp-impact-tram{font-size:9px;color:var(--tx2);padding:1px 6px 1px 26px;font-family:'JetBrains Mono',monospace;border-bottom:1px solid #1f2d3d18}
 .dp-impact-tram:last-child{border-bottom:none}
-.dis-popup .dp-btn{margin-top:8px;padding:5px 12px;border-radius:3px;border:1px solid #00e5a0;background:transparent;color:#00e5a0;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;width:100%;transition:all .15s}
-.dis-popup .dp-btn:hover{background:#00e5a0;color:#0a0f16}
+.dis-popup .dp-btn{margin-top:8px;padding:6px 12px;border-radius:3px;border:1px solid #00e5a0;background:#00e5a0;color:#0a0f16;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;cursor:pointer;width:100%;transition:all .15s}
+.dis-popup .dp-btn:hover{background:#33ffbb;border-color:#33ffbb}
 /* Trigger button */
 .dis-trigger{padding:3px 9px;border-radius:3px;cursor:pointer;color:#e040fb;font-size:10px;font-family:inherit;border:1px solid #e040fb;background:transparent;transition:all .15s}
 .dis-trigger:hover{background:#e040fb;color:#fff}
@@ -519,7 +519,13 @@ body.rp-open .job-panel.has-jobs{right:428px}
 .attr-conf-track{flex:1;height:4px;background:var(--pnl2);border-radius:2px;overflow:hidden}
 .attr-conf-fill{height:100%;border-radius:2px}
 .attr-conf-pct{font-family:'JetBrains Mono',monospace;font-size:9px;width:32px;text-align:right}
-.attr-tunables{margin-top:10px;padding:8px;background:var(--bg2);border:1px solid var(--bdr);border-radius:3px}
+.attr-tunables-details{margin-top:10px;border:1px solid var(--bdr);border-radius:3px;overflow:hidden}
+.attr-tunables-summary{padding:6px 8px;font-size:9px;color:var(--tx3);cursor:pointer;background:var(--bg2);list-style:none;user-select:none;letter-spacing:.04em}
+.attr-tunables-summary::-webkit-details-marker{display:none}
+.attr-tunables-summary::before{content:'▶ ';font-size:8px;transition:transform .15s}
+details[open] .attr-tunables-summary::before{content:'▼ '}
+.attr-tunables-summary:hover{color:var(--tx2)}
+.attr-tunables{padding:8px;background:var(--bg2)}
 .attr-tunables-title{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
 .attr-tunable-row{display:flex;align-items:center;gap:8px;padding:3px 0}
 .attr-tunable-row label{font-size:10px;color:var(--tx2);min-width:60px}
@@ -596,6 +602,7 @@ body.rp-open .job-panel.has-jobs{right:428px}
 .clr-rec-run-id{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--tx3);flex-shrink:0}
 .clr-rec-label{flex:1;color:var(--tx2);font-size:10px}
 .clr-rec-delay{font-family:'JetBrains Mono',monospace;font-size:9px;color:#f5a623;flex-shrink:0}
+.clr-recovery-more{font-size:9px;color:var(--tx3);text-align:center;padding:4px 0;font-style:italic}
 .clr-actions{display:flex;gap:8px;padding:12px 16px;justify-content:flex-end}
 .clr-btn-primary{padding:6px 16px;border-radius:3px;border:1px solid var(--acc);color:var(--acc);background:transparent;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;transition:all .12s}
 .clr-btn-primary:hover{background:var(--acc);color:#000}
