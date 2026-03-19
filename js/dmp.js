@@ -322,94 +322,32 @@ function geoSegDist(disLa, disLo, geo){
   return 99999;
 }
 
-// ── DMP SCENARIO MATCHING v2 ──
-// Priority: geographic stop-range distance > corridor membership > route overlap
-// Returns: { primary: scenario, others: [scenarios] }
+// ── DMP SCENARIO MATCHING v3 ──
+// Geo-distance-first: the scenario whose segment is closest to the disruption point wins.
+// Route overlap breaks ties when segments are within 80m of each other.
+// Returns array sorted best-first; [0] is the single recommended scenario.
 function getDmpScenarios(routes, disLa, disLo){
   if(typeof routes==='string') routes=[routes];
 
-  // Precompute corridor distances
-  var corridorDist={};
-  Object.keys(DMP_CORRIDORS).forEach(function(key){
-    var c=DMP_CORRIDORS[key];
-    corridorDist[key]=ptPolyDistM(disLa,disLo,c.path);
-  });
-
   var scored=[];
   DMP_DATA.forEach(function(s){
-    // Route overlap check — must have at least one route in common
     var overlap=s.rt.filter(function(r){return routes.indexOf(r)>=0;}).length;
     if(overlap===0) return;
-
     var routeScore=overlap/Math.max(s.rt.length,routes.length);
-
-    // Corridor check for corridor scenarios
-    var corridorScore=0;
-    if(s.ic){
-      // Corridor scenario — must be within corridor buffer
-      var cd=corridorDist[s.cx];
-      if(cd===undefined) return;
-      var buf=DMP_CORRIDORS[s.cx]?DMP_CORRIDORS[s.cx].buffer:200;
-      if(cd>buf) return;
-      corridorScore=1-(cd/buf);
-    } else {
-      // Route-specific — always passes corridor check
-      corridorScore=0.8;
-    }
-
-    // Geographic stop-range distance (the key improvement)
-    var geoDist=geoSegDist(disLa, disLo, s.geo);
-    // Normalise: 0m = 1.0, 2000m = 0.0
-    var geoScore=Math.max(0, 1 - geoDist/2000);
-
-    // Composite score
-    // Geographic precision dominates when available (50%), then corridor (25%), then route (25%)
-    var total;
-    if(s.geo && s.geo.a!=null){
-      total = geoScore*0.50 + corridorScore*0.25 + routeScore*0.25;
-    } else {
-      // No geo data — fall back to corridor + route
-      total = corridorScore*0.50 + routeScore*0.50;
-    }
-
-    scored.push({
-      s:s,
-      score:total,
-      geoDist:Math.round(geoDist),
-      corridorDist:Math.round(corridorDist[s.cx]||0)
-    });
+    var geoDist=geoSegDist(disLa,disLo,s.geo);
+    scored.push({s:s,geoDist:Math.round(geoDist),routeScore:routeScore});
   });
 
-  scored.sort(function(a,b){return b.score-a.score;});
-
-  // Post-filter: if a corridor scenario matches well (score > 0.5 and within 500m),
-  // suppress route-specific scenarios for the same corridor area.
-  // User wants: corridor scenario ONLY for CBD shared track.
-  var topCorridor = null;
-  for(var i=0;i<scored.length;i++){
-    if(scored[i].s.ic && scored[i].score>0.5 && scored[i].geoDist<500){
-      topCorridor = scored[i];
-      break;
-    }
-  }
-  if(topCorridor){
-    // Filter: keep the corridor match and route-specific scenarios NOT on the same corridor
-    var corridorPrefix = topCorridor.s.cx;
-    scored = scored.filter(function(m){
-      // Keep corridor scenarios
-      if(m.s.ic) return true;
-      // Keep route scenarios that are far from the CBD corridor (outer sections)
-      if(m.geoDist > 1000) return true;
-      // Remove route scenarios that duplicate the corridor coverage
-      return false;
-    });
-    // Ensure corridor scenario is first
-    scored.sort(function(a,b){
-      if(a.s.ic && !b.s.ic) return -1;
-      if(!a.s.ic && b.s.ic) return 1;
-      return b.score - a.score;
-    });
-  }
+  // Primary sort: geo distance (lower = better).
+  // Tiebreak within 80m: higher route overlap wins.
+  // Scenarios without geo data go to the end.
+  scored.sort(function(a,b){
+    var ag=a.s.geo&&a.s.geo.a!=null, bg=b.s.geo&&b.s.geo.a!=null;
+    if(ag&&!bg) return -1;
+    if(!ag&&bg) return 1;
+    if(Math.abs(a.geoDist-b.geoDist)<=80) return b.routeScore-a.routeScore;
+    return a.geoDist-b.geoDist;
+  });
 
   return scored;
 }
@@ -432,122 +370,114 @@ function renderOpsText(text){
   return h||'<div class="dmp-no-data">No data available</div>';
 }
 
-// ── PANEL RENDERING v2 ──
-// Primary scenario shown expanded, others in collapsible submenu
-window.openDmpPanel = function(disId) {
-  var dis = window.disruptions.find(function(d){ return d.id === disId; });
-  if (!dis) return;
-  if (window.closeAllRightPanels) window.closeAllRightPanels('dmp');
+// ── PANEL RENDERING v3 ──
+// Single recommended scenario with tabbed sections; alternatives collapsed below.
+window.openDmpPanel = function(disId){
+  var dis=window.disruptions.find(function(d){return d.id===disId;});
+  if(!dis) return;
+  if(window.closeAllRightPanels) window.closeAllRightPanels('dmp');
   document.body.classList.add('rp-open');
-  var affRoutes = dis.routes||[dis.route];
-  var scoredMatches = getDmpScenarios(affRoutes, dis.la, dis.lo);
+  var affRoutes=dis.routes||[dis.route];
+  var matches=getDmpScenarios(affRoutes,dis.la,dis.lo);
 
-  var panel = document.getElementById('dmpPanel');
-  var ctx   = document.getElementById('dmpCtx');
-  var list  = document.getElementById('dmpScenList');
+  var panel=document.getElementById('dmpPanel');
+  var ctx=document.getElementById('dmpCtx');
+  var list=document.getElementById('dmpScenList');
 
-  // Context header
-  var routeLabels = affRoutes.map(function(r){
+  var routeLabels=affRoutes.map(function(r){
     var c=window.R&&window.R[r]?window.R[r].c:'#888';
-    return '<span style="color:'+c+'">Rt '+r+'</span>';
-  }).join(' / ');
-  ctx.innerHTML = '<b>Disruption #' + dis.id + '</b> &nbsp;' + routeLabels +
-    ' &nbsp;\u2022&nbsp; ' + dis.type;
+    return '<span style="color:'+c+';font-weight:700">'+r+'</span>';
+  }).join(' \u00B7 ');
+  ctx.innerHTML='<span style="color:var(--tx2)">Disruption #'+dis.id+'</span>&ensp;Rt '+routeLabels+'&ensp;\u00B7&ensp;'+dis.type;
 
-  if (scoredMatches.length === 0) {
-    list.innerHTML = '<div class="dmp-empty">No DMP scenarios found for this location and route combination</div>';
+  if(matches.length===0){
+    list.innerHTML='<div class="dmp-empty">No DMP scenarios found for this location and route combination.</div>';
     panel.classList.add('open');
     return;
   }
 
-  var h = '';
-  var primary = scoredMatches[0];
-  var others = scoredMatches.slice(1);
+  var primary=matches[0];
+  var others=matches.slice(1);
+  var s=primary.s;
+  var distStr=primary.geoDist<9000?'~'+primary.geoDist+'m':'';
+  var tid=s.id.replace(/\./g,'_');
+  var h='';
 
-  // ── PRIMARY SCENARIO (always expanded) ──
-  var s = primary.s;
-  var conf = primary.score>=0.65?'HIGH':primary.score>=0.40?'MED':'LOW';
-  var confCol = conf==='HIGH'?'#69f0ae':conf==='MED'?'#f5a623':'#ff5252';
+  // ── RECOMMENDED SCENARIO ──
+  h+='<div class="dmp-recommended">';
+  h+='<div class="dmp-rec-hdr">';
+  h+='<span class="dmp-rec-id-lbl">'+s.id+'</span>';
+  if(distStr) h+='<span class="dmp-rec-dist">'+distStr+'</span>';
+  h+='</div>';
+  if(s.cor) h+='<div class="dmp-rec-cor">'+s.cor+'</div>';
+  h+='<div class="dmp-rec-loc">'+s.loc+'</div>';
 
-  h += '<div class="dmp-sc dmp-primary">';
-  h += '<div class="dmp-sc-hdr dmp-primary-hdr">';
-  h +=   '<span class="dmp-sc-id" style="font-size:14px;font-weight:700">' + s.id + '</span>';
-  h +=   '<span style="font-size:8px;color:'+confCol+';font-family:\'JetBrains Mono\',monospace;margin-left:6px">'+conf+' MATCH</span>';
-  h += '</div>';
-  h += '<div class="dmp-sc-loc-full">' + (s.loc || '\u2014') + '</div>';
+  h+='<div class="dmp-tabs" id="dmpTabs_'+tid+'">';
+  h+='<button class="dmp-tab active" onclick="dmpSwitchTab(\''+tid+'\',\'ops\',this)">Ops</button>';
+  if(s.tt) h+='<button class="dmp-tab" onclick="dmpSwitchTab(\''+tid+'\',\'tt\',this)">TramTRACKER</button>';
+  if(s.pax) h+='<button class="dmp-tab" onclick="dmpSwitchTab(\''+tid+'\',\'pax\',this)">Passenger</button>';
+  h+='<button class="dmp-tab" onclick="dmpSwitchTab(\''+tid+'\',\'meta\',this)">Details</button>';
+  h+='</div>';
 
-  // Operations summary — shown by default
-  h += '<div class="dmp-section-lbl">Operations Summary</div>';
-  h += renderOpsText(s.ops);
+  h+='<div class="dmp-tab-pane active" id="dmpPane_'+tid+'_ops">'+renderOpsText(s.ops)+'</div>';
+  if(s.tt) h+='<div class="dmp-tab-pane" id="dmpPane_'+tid+'_tt">'+renderOpsText(s.tt)+'</div>';
+  if(s.pax) h+='<div class="dmp-tab-pane" id="dmpPane_'+tid+'_pax">'+renderOpsText(s.pax)+'</div>';
 
-  // Options detail (TramTracker text) — collapsible
-  if(s.tt){
-    var ttBodyId = 'dmpTT_' + s.id.replace(/\./g,'_');
-    h += '<div class="dmp-section-lbl dmp-toggle" onclick="toggleDmpCard(\''+ttBodyId+'\')">\u25B6 TramTRACKER Options</div>';
-    h += '<div class="dmp-sc-body" id="'+ttBodyId+'">';
-    h += renderOpsText(s.tt);
-    h += '</div>';
-  }
+  h+='<div class="dmp-tab-pane" id="dmpPane_'+tid+'_meta">';
+  if(s.cse) h+='<div class="dmp-meta-row"><div class="dmp-meta-lbl">CSE</div><div class="dmp-meta-val">'+s.cse.replace(/\n/g,' ')+'</div></div>';
+  if(s.alt) h+='<div class="dmp-meta-row"><div class="dmp-meta-lbl">Alt Transport</div><div class="dmp-meta-val">'+s.alt.replace(/\n/g,' \u00B7 ')+'</div></div>';
+  if(s.rep) h+='<div class="dmp-meta-row"><div class="dmp-meta-lbl">Rep. Buses</div><div class="dmp-meta-val">'+s.rep+'</div></div>';
+  if(s.dalt) h+='<div class="dmp-meta-row"><div class="dmp-meta-lbl">Nearest Alt</div><div class="dmp-meta-val">'+s.dalt+'</div></div>';
+  h+='<div class="dmp-meta-row"><div class="dmp-meta-lbl">Metro Relief</div><div class="dmp-meta-val">'+(s.metro&&s.metro!=='No'&&s.metro!==''?'<span class="dmp-badge-yes">Yes</span>':'<span class="dmp-badge-no">No</span>')+'</div></div>';
+  h+='</div>';
+  h+='</div>'; // end dmp-recommended
 
-  // Passenger info — collapsible
-  if(s.pax){
-    var paxBodyId = 'dmpPax_' + s.id.replace(/\./g,'_');
-    h += '<div class="dmp-section-lbl dmp-toggle" onclick="toggleDmpCard(\''+paxBodyId+'\')">\u25B6 Passenger Information</div>';
-    h += '<div class="dmp-sc-body" id="'+paxBodyId+'">';
-    h += renderOpsText(s.pax);
-    h += '</div>';
-  }
-
-  // CSE, replacement buses, alt transport, metro — compact row
-  h += '<div class="dmp-meta">';
-  if(s.cse) h += '<div class="dmp-meta-block"><b>CSE:</b> ' + s.cse.replace(/\n/g,'; ').replace(/^[\u2022•]\s*/,'') + '</div>';
-  if(s.rep) h += '<div class="dmp-meta-block"><b>Replacement Buses:</b> ' + s.rep + '</div>';
-  if(s.alt) h += '<div class="dmp-meta-block"><b>Alt Transport:</b> ' + s.alt.replace(/\n/g,', ') + '</div>';
-  if(s.dalt) h += '<span class="dmp-meta-item"><b>Distance:</b> ' + s.dalt + '</span>';
-  h += '<span class="dmp-meta-item"><b>Metro:</b> ' + (s.metro||'No') + '</span>';
-  h += '</div>';
-
-  h += '</div>'; // end primary
-
-  // ── OTHER SCENARIOS (collapsed submenu) ──
-  if(others.length > 0){
-    h += '<div class="dmp-others-hdr" onclick="toggleDmpCard(\'dmpOthersList\')">';
-    h += '\u25B6 ' + others.length + ' other scenario' + (others.length!==1?'s':'') + ' matched';
-    h += '</div>';
-    h += '<div class="dmp-sc-body" id="dmpOthersList">';
-    
+  // ── ALTERNATIVES ──
+  if(others.length>0){
+    h+='<div class="dmp-alts-hdr" onclick="this.classList.toggle(\'open\');toggleDmpCard(\'dmpAltsList\')">';
+    h+='<span class="dmp-alts-arr">\u25B6</span>'+others.length+' alternative'+(others.length!==1?'s':'');
+    h+='</div>';
+    h+='<div id="dmpAltsList" class="dmp-sc-body">';
     others.forEach(function(m){
-      var os = m.s;
-      var oc = m.score>=0.65?'HIGH':m.score>=0.40?'MED':'LOW';
-      var oCol = oc==='HIGH'?'#69f0ae':oc==='MED'?'#f5a623':'#ff5252';
-      var oBodyId = 'dmpBody_' + os.id.replace(/\./g,'_');
-
-      h += '<div class="dmp-sc">';
-      h += '<div class="dmp-sc-hdr" onclick="toggleDmpCard(\''+oBodyId+'\')">';
-      h +=   '<span class="dmp-sc-id">' + os.id + '</span>';
-      h +=   '<span class="dmp-sc-loc">' + (os.loc||'').substring(0,80) + '</span>';
-      h +=   '<span style="font-size:8px;color:'+oCol+';font-family:\'JetBrains Mono\',monospace;margin-left:auto">'+oc+'</span>';
-      h += '</div>';
-      h += '<div class="dmp-sc-body" id="'+oBodyId+'">';
-      h += '<div class="dmp-section-lbl">Operations</div>';
-      h += renderOpsText(os.ops);
-      if(os.cse) h += '<div class="dmp-meta-block"><b>CSE:</b> ' + os.cse.replace(/\n/g,'; ') + '</div>';
-      if(os.rep) h += '<div class="dmp-meta-block"><b>Rep Buses:</b> ' + os.rep + '</div>';
-      h += '<span class="dmp-meta-item"><b>Metro:</b> ' + (os.metro||'No') + '</span>';
-      h += '</div></div>';
+      var os=m.s;
+      var od=m.geoDist<9000?'~'+m.geoDist+'m':'';
+      var oid='altBody_'+os.id.replace(/\./g,'_');
+      h+='<div class="dmp-alt-sc">';
+      h+='<div class="dmp-alt-hdr" onclick="toggleDmpCard(\''+oid+'\')">';
+      h+='<span class="dmp-sc-id">'+os.id+'</span>';
+      h+='<span class="dmp-alt-loc">'+(os.loc||'').substring(0,60)+'</span>';
+      if(od) h+='<span class="dmp-alt-dist">'+od+'</span>';
+      h+='</div>';
+      h+='<div class="dmp-sc-body" id="'+oid+'">';
+      h+=renderOpsText(os.ops);
+      if(os.cse) h+='<div class="dmp-meta-row" style="margin-top:6px"><div class="dmp-meta-lbl">CSE</div><div class="dmp-meta-val">'+os.cse.replace(/\n/g,' ')+'</div></div>';
+      h+='</div>';
+      h+='</div>';
     });
-    
-    h += '</div>';
+    h+='</div>';
   }
 
-  list.innerHTML = h;
+  list.innerHTML=h;
   panel.classList.add('open');
 };
 
-window.toggleDmpCard = function(bodyId) {
-  var body = document.getElementById(bodyId);
-  if (!body) return;
+window.toggleDmpCard = function(bodyId){
+  var body=document.getElementById(bodyId);
+  if(!body) return;
   body.classList.toggle('open');
+};
+
+window.dmpSwitchTab=function(tid,pane,btn){
+  var tabs=document.getElementById('dmpTabs_'+tid);
+  if(!tabs) return;
+  tabs.querySelectorAll('.dmp-tab').forEach(function(t){t.classList.remove('active');});
+  ['ops','tt','pax','meta'].forEach(function(p){
+    var el=document.getElementById('dmpPane_'+tid+'_'+p);
+    if(el) el.classList.remove('active');
+  });
+  btn.classList.add('active');
+  var el=document.getElementById('dmpPane_'+tid+'_'+pane);
+  if(el) el.classList.add('active');
 };
 
 window.closeDmpPanel = function() {
