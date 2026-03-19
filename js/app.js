@@ -704,6 +704,8 @@ function refreshIcons(){
 }
 map.on('zoomend',refreshIcons);
 refreshIcons();
+// Load stop names in background — used for nearest-stop hints in disruption form + live detail panel
+setTimeout(loadStopNames, 2000);
 
 window.setSpeed=function(v){TIME_SCALE=parseInt(v);};
 
@@ -1156,6 +1158,34 @@ var liveMode=false;
 var liveInterval=null;
 var liveTramData=null; // parsed vehicle positions
 var liveTripUpdates=null; // tripId → delay lookup
+var liveStopNames=null; // stopId → {name, lat, lon} — loaded once from /api/tram-stops
+var _prevLivePositions={}; // vehicleId → {la, lo, ts} — retained between fetches for speed estimation
+
+// Load stop names from static GTFS (fires once; result cached in liveStopNames)
+function loadStopNames(){
+  if(liveStopNames!==null) return;
+  liveStopNames={}; // sentinel so we don't double-fetch
+  fetch('/api/tram-stops')
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(d){if(d&&d.stops){liveStopNames=d.stops;console.log('Loaded '+d.count+' tram stop names');}})
+    .catch(function(){});
+}
+
+// Return the nearest tram stop within maxDist metres of (la, lo), or null
+window.nearestStop=function(la, lo, maxDist){
+  maxDist=maxDist||250;
+  if(!liveStopNames||!Object.keys(liveStopNames).length) return null;
+  var best=null, bestDist=maxDist;
+  var cosLat=Math.cos(la*Math.PI/180);
+  Object.keys(liveStopNames).forEach(function(id){
+    var s=liveStopNames[id];
+    if(s.lat===null||s.lon===null) return;
+    var dy=(la-s.lat)*111320, dx=(lo-s.lon)*111320*cosLat;
+    var d=Math.sqrt(dx*dx+dy*dy);
+    if(d<bestDist){bestDist=d;best={id:id,name:s.name,dist:Math.round(d)};}
+  });
+  return best;
+};
 
 function setLiveStatus(state,msg){
   var el=document.getElementById('liveStatus');
@@ -1196,7 +1226,12 @@ function fetchVehiclePositions(){
 
 function updateLiveMarkers(){
   if(!liveTramData||!liveMode)return;
-  
+
+  // Save current positions BEFORE clearing — used to estimate speed between updates
+  liveTramData.forEach(function(v){
+    if(v.id && v.la && v.lo) _prevLivePositions[v.id]={la:v.la,lo:v.lo,ts:v.ts||0};
+  });
+
   // Remove all mock trams
   trams.forEach(function(t){
     if(t.mk&&map.hasLayer(t.mk))map.removeLayer(t.mk);
@@ -1205,7 +1240,7 @@ function updateLiveMarkers(){
   // Create/update live tram markers
   // First time: create markers array
   if(!window._liveMkrs)window._liveMkrs=[];
-  
+
   // Clear old live markers
   window._liveMkrs.forEach(function(m){map.removeLayer(m);});
   window._liveMkrs=[];
@@ -1226,6 +1261,21 @@ function updateLiveMarkers(){
     var tu=liveTripUpdates&&v.tripId?liveTripUpdates[v.tripId]:null;
     var delaySecs=tu&&tu.delay!==null?tu.delay:null;
     var isCancelled=tu?tu.cancelled:false;
+
+    // Estimate speed from position delta between consecutive GTFS-RT updates
+    var prevPos=_prevLivePositions[v.id];
+    var estSpeedKmh=null;
+    if(prevPos&&v.ts&&prevPos.ts&&v.ts>prevPos.ts){
+      var cosLat=Math.cos(v.la*Math.PI/180);
+      var dy=(v.la-prevPos.la)*111320;
+      var dx=(v.lo-prevPos.lo)*111320*cosLat;
+      var distM=Math.sqrt(dy*dy+dx*dx);
+      var timeDelta=v.ts-prevPos.ts;
+      if(timeDelta>=10&&timeDelta<=300){
+        estSpeedKmh=Math.round(distM/timeDelta*3.6);
+      }
+    }
+    v._estSpeed=estSpeedKmh;
 
     // Determine colour class using YJM punctuality thresholds
     var devClass='green';
@@ -1279,7 +1329,8 @@ function updateLiveMarkers(){
         schedSection+='<div class="dr"><span class="dlb">Raw Delay</span><span class="dva">'+(delaySecs>=0?'+':'')+delaySecs+'s</span></div>';
       }
       if(tu&&tu.stopId){
-        schedSection+='<div class="dr"><span class="dlb">At Stop</span><span class="dva" style="font-size:9px">'+tu.stopId+'</span></div>';
+        var stopDisplay=liveStopNames&&liveStopNames[tu.stopId]?liveStopNames[tu.stopId].name:tu.stopId;
+        schedSection+='<div class="dr"><span class="dlb">At Stop</span><span class="dva" style="font-size:9px">'+stopDisplay+'</span></div>';
       }
       schedSection+='</div>';
 
@@ -1302,7 +1353,7 @@ function updateLiveMarkers(){
         '<div class="dr"><span class="dlb">Towards</span><span class="dva">'+towards+'</span></div>'+
         '<div class="dr"><span class="dlb">Trip ID</span><span class="dva" style="font-size:8px">'+v.tripId+'</span></div></div>'+
         '<div class="ds"><div class="dst">Position (LIVE)</div>'+
-        '<div class="dr"><span class="dlb">Speed</span><span class="dva">'+(v.speed>0?Math.round(v.speed*3.6)+' km/h':'&#x25A0; Stopped')+'</span></div>'+
+        '<div class="dr"><span class="dlb">Speed</span><span class="dva">'+(estSpeedKmh!==null?(estSpeedKmh===0?'&#x25A0; Stationary':'~'+estSpeedKmh+' km/h (est)'):(v.speed>0?Math.round(v.speed*3.6)+' km/h':'&#x25A0; Stopped'))+'</span></div>'+
         '<div class="dr"><span class="dlb">Heading</span><span class="dva">'+Math.round(v.bearing)+'\u00B0 '+compassDir+'</span></div>'+
         '<div class="dr"><span class="dlb">Coords</span><span class="dva" style="font-size:9px">'+v.la.toFixed(4)+', '+v.lo.toFixed(4)+'</span></div>'+
         dataAgeStr+'</div>'+
@@ -1342,6 +1393,7 @@ function updateLiveMarkers(){
 window.setDataMode=function(mode){
   if(mode==='live'){
     liveMode=true;
+    loadStopNames(); // fetch stop names once for stop ID → name resolution
     fetchVehiclePositions();
     // Refresh every 60 seconds (PTV feed updates every 60s)
     if(liveInterval)clearInterval(liveInterval);

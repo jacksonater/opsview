@@ -388,7 +388,12 @@ window.openDmpPanel = function(disId){
     var c=window.R&&window.R[r]?window.R[r].c:'#888';
     return '<span style="color:'+c+';font-weight:700">'+r+'</span>';
   }).join(' \u00B7 ');
-  ctx.innerHTML='<span style="color:var(--tx2)">Disruption #'+dis.id+'</span>&ensp;Rt '+routeLabels+'&ensp;\u00B7&ensp;'+dis.type;
+  var nearStopHint='';
+  if(window.nearestStop){
+    var ns=window.nearestStop(dis.la,dis.lo,300);
+    if(ns) nearStopHint='&ensp;\u00B7&ensp;<span style="color:var(--tx2)">Near</span> '+ns.name+' <span style="color:var(--tx2)">('+ns.dist+'m)</span>';
+  }
+  ctx.innerHTML='<span style="color:var(--tx2)">Disruption #'+dis.id+'</span>&ensp;Rt '+routeLabels+'&ensp;\u00B7&ensp;'+dis.type+nearStopHint;
 
   if(matches.length===0){
     list.innerHTML='<div class="dmp-empty">No DMP scenarios found for this location and route combination.</div>';
