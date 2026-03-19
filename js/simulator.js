@@ -1432,6 +1432,60 @@ function init(){
 
     report.summary.runs = allAffectedRuns.size;
 
+    // ── POST-CLEARANCE RECOVERY TRIPS ────────────────────────────────────
+    // Trips shorted, cancelled, or resumed late as part of recovery after
+    // the disruption clears are still attributable to the same incident.
+    // tripImpacts is the source of truth — it's populated in real-time by
+    // the disruption and recovery logic as the sim runs.
+    var seenKeys = {};
+    report.tripDetails.forEach(function(td){ seenKeys[td.run + '/' + td.seq] = true; });
+
+    tripImpacts.forEach(function(imp){
+      if(imp.disId !== dis.id) return;
+      var key = imp.run + '/' + imp.seq;
+      if(seenKeys[key]) return; // already captured by timetable pass
+      seenKeys[key] = true;
+
+      // Look up the trip in the timetable for direction / from / to
+      var tripDir = '—', tripFrom = '—', tripTo = '—';
+      if(timetableData && timetableData[imp.route] && timetableData[imp.route][imp.run]){
+        var found = null;
+        timetableData[imp.route][imp.run].forEach(function(tr){ if(tr.q === imp.seq) found = tr; });
+        if(found && found.w && found.w.length >= 2){
+          tripDir  = found.d || '—';
+          tripFrom = found.w[0].c;
+          tripTo   = found.w[found.w.length - 1].c;
+        }
+      }
+
+      var impactLabel = imp.impact.toUpperCase();
+      var statusLabel = imp.recovery
+        ? 'Recovery — controller action'
+        : 'Post-clearance — residual impact';
+
+      report.tripDetails.push({
+        run: imp.run,
+        seq: imp.seq,
+        route: imp.route,
+        dir: tripDir,
+        start: secsToHHMM(imp.scheduledStart),
+        end: secsToHHMM(imp.scheduledEnd),
+        from: tripFrom,
+        to: tripTo,
+        impact: impactLabel,
+        missedSignposts: [],
+        status: statusLabel,
+        isRecovery: true
+      });
+
+      var k = imp.impact.toLowerCase();
+      if(report.summary[k] !== undefined) report.summary[k]++;
+      report.summary.total++;
+      allAffectedRuns.add(imp.run);
+    });
+
+    report.summary.runs = allAffectedRuns.size;
+
     // Sort by start time
     report.tripDetails.sort(function(a, b){ return a.start.localeCompare(b.start); });
 
@@ -1480,12 +1534,14 @@ function init(){
 
     // ── Summary bar ──
     h += '<div class="attr-summary" onclick="var w=this.nextElementSibling;w.classList.toggle(\'open\');this.querySelector(\'.attr-toggle\').classList.toggle(\'open\')">';
+    var nRecovery = rpt.tripDetails.filter(function(td){ return td.isRecovery; }).length;
     h += '<span class="attr-toggle">&#x25B6;</span> ';
     h += '<b>Attribution Report</b> &nbsp;';
     h += rpt.summary.runs + ' runs · ' + rpt.summary.total + ' trips · ';
     h += '<span style="color:#ff5252">' + rpt.summary.short + ' short</span>';
     if(rpt.summary.cancelled > 0) h += ' · <span style="color:#e040fb">' + rpt.summary.cancelled + ' cancelled</span>';
     h += ' · <span style="color:#f5a623">' + rpt.summary.late + ' late</span>';
+    if(nRecovery > 0) h += ' · <span style="color:#ffa040">' + nRecovery + ' recovery</span>';
     h += ' &nbsp;<span style="color:var(--tx3);font-size:8px">(' + rpt.durationMin + 'min disruption)</span>';
     h += '</div>';
 
@@ -1539,7 +1595,8 @@ function init(){
       var reliStr = totalSP > 0 ? hitSP + '/' + totalSP : '\u2014';
       var reliCol = totalSP > 0 ? (hitSP === totalSP ? 'var(--grn)' : hitSP >= totalSP * 0.8 ? 'var(--yel)' : '#ff5252') : 'var(--tx3)';
 
-      h += '<tr id="' + rowId + '" style="cursor:pointer" onclick="var d=document.getElementById(\'' + detailId + '\');if(d)d.classList.toggle(\'open\')">';
+      var rowBg = td.isRecovery ? 'background:#ffa04008;' : '';
+      h += '<tr id="' + rowId + '" style="cursor:pointer;' + rowBg + '" onclick="var d=document.getElementById(\'' + detailId + '\');if(d)d.classList.toggle(\'open\')">';
       h += '<td style="color:var(--tx3);font-size:8px">' + (idx + 1) + '</td>';
       h += '<td><span style="color:' + rcol + ';font-weight:700">' + td.route + '</span></td>';
       h += '<td>' + td.run + '</td>';
@@ -1551,8 +1608,8 @@ function init(){
       h += '<td style="font-size:8px">' + td.to + '</td>';
       h += '<td style="font-size:8px;color:#ff5252">' + (td.missedSignposts.length > 0 ? td.missedSignposts.join(', ') : '\u2014') + '</td>';
       h += '<td style="color:' + reliCol + '">' + reliStr + '</td>';
-      h += '<td style="color:' + impCol + ';font-weight:700">' + td.impact + '</td>';
-      h += '<td style="font-size:8px;color:var(--tx3)">\u2705 Attributed</td>';
+      h += '<td style="color:' + impCol + ';font-weight:700">' + td.impact + (td.isRecovery ? '<br><span style="font-size:7px;color:#ffa040;font-weight:400">RECOVERY</span>' : '') + '</td>';
+      h += '<td style="font-size:8px;color:var(--tx3)">' + (td.isRecovery ? '<span style="color:#ffa040">&#x21C4; ' + td.status + '</span>' : '\u2705 Attributed') + '</td>';
       h += '</tr>';
 
       // Signpost drill-down row (hidden by default)
