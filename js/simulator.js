@@ -75,6 +75,8 @@ function init(){
   // tripImpacts: log of trips affected by disruptions
   // Each entry: {run, seq, route, disId, impact:'short'|'cancelled'|'late', scheduledStart, scheduledEnd}
   var tripImpacts = [];
+  // Recovery actions from the most recent simClearDisruption call, keyed by disId
+  var _recoveryActionStore = {};
 
   // Per-tram short-working state (during disruption)
   // When a tram is in turnback mode, it bounces between its crossover and
@@ -543,9 +545,22 @@ function init(){
         // Accumulate delay
         t.dv = Math.min(900, (t._preTrapDv||0) + Math.round((simTime - (t._trappedAtSim||simTime)) * 0.5));
         
-        // Track consumed trips — check if any scheduled trips for this run
-        // have started and ended while we're short-working
-        trackConsumedTrips(t);
+        // For recovery short-working: check if tram has reached the target XO
+        if(sw.isRecovery){
+          var distToXO = geoDist(t._simPos.lat, t._simPos.lng, sw.xoLat, sw.xoLng);
+          if(distToXO < 60){
+            sw.active = false;
+            delete t._shortWork;
+            delete t.blockState;
+            tryResumeTrip(t);
+            if(t.mk && t.vis) t.mk.setIcon(mkIcon(t));
+            return;
+          }
+        } else {
+          // Track consumed trips — check if any scheduled trips for this run
+          // have started and ended while we're short-working
+          trackConsumedTrips(t);
+        }
 
         if(t.mk && t.vis){
           t.mk.setLatLng([shape[idx][0], shape[idx][1]]);
@@ -737,6 +752,72 @@ function init(){
     if(t.mk && t.vis) t.mk.setIcon(mkIcon(t));
   }
 
+  // ── START RECOVERY SHORT-WORKING (post-clearance) ──
+  // Like startShortWorking but tram is NOT tagged as disruption-blocked.
+  // Tram animates to the recovery XO, then tryResumeTrip picks up the next trip.
+  function startRecoveryShortWorking(t, xo, disId){
+    var routeData = R[t.route];
+    var routeShape = routeData ? routeData.shape : null;
+    if(!routeShape || routeShape.length < 2) return false;
+
+    var pos = t._simPos || {lat: t.path[0].la, lng: t.path[0].lo};
+    var tramIdx = nearestShapeIdx(routeShape, pos.lat, pos.lng);
+    var xoIdx   = nearestShapeIdx(routeShape, xo.la, xo.lo);
+
+    var minIdx = Math.min(tramIdx, xoIdx);
+    var maxIdx = Math.max(tramIdx, xoIdx);
+    var subShape = [];
+    for(var i = minIdx; i <= maxIdx; i++) subShape.push([routeShape[i][0], routeShape[i][1]]);
+    if(subShape.length < 2) return false;
+
+    var tramSubIdx = nearestShapeIdx(subShape, pos.lat, pos.lng);
+    var xoSubIdx   = nearestShapeIdx(subShape, xo.la, xo.lo);
+
+    // Log the current trip as shortened (recovery)
+    if(t._simTrip){
+      tripImpacts.push({
+        run: t._simTrip.run, seq: t._simTrip.seq, route: t.route,
+        disId: disId, impact: 'short',
+        scheduledStart: t._simTrip.tripStart, scheduledEnd: t._simTrip.tripEnd,
+        impactTime: simTime, recovery: true
+      });
+    }
+
+    t._shortWork = {
+      active: true,
+      isRecovery: true,
+      recoveryFor: disId,
+      xoLat: xo.la, xoLng: xo.lo,
+      shape: subShape,
+      shapeIdx: tramSubIdx,
+      direction: (tramSubIdx < xoSubIdx) ? 1 : -1,
+      speed: 5.5
+    };
+    t.blockState = 'recovery';
+    if(t.mk && t.vis) t.mk.setIcon(mkIcon(t));
+    return true;
+  }
+
+  // ── FIND BEST RECOVERY CROSSOVER ──
+  // Returns the nearest XO on this route that is away from the disruption zone
+  // and reachable in the tram's current direction of travel.
+  function findRecoveryXO(tramPos, disLa, disLo, route){
+    var xos = window.GIS_XO || [];
+    var candidates = xos.filter(function(xo){
+      return xo.rt && xo.rt.indexOf(String(route)) >= 0;
+    });
+    var best = null, bestDist = Infinity;
+    candidates.forEach(function(xo){
+      var dFromTram = geoDist(tramPos.lat, tramPos.lng, xo.la, xo.lo);
+      var dFromDis  = geoDist(disLa, disLo, xo.la, xo.lo);
+      // Must be close enough to reach but far enough from the disruption zone
+      if(dFromTram < 80 || dFromTram > 1800) return;
+      if(dFromDis < 150) return;
+      if(dFromTram < bestDist){ bestDist = dFromTram; best = xo; }
+    });
+    return best;
+  }
+
   // ── FIND NEAREST SHAPE POINT INDEX ──
   // shape can be [[lat,lng],...] arrays or [{la,lo},...] objects
   function nearestShapeIdx(shape, lat, lng){
@@ -796,29 +877,78 @@ function init(){
   }
 
   // ── CLEAR DISRUPTION FROM SIM TRAMS ──
+  // Returns an array of recovery actions taken (one per affected tram).
   function simClearDisruption(disId){
+    var recoveryActions = [];
+    var dis = (window.disruptions || []).find(function(d){ return d.id === disId; });
+
     simTrams.forEach(function(t){
       if(t.blockedByDis !== disId) return;
 
-      // Find the best trip to cut back into
-      var resumed = tryResumeTrip(t);
+      // How long was this tram held? (seconds)
+      var blockDuration = (t._trappedAtSim != null) ? Math.max(0, simTime - t._trappedAtSim) : 0;
+      var pos = t._simPos || (t.path && t.path[0] ? {lat: t.path[0].la, lng: t.path[0].lo} : null);
 
-      // Clear disruption state
+      // Clear disruption state first
       delete t.blockedByDis;
       delete t.blockState;
       delete t._turnbackXO;
-      delete t._trappedAtSim;
       delete t._preTrapDv;
       if(t._shortWork) t._shortWork.active = false;
       delete t._shortWork;
 
-      if(!resumed){
-        // No trip found — tram is effectively out of service until next scheduled trip
-        // The rescan will pick it up when the next trip starts
+      var action = null;
+
+      // Recovery needed if tram was held for more than ~3 minutes
+      if(blockDuration > 180 && pos && dis){
+        var xo = findRecoveryXO(pos, dis.la, dis.lo, t.route);
+        if(xo){
+          // Short-work to the nearest suitable crossover, then resume from there
+          var started = startRecoveryShortWorking(t, xo, disId);
+          if(started){
+            action = {
+              type: 'short',
+              tramId: t.id,
+              run: t._simTrip ? t._simTrip.run : '—',
+              route: t.route,
+              xo: xo.pole || (xo.la.toFixed(4) + ',' + xo.lo.toFixed(4)),
+              blockMin: Math.round(blockDuration / 60)
+            };
+          }
+        }
+        if(!action){
+          // No suitable XO — find the next appropriate trip directly
+          var resumed = tryResumeTrip(t);
+          action = {
+            type: 'trip_change',
+            tramId: t.id,
+            run: t._simTrip ? t._simTrip.run : '—',
+            route: t.route,
+            blockMin: Math.round(blockDuration / 60),
+            resumed: resumed
+          };
+        }
+      } else {
+        // Short delay — just resume normally
+        tryResumeTrip(t);
+        if(blockDuration > 0){
+          action = {
+            type: 'resume',
+            tramId: t.id,
+            run: t._simTrip ? t._simTrip.run : '—',
+            route: t.route,
+            blockMin: Math.round(blockDuration / 60)
+          };
+        }
       }
 
+      delete t._trappedAtSim;
+      if(action) recoveryActions.push(action);
       if(t.mk && t.vis) t.mk.setIcon(mkIcon(t));
     });
+
+    _recoveryActionStore[disId] = recoveryActions;
+    return recoveryActions;
   }
 
   // ── RESUME TRIP AFTER DISRUPTION CLEAR ──
@@ -1487,6 +1617,110 @@ function init(){
     return h;
   }
 
+  // ── CLEARANCE SUMMARY MODAL ──────────────────────────────────────────────
+  function renderClearanceModal(dis, recoveryActions, report, durationMin){
+    // Remove any existing modal
+    var existing = document.getElementById('clearanceModal');
+    if(existing) existing.parentNode.removeChild(existing);
+    var existingOv = document.getElementById('clearanceOverlay');
+    if(existingOv) existingOv.parentNode.removeChild(existingOv);
+
+    var overlay = document.createElement('div');
+    overlay.id = 'clearanceOverlay';
+    overlay.onclick = function(){ closeClearanceModal(); };
+    document.body.appendChild(overlay);
+
+    var modal = document.createElement('div');
+    modal.id = 'clearanceModal';
+
+    var rcol = (window.R && window.R[dis.route]) ? window.R[dis.route].c : '#888';
+    var affRoutes = dis.routes || [dis.route];
+    var routeLabels = affRoutes.map(function(r){
+      var c = window.R && window.R[r] ? window.R[r].c : '#888';
+      return '<span style="color:'+c+'">Rt '+r+'</span>';
+    }).join(' / ');
+
+    var h = '';
+    h += '<div class="clr-hdr">';
+    h += '<span class="clr-check">&#10003;</span>';
+    h += '<div class="clr-hdr-text"><div class="clr-title">Disruption Cleared</div>';
+    h += '<div class="clr-sub">'+routeLabels+' &bull; '+dis.type+'</div></div>';
+    h += '<button class="clr-close" onclick="closeClearanceModal()">&#x2715;</button>';
+    h += '</div>';
+
+    // Duration + location
+    h += '<div class="clr-meta">';
+    h += '<div class="clr-meta-item"><span class="clr-meta-lbl">Duration</span><span class="clr-meta-val">'+durationMin+' min</span></div>';
+    if(dis.southXO || dis.northXO){
+      var loc = dis.southXO && dis.northXO
+        ? dis.southXO.pole+' &#x2194; '+dis.northXO.pole
+        : (dis.southXO||dis.northXO).pole;
+      h += '<div class="clr-meta-item"><span class="clr-meta-lbl">Zone</span><span class="clr-meta-val">'+loc+'</span></div>';
+    }
+    h += '</div>';
+
+    // Attribution KPIs
+    if(report && report.summary.total > 0){
+      var s = report.summary;
+      h += '<div class="clr-section-title">Attribution</div>';
+      h += '<div class="clr-kpis">';
+      h += '<div class="clr-kpi"><span class="clr-kpi-val" style="color:#ff5252">'+s.short+'</span><span class="clr-kpi-lbl">Short</span></div>';
+      if(s.cancelled > 0) h += '<div class="clr-kpi"><span class="clr-kpi-val" style="color:#e040fb">'+s.cancelled+'</span><span class="clr-kpi-lbl">Cancelled</span></div>';
+      h += '<div class="clr-kpi"><span class="clr-kpi-val" style="color:#f5a623">'+s.late+'</span><span class="clr-kpi-lbl">Late</span></div>';
+      h += '<div class="clr-kpi"><span class="clr-kpi-val" style="color:var(--txt)">'+s.runs+'</span><span class="clr-kpi-lbl">Runs</span></div>';
+      h += '</div>';
+    } else if(report){
+      h += '<div class="clr-zero">No trips attributed &mdash; disruption cleared before scheduled service.</div>';
+    }
+
+    // Recovery actions
+    if(recoveryActions && recoveryActions.length > 0){
+      h += '<div class="clr-section-title">Recovery Actions</div>';
+      h += '<div class="clr-recovery-list">';
+      recoveryActions.forEach(function(a){
+        var rc = window.R && window.R[a.route] ? window.R[a.route].c : '#888';
+        var icon = a.type === 'short' ? '&#x21C4;' : a.type === 'trip_change' ? '&#x21BB;' : '&#x25B6;';
+        var label = a.type === 'short'
+          ? 'Short-worked to '+a.xo
+          : a.type === 'trip_change'
+          ? 'Assigned next trip'
+          : 'Resumed service';
+        h += '<div class="clr-recovery-item">';
+        h += '<span class="clr-rec-icon">'+icon+'</span>';
+        h += '<span class="clr-rec-run" style="color:'+rc+'">Rt '+a.route+'</span>';
+        h += '<span class="clr-rec-run-id">'+a.run+'</span>';
+        h += '<span class="clr-rec-label">'+label+'</span>';
+        if(a.blockMin > 0) h += '<span class="clr-rec-delay">+'+a.blockMin+'m</span>';
+        h += '</div>';
+      });
+      h += '</div>';
+    }
+
+    // Actions
+    h += '<div class="clr-actions">';
+    if(report && report.summary.total > 0){
+      h += '<button class="clr-btn-primary" onclick="closeClearanceModal();openAttrPanel('+dis.id+')">&#x26A1; View Attribution</button>';
+    }
+    h += '<button class="clr-btn-secondary" onclick="closeClearanceModal()">Dismiss</button>';
+    h += '</div>';
+
+    modal.innerHTML = h;
+    document.body.appendChild(modal);
+
+    // Animate in
+    requestAnimationFrame(function(){
+      overlay.classList.add('open');
+      modal.classList.add('open');
+    });
+  }
+
+  window.closeClearanceModal = function(){
+    var modal = document.getElementById('clearanceModal');
+    var overlay = document.getElementById('clearanceOverlay');
+    if(modal){ modal.classList.remove('open'); setTimeout(function(){ if(modal.parentNode) modal.parentNode.removeChild(modal); }, 200); }
+    if(overlay){ overlay.classList.remove('open'); setTimeout(function(){ if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 200); }
+  };
+
   // Hook into disruption clear to generate attribution
   var _origRemoveDis = window.removeDis;
   window.removeDis = function(id){
@@ -1500,19 +1734,25 @@ function init(){
       disStartSim = logEntry._simStartTime;
     }
 
-    // Generate attribution report if in sim mode
-    if(SIM_MODE && dis && disStartSim != null){
-      var report = buildAttributionReport(dis, disStartSim, simTime);
-      if(report && logEntry){
-        logEntry._attribution = report;
-      }
-    }
-
-    // Call original removeDis
+    // Call original removeDis — this internally calls clearDisruptionFromTrams
+    // which calls simClearDisruption and stores recovery actions in _recoveryActionStore
     if(_origRemoveDis) _origRemoveDis(id);
 
-    // Re-render with attribution
-    if(SIM_MODE) setTimeout(renderDisLogWithAttribution, 100);
+    if(SIM_MODE && dis){
+      // Collect recovery actions stored by simClearDisruption during the above call
+      var recoveryActions = _recoveryActionStore[id] || [];
+      delete _recoveryActionStore[id];
+
+      var report = null;
+      if(disStartSim != null){
+        report = buildAttributionReport(dis, disStartSim, simTime);
+        if(report && logEntry) logEntry._attribution = report;
+      }
+
+      var durationMin = (disStartSim != null) ? Math.max(0, Math.round((simTime - disStartSim) / 60)) : 0;
+      renderClearanceModal(dis, recoveryActions, report, durationMin);
+      setTimeout(renderDisLogWithAttribution, 100);
+    }
   };
 
   // Also hook into addToDisLog to record sim start time
