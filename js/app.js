@@ -964,10 +964,23 @@ function soloR(k){
 window.fAll=function(){soloRoute=null;rks.forEach(function(k){aR.add(k);});aFilt();};
 window.fClr=function(){soloRoute=null;aR.clear();aFilt();};
 function aFilt(){
-  trams.forEach(function(t){var show=aR.has(t.route)&&!t.searchHide;t.vis=show;if(t.mk){if(show){if(!map.hasLayer(t.mk))map.addLayer(t.mk);}else{if(map.hasLayer(t.mk))map.removeLayer(t.mk);}}});
+  if(liveMode){
+    // Filter live markers; mock trams stay hidden (don't touch them)
+    var visCount=0,totalCount=window._liveMkrs?window._liveMkrs.length:0;
+    if(window._liveMkrs){
+      window._liveMkrs.forEach(function(m){
+        var show=!m._route||aR.has(m._route);
+        if(show){if(!map.hasLayer(m))map.addLayer(m);visCount++;}
+        else{if(map.hasLayer(m))map.removeLayer(m);}
+      });
+    }
+    document.getElementById('ff').textContent=visCount+'/'+totalCount+' visible';
+  } else {
+    trams.forEach(function(t){var show=aR.has(t.route)&&!t.searchHide;t.vis=show;if(t.mk){if(show){if(!map.hasLayer(t.mk))map.addLayer(t.mk);}else{if(map.hasLayer(t.mk))map.removeLayer(t.mk);}}});
+    uSt();
+  }
   rks.forEach(function(k){var rl=rLines[k];if(!map.hasLayer(rl))map.addLayer(rl);rl.setStyle(aR.has(k)?{opacity:.2,weight:2.5}:{opacity:.06,weight:1.5});});
   document.querySelectorAll('.ri').forEach(function(el){el.classList.toggle('a',aR.has(el.dataset.r));});
-  uSt();
 }
 
 // ── COLLAPSIBLE SIDEBAR ──
@@ -1161,9 +1174,6 @@ function updateLiveMarkers(){
     var routeColor='#888';
     if(R[routeKey])routeColor=R[routeKey].c;
     
-    // Skip if route is filtered out
-    if(routeKey&&!aR.has(routeKey)&&aR.size>0)return;
-    
     var tramLabel=v.id?('T'+v.id):v.label||'?';
     var tramClass=v.label||'';
 
@@ -1204,6 +1214,7 @@ function updateLiveMarkers(){
       iconSize:[0,0],iconAnchor:[0,0]
     });
     var m=L.marker([v.la,v.lo],{icon:icon,zIndexOffset:200}).addTo(map);
+    m._route=routeKey;
     m.on('click',function(){
       // Show live detail
       document.getElementById('dp').classList.add('open');
@@ -1252,11 +1263,9 @@ function updateLiveMarkers(){
   document.getElementById('sYel').textContent=counts.yellow;
   document.getElementById('sAmb').textContent=counts.amber;
   document.getElementById('sMag').textContent=counts.magenta;
-  var totalVis=window._liveMkrs.length;
-  var totalAll=liveTramData.length;
-  document.getElementById('ff').textContent=totalVis+'/'+totalAll+' visible';
-  // Update punctuality pill
-  var onTimePct=totalVis>0?Math.round((counts.green+counts.blue)/totalVis*100):0;
+  var totalAll=window._liveMkrs.length;
+  // Update punctuality pill (based on all trams, not filtered subset)
+  var onTimePct=totalAll>0?Math.round((counts.green+counts.blue)/totalAll*100):0;
   var ppVal=document.getElementById('ppVal');
   var ppDot=document.getElementById('ppDot');
   if(ppVal)ppVal.textContent=onTimePct+'%';
@@ -1266,6 +1275,8 @@ function updateLiveMarkers(){
     else if(onTimePct>=60)ppDot.style.background='var(--amb)';
     else ppDot.style.background='var(--mag)';
   }
+  // Apply current route filter to the newly created markers
+  aFilt();
 }
 
 window.setDataMode=function(mode){
