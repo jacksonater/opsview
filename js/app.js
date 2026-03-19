@@ -974,103 +974,13 @@ function aRV(){
 
 // ══════════════════════════════════════════════════
 // LIVE DATA ENGINE — PTV GTFS-RT Vehicle Positions
+// via Vercel serverless proxy (/api/tram-positions)
+// API key stored server-side as Vercel env var.
 // ══════════════════════════════════════════════════
-var PTV_API_KEY='e894ad7f-70a8-4f08-916b-d84d2325fb06';
-var PTV_VP_URL='https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/tram/vehicle-positions';
-var PTV_TU_URL='https://api.opendata.transport.vic.gov.au/opendata/public-transport/gtfs/realtime/v1/tram/trip-updates';
+var PROXY_URL='/api/tram-positions';
 var liveMode=false;
 var liveInterval=null;
 var liveTramData=null; // parsed vehicle positions
-var gtfsRtRoot=null; // protobuf schema
-
-// GTFS-RT protobuf schema definition (minimal for vehicle positions)
-var GTFS_RT_PROTO=`
-syntax = "proto2";
-message FeedMessage {
-  required FeedHeader header = 1;
-  repeated FeedEntity entity = 2;
-}
-message FeedHeader {
-  required string gtfs_realtime_version = 1;
-  optional uint64 timestamp = 4;
-}
-message FeedEntity {
-  required string id = 1;
-  optional TripUpdate trip_update = 3;
-  optional VehiclePosition vehicle = 4;
-  optional Alert alert = 5;
-}
-message TripUpdate {
-  optional TripDescriptor trip = 1;
-  optional VehicleDescriptor vehicle = 3;
-  repeated StopTimeUpdate stop_time_update = 4;
-  optional uint64 timestamp = 6;
-}
-message StopTimeUpdate {
-  optional uint32 stop_sequence = 1;
-  optional string stop_id = 4;
-  optional StopTimeEvent arrival = 2;
-  optional StopTimeEvent departure = 3;
-}
-message StopTimeEvent {
-  optional int32 delay = 1;
-  optional int64 time = 2;
-}
-message VehiclePosition {
-  optional TripDescriptor trip = 1;
-  optional VehicleDescriptor vehicle = 8;
-  optional Position position = 2;
-  optional uint64 timestamp = 5;
-}
-message TripDescriptor {
-  optional string trip_id = 1;
-  optional string route_id = 5;
-  optional uint32 direction_id = 6;
-}
-message VehicleDescriptor {
-  optional string id = 1;
-  optional string label = 2;
-}
-message Position {
-  required float latitude = 1;
-  required float longitude = 2;
-  optional float bearing = 3;
-  optional float speed = 5;
-}
-message Alert {
-  repeated EntitySelector informed_entity = 5;
-  optional TranslatedString header_text = 10;
-  optional TranslatedString description_text = 11;
-}
-message EntitySelector {
-  optional string route_id = 3;
-  optional string stop_id = 6;
-  optional TripDescriptor trip = 4;
-}
-message TranslatedString {
-  repeated Translation translation = 1;
-  message Translation {
-    required string text = 1;
-    optional string language = 2;
-  }
-}
-`;
-
-function initProto(callback){
-  if(typeof protobuf==='undefined'){
-    console.log('protobuf.js not loaded yet');
-    setTimeout(function(){initProto(callback);},500);
-    return;
-  }
-  try{
-    gtfsRtRoot=protobuf.parse(GTFS_RT_PROTO).root;
-    console.log('GTFS-RT proto schema loaded');
-    callback(true);
-  }catch(e){
-    console.error('Proto parse error:',e);
-    callback(false);
-  }
-}
 
 function setLiveStatus(state,msg){
   var el=document.getElementById('liveStatus');
@@ -1080,73 +990,30 @@ function setLiveStatus(state,msg){
 
 function fetchVehiclePositions(){
   setLiveStatus('loading','Fetching live data...');
-  // Try primary URL with multiple auth approaches
-  var urls=[
-    {url:'http://localhost:3001/vehicle-positions',hdrs:{}},
-    {url:PTV_VP_URL,hdrs:{'Ocp-Apim-Subscription-Key':PTV_API_KEY}},
-    {url:PTV_VP_URL+'?subscription-key='+PTV_API_KEY,hdrs:{}}
-  ];
-  tryFetchChain(urls,0);
-}
-
-function tryFetchChain(urls,idx){
-  if(idx>=urls.length){
-    setLiveStatus('error','All API endpoints returned errors — check API key');
-    return;
-  }
-  var ep=urls[idx];
-  console.log('Trying endpoint '+(idx+1)+'/'+urls.length+': '+ep.url.substring(0,60)+'...');
-  fetch(ep.url,{headers:ep.hdrs})
+  fetch(PROXY_URL)
   .then(function(res){
     if(!res.ok){
-      console.warn('Endpoint '+(idx+1)+' returned HTTP '+res.status);
-      tryFetchChain(urls,idx+1);
-      return null;
+      return res.json().then(function(err){
+        throw new Error(err.error||('HTTP '+res.status));
+      });
     }
-    return res.arrayBuffer();
+    return res.json();
   })
-  .then(function(buf){
-    if(!buf)return;
-    var FeedMessage=gtfsRtRoot.lookupType('FeedMessage');
-    var feed=FeedMessage.decode(new Uint8Array(buf));
-    var vehicles=[];
-    feed.entity.forEach(function(ent){
-      if(ent.vehicle&&ent.vehicle.position){
-        var v=ent.vehicle;
-        var routeId=v.trip?v.trip.routeId:'';
-        // Extract route number from routeId (format: "3-XXX-..." where XXX is route number)
-        var routeNum='';
-        if(routeId){
-          var parts=routeId.split('-');
-          if(parts.length>=2)routeNum=parts[1];
-        }
-        vehicles.push({
-          id:v.vehicle?v.vehicle.id:'?',
-          label:v.vehicle?v.vehicle.label:'',
-          la:v.position.latitude,
-          lo:v.position.longitude,
-          bearing:v.position.bearing||0,
-          speed:v.position.speed||0,
-          routeId:routeId,
-          route:routeNum,
-          tripId:v.trip?v.trip.tripId:'',
-          dirId:v.trip?v.trip.directionId:0,
-          ts:v.timestamp?Number(v.timestamp):0
-        });
-      }
-    });
-    liveTramData=vehicles;
-    var ts=feed.header.timestamp?new Date(Number(feed.header.timestamp)*1000).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'?';
-    setLiveStatus('active','LIVE \u2022 '+vehicles.length+' trams \u2022 '+ts);
+  .then(function(data){
+    liveTramData=data.vehicles;
+    var ts=data.timestamp?new Date(data.timestamp*1000).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'?';
+    setLiveStatus('active','LIVE \u2022 '+data.count+' trams \u2022 '+ts);
     updateLiveMarkers();
-    console.log('Live data: '+vehicles.length+' vehicles at '+ts);
+    console.log('Live data: '+data.count+' vehicles at '+ts);
   })
   .catch(function(err){
-    console.warn('Endpoint '+(idx+1)+' failed:',err.message);
-    if(err.message.includes('Failed to fetch')||err.message.includes('CORS')){
-      setLiveStatus('error','CORS blocked \u2014 try opening in Chrome with --disable-web-security flag, or use a proxy');
+    console.error('Live fetch error:',err);
+    if(err.message.includes('PTV_API_KEY not configured')){
+      setLiveStatus('error','API key not set \u2014 add PTV_API_KEY in Vercel env vars');
+    } else if(err.message.includes('Failed to fetch')){
+      setLiveStatus('error','Cannot reach proxy \u2014 are you on opsview.vercel.app?');
     } else {
-      tryFetchChain(urls,idx+1);
+      setLiveStatus('error',err.message);
     }
   });
 }
@@ -1228,16 +1095,10 @@ function updateLiveMarkers(){
 window.setDataMode=function(mode){
   if(mode==='live'){
     liveMode=true;
-    initProto(function(ok){
-      if(!ok){
-        setLiveStatus('error','Protobuf library failed to load');
-        return;
-      }
-      fetchVehiclePositions();
-      // Refresh every 60 seconds
-      if(liveInterval)clearInterval(liveInterval);
-      liveInterval=setInterval(fetchVehiclePositions,60000);
-    });
+    fetchVehiclePositions();
+    // Refresh every 60 seconds (PTV feed updates every 60s)
+    if(liveInterval)clearInterval(liveInterval);
+    liveInterval=setInterval(fetchVehiclePositions,60000);
   } else {
     liveMode=false;
     if(liveInterval){clearInterval(liveInterval);liveInterval=null;}
@@ -1249,7 +1110,7 @@ window.setDataMode=function(mode){
       window._liveMkrs=[];
     }
     trams.forEach(function(t){
-      if(t.vis&&t.mk&&!map.hasLayer(t.mk))map.addLayer(t.mk);
+      if(t.vis&&t.mk&&!map.hasLayer(t.mk))t.mk.addTo(map);
     });
     uSt();
   }
