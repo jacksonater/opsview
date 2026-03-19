@@ -668,6 +668,21 @@ details[open] .attr-tunables-summary::before{content:'▼ '}
 .df-tram-row span:first-child{color:var(--tx3)}
 .df-tram-row span:last-child{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--txt)}
 
-/* ── TRAM DETAIL: LOG DISRUPTION BUTTON ── */
-.df-log-tram-btn{display:block;width:100%;margin-top:6px;padding:6px 8px;border:1px solid #e040fb;color:#e040fb;background:transparent;border-radius:3px;font-family:inherit;font-size:10px;cursor:pointer;text-align:left;transition:all .15s;font-family:'JetBrains Mono',monospace}
+/* ── TRAM DETAIL: LOG DISRUPTION BUTTON (legacy) ── */
+.df-log-tram-btn{display:block;width:100%;margin-top:6px;padding:6px 8px;border:1px solid #e040fb;color:#e040fb;background:transparent;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;text-align:left;transition:all .15s}
 .df-log-tram-btn:hover{background:#e040fb18;box-shadow:0 0 8px #e040fb33}
+
+/* ── TRAM ACTIONS PANEL ── */
+.tram-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:6px}
+.tram-actions:has(.ta-btn:only-child),.tram-actions:has(.ta-btn:nth-child(2):last-child){grid-template-columns:1fr 1fr}
+.ta-btn{padding:5px 2px;border:1px solid var(--bdr2);border-radius:3px;background:transparent;color:var(--tx2);font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer;text-align:center;transition:all .12s;white-space:nowrap;line-height:1.4}
+.ta-btn:hover{border-color:var(--txt);color:var(--txt)}
+.ta-focus:hover{border-color:#4299e1;color:#4299e1;background:#4299e110}
+.ta-track:hover{border-color:#00e5a0;color:#00e5a0;background:#00e5a010}
+.ta-track.active{border-color:#00e5a0;color:#00e5a0;background:#00e5a018;animation:trackPulse 2s ease-in-out infinite}
+.ta-dis:hover{border-color:#e040fb;color:#e040fb;background:#e040fb10}
+@keyframes trackPulse{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* ── LIVE TRAM: DATA AGE + DELAY TAG ── */
+.live-data-age{font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 0 0 0}
+.tl-delay{font-size:6px;font-weight:700;letter-spacing:.5px;margin-left:3px;opacity:.9}

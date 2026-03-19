@@ -527,6 +527,7 @@ function anim(){
     if(t.mk&&t.vis)t.mk.setLatLng(tPos(t));
   });
   if(needStats){uSt();if(selT)rDet(selT);}
+  if(trackingTram && trackingTram.vis) map.panTo(tPos(trackingTram), {animate:false});
   requestAnimationFrame(anim);
 }
 requestAnimationFrame(anim);
@@ -667,8 +668,35 @@ function clearDisruptionFromTrams(disId){
   });
 }
 
+function makeLiveIcon(v, devClass){
+  var z=map.getZoom();
+  var arr=v.dirId===0?'\u25BC':'\u25B2';
+  var delaySecs=v._delay;
+  var isCancelled=v._cancelled;
+  var tramLabel=v.id?('T'+v.id):(v.label||'?');
+  var delayTag='';
+  if(isCancelled){
+    delayTag=' \u2715';
+  } else if(delaySecs!==null && delaySecs!==undefined && Math.abs(delaySecs)>=60){
+    var mins=Math.floor(Math.abs(delaySecs)/60);
+    delayTag=delaySecs>0?' +'+mins+'m':' \u2212'+mins+'m';
+  }
+  var routeKey=v.route||'?';
+  if(z<12){
+    var tip='Rt\u00A0'+routeKey+' '+arr+(delayTag?' ('+delayTag.trim()+')':'');
+    return L.divIcon({className:'tm',html:'<div class="ti-dot '+devClass+'" data-tip="'+tip+'"><div class="tp-dot"></div></div>',iconSize:[0,0],iconAnchor:[0,0]});
+  } else if(z<15){
+    return L.divIcon({className:'tm',html:'<div class="ti-cmp"><div class="tb-cmp '+devClass+'">'+routeKey+arr+(delayTag?'!':'')+'</div><div class="tp" style="top:1px;left:50%;width:12px;height:12px"></div></div>',iconSize:[0,0],iconAnchor:[0,0]});
+  } else {
+    var subLbl=routeKey+' '+arr+(delayTag?'<span class="tl-delay">'+delayTag+'</span>':'');
+    return L.divIcon({className:'tm',html:'<div class="ti '+devClass+'"><div class="tb '+devClass+'">'+tramLabel+'</div><div class="tl">'+subLbl+'</div><div class="tp"></div></div>',iconSize:[0,0],iconAnchor:[0,0]});
+  }
+}
 function refreshIcons(){
   trams.forEach(function(t){if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));});
+  if(liveMode && window._liveMkrs){
+    window._liveMkrs.forEach(function(m){if(m._v)m.setIcon(makeLiveIcon(m._v,m._devClass));});
+  }
   var z=map.getZoom(),b=document.getElementById('zoomBadge');
   if(z<12){b.className='tier-dot';b.textContent='● DOT VIEW  z'+z;}
   else if(z<15){b.className='tier-cmp';b.textContent='● COMPACT  z'+z;}
@@ -999,11 +1027,19 @@ updateTogglePos();
 
 // ── DETAIL PANEL ──
 var selT=null;
+var trackingTram=null;
 window.oDet=function(t){
   if(window.closeAllRightPanels) window.closeAllRightPanels('dp');
   selT=t;document.getElementById('dp').classList.add('open');rDet(t);
 };
-window.cDet=function(){selT=null;document.getElementById('dp').classList.remove('open');};
+window.cDet=function(){selT=null;trackingTram=null;document.getElementById('dp').classList.remove('open');};
+window.tramFocus=function(t){if(!t)return;map.flyTo(tPos(t),16,{duration:.5});};
+window.tramToggleTrack=function(t){
+  if(!t)return;
+  trackingTram=(trackingTram===t)?null:t;
+  if(trackingTram)map.panTo(tPos(t),{animate:false});
+  rDet(t);
+};
 function rDet(t){
   var c=sc(t.dv);document.getElementById('did').textContent=(idMode=='run'?t.run:t.id);document.getElementById('did').style.color=scHex(c);
   var cur=t.path[t.si],nxt=t.path[Math.min(t.si+1,t.path.length-1)];
@@ -1024,7 +1060,11 @@ function rDet(t){
     '<div class="dr"><span class="dlb">Sched Run</span><span class="dva">'+R[t.route].m+' min</span></div></div>'+
     '<div class="ds"><div class="dst">Crew</div><div class="dpn">Driver &mdash; Pending feed integration</div></div>'+
     '<div class="ds" id="dops"><div class="dst">Operations</div>'+
-    '<button class="df-log-tram-btn" onclick="logDisruptionFromTram(selT)">&#x26A0; Log Disruption from this Tram</button></div>';
+    '<div class="tram-actions">'+
+    '<button class="ta-btn ta-focus" onclick="tramFocus(selT)">&#x2316; Centre</button>'+
+    '<button class="ta-btn ta-track'+(trackingTram===t?' active':'')+'" onclick="tramToggleTrack(selT)">'+(trackingTram===t?'&#x25CF; Tracking':'&#x2609; Track')+'</button>'+
+    '<button class="ta-btn ta-dis" onclick="logDisruptionFromTram(selT)">&#x26A0; Disruption</button>'+
+    '</div></div>';
   aRV();
 }
 var role='c';
@@ -1098,6 +1138,11 @@ window.logDisruptionFromTram=function(t){
   document.body.classList.add('dis-create-mode');
   document.getElementById('disCreateBtnStrip').classList.add('active');
   form.classList.add('open');
+};
+
+window.logDisruptionFromLiveTram=function(id,route,dirId,la,lo){
+  var synth={id:'T'+id,route:String(route),updn:dirId===0?'Down':'Up',run:'?',path:[{la:la,lo:lo,n:'Live position'}],si:0,pr:0};
+  logDisruptionFromTram(synth);
 };
 
 // ══════════════════════════════════════════════════
@@ -1208,12 +1253,12 @@ function updateLiveMarkers(){
       else delayStr=mins+'m '+secs+'s late';
     }
     
-    var icon=L.divIcon({
-      className:'tm',
-      html:'<div class="ti '+devClass+'"><div class="tb '+devClass+'">'+tramLabel+'</div><div class="tl">'+(routeKey||'?')+'</div><div class="tp"></div></div>',
-      iconSize:[0,0],iconAnchor:[0,0]
-    });
+    // Cache delay + cancelled on v for icon re-rendering on zoom changes
+    v._delay=delaySecs;
+    v._cancelled=isCancelled;
+    var icon=makeLiveIcon(v,devClass);
     var m=L.marker([v.la,v.lo],{icon:icon,zIndexOffset:200}).addTo(map);
+    m._v=v; m._devClass=devClass;
     m._route=routeKey;
     m.on('click',function(){
       // Show live detail
@@ -1238,6 +1283,16 @@ function updateLiveMarkers(){
       }
       schedSection+='</div>';
 
+      // Data age
+      var dataAgeStr='';
+      if(v.ts>0){
+        var ageSec=Math.round(Date.now()/1000-v.ts);
+        var ageCol=ageSec<90?'var(--grn)':ageSec<180?'var(--amb)':'#e53e3e';
+        dataAgeStr='<div class="live-data-age" style="color:'+ageCol+'">&#x23F1; Data age: '+ageSec+'s</div>';
+      }
+      var bearingDirs=['N','NE','E','SE','S','SW','W','NW'];
+      var compassDir=bearingDirs[Math.round(v.bearing/45)%8]||'?';
+
       document.getElementById('dbd').innerHTML=
         '<div class="ds"><div class="dst">Service (LIVE)</div>'+
         '<div class="dr"><span class="dlb">Tram #</span><span class="dva">T'+v.id+'</span></div>'+
@@ -1247,12 +1302,17 @@ function updateLiveMarkers(){
         '<div class="dr"><span class="dlb">Towards</span><span class="dva">'+towards+'</span></div>'+
         '<div class="dr"><span class="dlb">Trip ID</span><span class="dva" style="font-size:8px">'+v.tripId+'</span></div></div>'+
         '<div class="ds"><div class="dst">Position (LIVE)</div>'+
-        '<div class="dr"><span class="dlb">Latitude</span><span class="dva">'+v.la.toFixed(5)+'</span></div>'+
-        '<div class="dr"><span class="dlb">Longitude</span><span class="dva">'+v.lo.toFixed(5)+'</span></div>'+
-        '<div class="dr"><span class="dlb">Bearing</span><span class="dva">'+Math.round(v.bearing)+'\u00B0</span></div>'+
-        '<div class="dr"><span class="dlb">Speed</span><span class="dva">'+(v.speed>0?Math.round(v.speed*3.6)+' km/h':'Stopped')+'</span></div></div>'+
+        '<div class="dr"><span class="dlb">Speed</span><span class="dva">'+(v.speed>0?Math.round(v.speed*3.6)+' km/h':'&#x25A0; Stopped')+'</span></div>'+
+        '<div class="dr"><span class="dlb">Heading</span><span class="dva">'+Math.round(v.bearing)+'\u00B0 '+compassDir+'</span></div>'+
+        '<div class="dr"><span class="dlb">Coords</span><span class="dva" style="font-size:9px">'+v.la.toFixed(4)+', '+v.lo.toFixed(4)+'</span></div>'+
+        dataAgeStr+'</div>'+
         schedSection+
-        '<div class="ds"><div class="dst">Crew</div><div class="dpn">Driver \u2014 Pending HASTUS integration</div></div>';
+        '<div class="ds"><div class="dst">Crew</div><div class="dpn">Driver \u2014 Pending HASTUS integration</div></div>'+
+        '<div class="ds"><div class="dst">Operations</div>'+
+        '<div class="tram-actions">'+
+        '<button class="ta-btn ta-focus" onclick="map.flyTo(['+v.la+','+v.lo+'],16,{duration:.5})">&#x2316; Centre</button>'+
+        '<button class="ta-btn ta-dis" onclick="logDisruptionFromLiveTram(\''+v.id+'\',\''+v.route+'\','+v.dirId+','+v.la+','+v.lo+')">&#x26A0; Disruption</button>'+
+        '</div></div>';
     });
     window._liveMkrs.push(m);
   });
