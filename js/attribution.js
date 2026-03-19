@@ -71,31 +71,52 @@ function generateSyntheticTrips(dis) {
         var isCancelled = false;
         var isShort = false;
         var segMinutes = route.m / Math.max(1, tripStops.length - 1);
+        // Determine if this trip will divert around the disruption zone.
+        // Only trips close in time to the disruption and with room either side are candidates.
+        var isDiverted = false;
+        var divBlock = null;
+        if (disStopIdx >= 1 && disStopIdx < tripStops.length - 2) {
+          var tripProxCheck = Math.abs(tripStart + disStopIdx * segMinutes - (8 * 60 + 30));
+          if (tripProxCheck < 90 && pseudoRand() < 0.15) {
+            isDiverted = true;
+            divBlock = { start: Math.max(0, disStopIdx - 1), end: Math.min(tripStops.length - 2, disStopIdx + 1) };
+          }
+        }
         for (var si = 0; si < tripStops.length; si++) {
           var schedTime = tripStart + si * segMinutes;
           var delta = prevDelay;
           var distToDis = Math.abs(si - disStopIdx);
-          if (distToDis <= 1 && !hitDisruption) {
+          var missed = false;
+          if (isDiverted && si >= divBlock.start && si <= divBlock.end) {
+            // Bypass block — tram physically routes around this section
+            missed = true;
+            // delta holds at pre-diversion level; no disruption contact
+          } else if (isDiverted && si === divBlock.end + 1 && !hitDisruption) {
+            // Rejoin point — add diversion overhead (longer route = 4–8 min)
+            hitDisruption = true;
+            delta += 4 + Math.floor(pseudoRand() * 4);
+          } else if (hitDisruption) {
+            delta = Math.max(0, prevDelay - pseudoRand() * 1.5);
+          } else if (distToDis <= 1 && !hitDisruption) {
             hitDisruption = true;
             var tripProximity = Math.abs(tripStart + disStopIdx * segMinutes - (8 * 60 + 30));
             if (tripProximity < 60) delta += 5 + Math.floor(pseudoRand() * 12);
             else if (tripProximity < 120) delta += 2 + Math.floor(pseudoRand() * 6);
             else delta += Math.floor(pseudoRand() * 3);
-          } else if (hitDisruption) {
-            delta = Math.max(0, prevDelay - pseudoRand() * 1.5);
           } else {
             delta += (pseudoRand() - 0.4) * 0.8;
           }
-          var missed = false;
-          if (distToDis <= 1 && pseudoRand() < 0.12) missed = true;
-          else if (pseudoRand() < 0.02) missed = true;
-          if (si > disStopIdx + 1 && distToDis <= 2 && !isShort && pseudoRand() < 0.08) { isShort = true; break; }
+          if (!missed) {
+            if (distToDis <= 1 && pseudoRand() < 0.12) missed = true;
+            else if (pseudoRand() < 0.02) missed = true;
+          }
+          if (!isDiverted && si > disStopIdx + 1 && distToDis <= 2 && !isShort && pseudoRand() < 0.08) { isShort = true; break; }
           if (ti === 0 && si === 0 && pseudoRand() < 0.04) { isCancelled = true; break; }
           delta = Math.max(-2, delta);
           signposts.push({ code: tripStops[si].n, la: tripStops[si].la, lo: tripStops[si].lo, scheduled: schedTime, actual: missed ? null : schedTime + delta, delta: missed ? null : delta, missed: missed, stopIdx: si });
           prevDelay = delta;
         }
-        allTrips.push({ trip_id: tripId, route_id: rk, run_id: runId, sequence: ti + 1, direction: direction, scheduled_start: tripStart, scheduled_end: tripStart + route.m, signposts: signposts, dis_stop_idx: disStopIdx, is_cancelled: isCancelled, is_short: isShort, short_at: isShort ? signposts.length - 1 : null, attribution: null, confidence: null });
+        allTrips.push({ trip_id: tripId, route_id: rk, run_id: runId, sequence: ti + 1, direction: direction, scheduled_start: tripStart, scheduled_end: tripStart + route.m, signposts: signposts, dis_stop_idx: disStopIdx, is_cancelled: isCancelled, is_short: isShort, short_at: isShort ? signposts.length - 1 : null, is_diversion: isDiverted, diversion_block: divBlock, attribution: null, confidence: null });
       }
     }
   });
@@ -129,7 +150,9 @@ function disIncTimeMins(dis) {
 
 function ruleA(dis, trips) {
   var incTime = disIncTimeMins(dis);
-  var cands = trips.filter(function(t) { return t.scheduled_start >= incTime; }).sort(function(a, b) { return a.scheduled_start - b.scheduled_start; });
+  // Diverted trips bypass the disruption zone entirely — they won't show delay
+  // at dis_stop_idx so must not be selected as the first-affected trip here.
+  var cands = trips.filter(function(t) { return t.scheduled_start >= incTime && !t.is_diversion; }).sort(function(a, b) { return a.scheduled_start - b.scheduled_start; });
   for (var i = 0; i < cands.length; i++) {
     var t = cands[i], dsi = t.dis_stop_idx;
     if (dsi < 0 || dsi >= t.signposts.length) continue;
@@ -175,6 +198,34 @@ function ruleC(dis, allTrips, primaryRunId, attributed) {
   return result;
 }
 
+// Rule D — Diversion detection.
+// Identifies trips that were instructed to bypass the disruption zone.
+// Fingerprint: consecutive missed SPs spanning the disruption stop,
+// preceded by on-time running, followed by a delay overhead at rejoin.
+function ruleD(dis, trips, attributed) {
+  var result = [];
+  trips.forEach(function(t) {
+    if (attributed[t.trip_id]) return;
+    if (!t.is_diversion || !t.diversion_block) return;
+    var bl = t.diversion_block;
+    // Verify: every stop in the bypass block was missed
+    var allMissed = true;
+    for (var i = bl.start; i <= bl.end; i++) {
+      if (i >= t.signposts.length || !t.signposts[i].missed) { allMissed = false; break; }
+    }
+    if (!allMissed) return;
+    // Verify: at least one post-block stop exists and is delayed (diversion overhead)
+    var postDelayed = false;
+    for (var j = bl.end + 1; j < t.signposts.length; j++) {
+      if (t.signposts[j].delta !== null && t.signposts[j].delta > 2) { postDelayed = true; break; }
+    }
+    if (!postDelayed) return;
+    result.push({ trip: t, rule: 'D' });
+    attributed[t.trip_id] = { incident_id: dis.id, rule: 'D' };
+  });
+  return result;
+}
+
 function rules12(dis, allTrips, attributed) {
   var result = [];
   allTrips.forEach(function(t) {
@@ -190,7 +241,15 @@ function rules12(dis, allTrips, attributed) {
 function computeConf(trip, dis, allTrips, attributed) {
   var T = ATTR_TUNABLES, dsi = trip.dis_stop_idx, dev = getDeviation(trip, dsi);
   var spatial = 0;
-  if (dev !== null && dev > 0) spatial = 1.0;
+  if (trip.is_diversion && trip.diversion_block) {
+    // For diversions the tram never reaches dis_stop_idx, so we score on how
+    // well the bypass block is centred over the disruption zone instead.
+    var bl = trip.diversion_block;
+    var blockCentre = (bl.start + bl.end) / 2;
+    var centreOffset = Math.abs(blockCentre - dsi);
+    // Full credit if centred; decays by 0.15 per stop of offset; floor at 0.5
+    spatial = Math.max(0.5, 1.0 - centreOffset * 0.15);
+  } else if (dev !== null && dev > 0) spatial = 1.0;
   else if (missedSP(trip, dsi)) spatial = 0.7;
   else if (trip.is_short) spatial = 0.5;
   var segMin = trip.signposts.length > 1 ? (trip.scheduled_end - trip.scheduled_start) / (trip.signposts.length - 1) : 0;
@@ -214,10 +273,7 @@ function runAttribution(dis) {
   var results = { dis_id: dis.id, trips: trips, decisions: [], chain_confidence: 0 };
 
   var firstTrip = ruleA(dis, trips);
-  if (!firstTrip) {
-    // Zero-trip result is valid — log gracefully, still apply any manual adds
-    results.zeroTrips = true;
-  } else {
+  if (firstTrip) {
     attributed[firstTrip.trip_id] = { incident_id: dis.id, rule: 'A' };
     results.decisions.push({ trip: firstTrip, rule: 'A', confidence: computeConf(firstTrip, dis, trips, attributed) });
     var bChain = ruleB(dis, firstTrip, trips, attributed);
@@ -226,6 +282,11 @@ function runAttribution(dis) {
     ruleC(dis, trips, firstTrip.run_id, attributed).forEach(function(e) { results.decisions.push({ trip: e.trip, rule: e.rule, confidence: computeConf(e.trip, dis, trips, attributed) }); });
     rules12(dis, trips, attributed).forEach(function(e) { results.decisions.push({ trip: e.trip, rule: e.rule, confidence: computeConf(e.trip, dis, trips, attributed) }); });
   }
+  // Rule D runs after A/B/C/1/2 — catches diverted trips regardless of whether
+  // normal attribution found anything (handles all-diversion scenarios too).
+  ruleD(dis, trips, attributed).forEach(function(e) { results.decisions.push({ trip: e.trip, rule: 'D', confidence: computeConf(e.trip, dis, trips, attributed) }); });
+  // Zero-trip result is valid — log gracefully, still apply any manual adds
+  if (results.decisions.length === 0) results.zeroTrips = true;
 
   // Apply overrides: remove engine decisions flagged for removal
   results.decisions = results.decisions.filter(function(d) {
@@ -272,17 +333,17 @@ function renderAttrPanel(disId) {
   var nA = results.decisions.filter(function(d) { return d.state === 'PRE_ACCEPTED'; }).length;
   var nR = results.decisions.filter(function(d) { return d.state === 'REVIEW'; }).length;
   var nL = results.decisions.filter(function(d) { return d.state === 'LOW_CONFIDENCE'; }).length;
-  h += '<div class="attr-summary"><div class="attr-kpi"><div class="attr-kpi-val" style="color:#00e5a0">' + nA + '</div><div class="attr-kpi-lbl">Pre-Accepted</div></div>';
-  h += '<div class="attr-kpi"><div class="attr-kpi-val" style="color:#f59623">' + nR + '</div><div class="attr-kpi-lbl">Review</div></div>';
+  h += '<div class="attr-summary"><div class="attr-kpi"><div class="attr-kpi-val" style="color:#00e5a0">' + nA + '</div><div class="attr-kpi-lbl">Attributed</div></div>';
+  h += '<div class="attr-kpi"><div class="attr-kpi-val" style="color:#f59623">' + nR + '</div><div class="attr-kpi-lbl">Needs Review</div></div>';
   h += '<div class="attr-kpi"><div class="attr-kpi-val" style="color:#e53e3e">' + nL + '</div><div class="attr-kpi-lbl">Low Conf</div></div></div>';
   var cc = Math.round(results.chain_confidence * 100), ccCol = cc >= 80 ? '#00e5a0' : cc >= 55 ? '#f59623' : '#e53e3e';
   h += '<div style="margin-bottom:12px"><div style="font-size:9px;color:var(--tx3);margin-bottom:3px">Chain Confidence (weakest link)</div>';
   h += '<div class="attr-conf-bar"><div class="attr-conf-track"><div class="attr-conf-fill" style="width:' + cc + '%;background:' + ccCol + '"></div></div>';
   h += '<div class="attr-conf-pct" style="color:' + ccCol + '">' + cc + '%</div></div></div>';
-  var groups = { 'A': [], 'B': [], 'C': [], '1': [], '2': [] };
+  var groups = { 'A': [], 'B': [], 'C': [], 'D': [], '1': [], '2': [] };
   results.decisions.forEach(function(d) { if (groups[d.rule]) groups[d.rule].push(d); });
-  var ruleLabels = { 'A': { name: 'First Affected Trip', cls: 'attr-rule-a' }, 'B': { name: 'Same-Run Propagation', cls: 'attr-rule-b' }, 'C': { name: 'Cross-Run Propagation', cls: 'attr-rule-c' }, '1': { name: 'Linked Shorts/Cancels', cls: 'attr-rule-12' }, '2': { name: 'Missed Cancellations', cls: 'attr-rule-12' } };
-  ['A', 'B', 'C', '1', '2'].forEach(function(rule) {
+  var ruleLabels = { 'A': { name: 'First Affected Trip', cls: 'attr-rule-a' }, 'B': { name: 'Same-Run Propagation', cls: 'attr-rule-b' }, 'C': { name: 'Cross-Run Propagation', cls: 'attr-rule-c' }, 'D': { name: 'Diverted Trip', cls: 'attr-rule-d' }, '1': { name: 'Linked Shorts/Cancels', cls: 'attr-rule-12' }, '2': { name: 'Missed Cancellations', cls: 'attr-rule-12' } };
+  ['A', 'B', 'C', 'D', '1', '2'].forEach(function(rule) {
     if (groups[rule].length === 0) return;
     var rl = ruleLabels[rule];
     h += '<div class="attr-chain"><div class="attr-chain-hdr"><span class="attr-rule ' + rl.cls + '">RULE ' + rule + '</span> ' + rl.name + ' (' + groups[rule].length + ')</div>';
@@ -290,19 +351,21 @@ function renderAttrPanel(disId) {
       var t = d.trip, c = d.confidence, sc = Math.round(c.score * 100);
       var scCol = sc >= 80 ? '#00e5a0' : sc >= 55 ? '#f59623' : '#e53e3e';
       var stCls = d.state === 'PRE_ACCEPTED' ? 'attr-st-accept' : d.state === 'REVIEW' ? 'attr-st-review' : 'attr-st-low';
-      var stLbl = d.state === 'PRE_ACCEPTED' ? '✓ ACCEPT' : d.state === 'REVIEW' ? '⚠ REVIEW' : '✗ LOW';
+      var stLbl = d.state === 'PRE_ACCEPTED' ? '✓ ATTR' : d.state === 'REVIEW' ? '⚠ REVIEW' : '✗ LOW';
       var peakDev = 0; t.signposts.forEach(function(sp) { if (sp.delta !== null && Math.abs(sp.delta) > Math.abs(peakDev)) peakDev = sp.delta; });
       var devCol = peakDev <= 1 ? '#00e5a0' : peakDev <= 5 ? '#f5d623' : peakDev <= 10 ? '#f59623' : '#e040fb';
       var rtCol = R[t.route_id] ? R[t.route_id].c : '#888';
       var isOverrideAdded = d._overrideAdded ? true : false;
       var overrideBadge = isOverrideAdded ? '<span class="attr-override-badge">MANUAL</span>' : '';
+      var divertBadge = t.is_diversion ? '<span class="attr-divert-badge">DIVERT</span>' : '';
       h += '<div class="attr-trip" onclick="toggleAttrDetail(\'' + t.trip_id + '\')">';
       h += '<span class="attr-trip-rule ' + rl.cls + '">' + rule + '</span>';
       h += '<span class="attr-trip-id">' + t.trip_id + '</span>';
       h += '<span class="attr-trip-run" style="color:' + rtCol + '">Rt ' + t.route_id + '</span>';
-      h += '<span class="attr-trip-dev" style="color:' + devCol + '">' + (t.is_cancelled ? 'CANCEL' : t.is_short ? 'SHORT' : (peakDev > 0 ? '+' : '') + peakDev.toFixed(1) + 'm') + '</span>';
+      h += '<span class="attr-trip-dev" style="color:' + devCol + '">' + (t.is_cancelled ? 'CANCEL' : t.is_short ? 'SHORT' : t.is_diversion ? 'DIVERT' : (peakDev > 0 ? '+' : '') + peakDev.toFixed(1) + 'm') + '</span>';
       h += '<span class="attr-trip-conf" style="color:' + scCol + '">' + sc + '%</span>';
       h += '<span class="attr-trip-state ' + stCls + '">' + stLbl + '</span>';
+      h += divertBadge;
       h += overrideBadge;
       h += '<button class="attr-override-remove" title="Remove from attribution" onclick="event.stopPropagation();attrRemoveTrip(' + disId + ',\'' + t.trip_id + '\')">&#x2715;</button>';
       h += '</div>';
@@ -319,17 +382,21 @@ function renderAttrPanel(disId) {
       h += '<div class="attr-detail-row"><span class="attr-detail-lbl">Direction</span><span class="attr-detail-val">' + t.direction + '</span></div>';
       h += '<div class="attr-detail-row"><span class="attr-detail-lbl">Signposts</span><span class="attr-detail-val">' + t.signposts.length + ' (' + t.signposts.filter(function(sp) { return sp.missed; }).length + ' missed)</span></div>';
       h += '<div class="attr-detail-row"><span class="attr-detail-lbl">Peak Delay</span><span class="attr-detail-val" style="color:' + devCol + '">' + peakDev.toFixed(1) + ' min</span></div>';
+      if (t.is_diversion && t.diversion_block) {
+        h += '<div class="attr-detail-row"><span class="attr-detail-lbl">Bypass Block</span><span class="attr-detail-val" style="color:#ffa040">SP ' + t.diversion_block.start + '&ndash;' + t.diversion_block.end + ' bypassed (disruption zone avoided)</span></div>';
+      }
       h += '</div>';
     });
     h += '</div>';
   });
-  h += '<div class="attr-tunables"><div class="attr-tunables-title">⚙ Tunables (live re-run)</div>';
+  h += '<details class="attr-tunables-details"><summary class="attr-tunables-summary">⚙ Advanced — Confidence Tunables</summary>';
+  h += '<div class="attr-tunables">';
   h += '<div class="attr-tunable-row"><label>θ_jump</label><input type="range" min="1.0" max="4.0" step="0.1" value="' + ATTR_TUNABLES.theta_jump + '" oninput="updateAttrTunable(\'theta_jump\',this.value,' + disId + ')"><span class="attr-tv" id="atv_theta_jump">' + ATTR_TUNABLES.theta_jump + '</span></div>';
   h += '<div class="attr-tunable-row"><label>θ_accept</label><input type="range" min="0.50" max="0.95" step="0.05" value="' + ATTR_TUNABLES.theta_accept + '" oninput="updateAttrTunable(\'theta_accept\',this.value,' + disId + ')"><span class="attr-tv" id="atv_theta_accept">' + ATTR_TUNABLES.theta_accept + '</span></div>';
   h += '<div class="attr-tunable-row"><label>θ_review</label><input type="range" min="0.30" max="0.75" step="0.05" value="' + ATTR_TUNABLES.theta_review + '" oninput="updateAttrTunable(\'theta_review\',this.value,' + disId + ')"><span class="attr-tv" id="atv_theta_review">' + ATTR_TUNABLES.theta_review + '</span></div>';
-  h += '</div>';
-  h += '<div style="margin-top:12px;padding:8px;background:var(--bg2);border:1px solid var(--bdr);border-radius:3px;font-size:9px;color:var(--tx3)">';
-  h += '<b style="color:var(--acc)">AUDIT</b> — ' + results.decisions.length + ' decisions logged from ' + results.trips.length + ' trips evaluated. Pipeline: A\u2192B\u21921/2\u2192C\u21921/2. Confidence weights sum to 1.0. All parameters tunable above \u2014 changes re-run the engine instantly.</div>';
+  h += '<div style="margin-top:8px;padding:6px 0;font-size:9px;color:var(--tx3)">';
+  h += '<b style="color:var(--acc)">AUDIT</b> — ' + results.decisions.length + ' decisions from ' + results.trips.length + ' trips. Pipeline: A\u2192B\u21921/2\u2192C\u21921/2\u2192D.</div>';
+  h += '</div></details>';
 
   // Override controls
   var ov = attrOverrides[disId] || {};
@@ -379,12 +446,12 @@ buildDisPopup = function(dis) {
     var byRule = {}; results.decisions.forEach(function(d) { byRule[d.rule] = (byRule[d.rule] || 0) + 1; });
     var ruleSum = Object.keys(byRule).map(function(r) { return 'Rule ' + r + ': ' + byRule[r]; }).join(' · ');
     preview = '<div class="dp-attr-preview"><div class="dp-attr-preview-hdr">⚡ Attribution Engine <span class="dp-attr-preview-count">' + results.decisions.length + ' trips</span></div>';
-    preview += '<div class="dp-attr-row"><span style="color:#00e5a0">✓ ' + nAcc + ' pre-accepted</span>&nbsp;&nbsp;<span style="color:#f59623">⚠ ' + nRev + ' review</span></div>';
+    preview += '<div class="dp-attr-row"><span style="color:#00e5a0">✓ ' + nAcc + ' attributed</span>&nbsp;&nbsp;<span style="color:#f59623">⚠ ' + nRev + ' review</span></div>';
     preview += '<div class="dp-attr-row" style="font-size:8px;color:var(--tx3)">' + ruleSum + '</div>';
     preview += '<div class="dp-attr-row" style="font-size:8px">Chain confidence: <span style="color:' + (results.chain_confidence >= 0.8 ? '#00e5a0' : results.chain_confidence >= 0.55 ? '#f59623' : '#e53e3e') + '">' + Math.round(results.chain_confidence * 100) + '%</span></div></div>';
   }
   var attrBtn = '<button class="dp-attr-btn" onclick="openAttrPanel(' + dis.id + ')">⚡ View Attribution Details</button>';
-  base = base.replace('<button class="dp-edit-btn"', preview + attrBtn + '<button class="dp-edit-btn"');
+  base = base.replace('<button class="dp-btn"', preview + attrBtn + '<button class="dp-btn"');
   return base;
 };
 

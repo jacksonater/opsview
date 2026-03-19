@@ -1726,7 +1726,7 @@ function buildDisPopup(dis){
       var top=scoredMatches.slice(0,3);
       top.forEach(function(m){
         var s=m.s;
-        var conf=m.score>=0.65?'HIGH':m.score>=0.40?'MED':'LOW';
+        var conf=m.geoDist<200?'HIGH':m.geoDist<600?'MED':'LOW';
         var confCol=conf==='HIGH'?'#69f0ae':conf==='MED'?'#f5a623':'#ff5252';
         h+='<div class="dp-dmp-sc">';
         h+='<span class="dp-dmp-sc-id">'+s.id+'</span>';
@@ -1978,7 +1978,7 @@ function clearAllDisruptions(){
     if(d.timer)clearInterval(d.timer);
     clearDisruptionFromTrams(d.id); // release all trams blocked by this disruption
   });
-  disruptions=[];
+  disruptions.splice(0); // empty in-place to preserve window.disruptions reference
   disMarkers.forEach(function(m){map.removeLayer(m);});disMarkers=[];
   disXoMarkers.forEach(function(m){map.removeLayer(m);});disXoMarkers=[];
   disBlockedLines.forEach(function(l){map.removeLayer(l);});disBlockedLines=[];
