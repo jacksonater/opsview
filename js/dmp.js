@@ -437,6 +437,8 @@ function renderOpsText(text){
 window.openDmpPanel = function(disId) {
   var dis = window.disruptions.find(function(d){ return d.id === disId; });
   if (!dis) return;
+  if (window.closeAllRightPanels) window.closeAllRightPanels('dmp');
+  document.body.classList.add('rp-open');
   var affRoutes = dis.routes||[dis.route];
   var scoredMatches = getDmpScenarios(affRoutes, dis.la, dis.lo);
 
@@ -550,6 +552,7 @@ window.toggleDmpCard = function(bodyId) {
 
 window.closeDmpPanel = function() {
   document.getElementById('dmpPanel').classList.remove('open');
+  document.body.classList.remove('rp-open');
 };
 
 // ===== EXPORTS =====

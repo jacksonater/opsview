@@ -112,6 +112,8 @@ function createMxIncident(dis) {
 
 // ── RENDER MAXIMO PANEL ────────────────────────────────────────────────────
 function renderMaximoPanel(disId) {
+  if (window.closeAllRightPanels) window.closeAllRightPanels('mx');
+  document.body.classList.add('rp-open');
   var dis = window.disruptions ? window.disruptions.find(function(d){return d.id===disId;}) : null;
   var inc = mxIncidents[disId] || (dis ? createMxIncident(dis) : null);
   if (!inc) return;
@@ -250,6 +252,7 @@ window.openMaximoPanel = function(disId) {
 
 window.closeMaximoPanel = function() {
   document.getElementById('mxPanel').classList.remove('open');
+  document.body.classList.remove('rp-open');
 };
 
 // Defer hook until app.js buildDisPopup is ready

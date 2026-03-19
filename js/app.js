@@ -691,7 +691,10 @@ function updateNetStrip(){
 // ── KEYBOARD SHORTCUTS ──
 window.toggleKbPanel=function(){
   var p=document.getElementById('kbPanel');
-  p.classList.toggle('open');
+  var bd=document.getElementById('kbBackdrop');
+  var opening=!p.classList.contains('open');
+  p.classList.toggle('open',opening);
+  if(bd)bd.classList.toggle('open',opening);
 };
 document.addEventListener('keydown',function(e){
   var tag=e.target.tagName;
@@ -709,6 +712,8 @@ document.addEventListener('keydown',function(e){
       document.getElementById('dfOkBtn').textContent='Create';
       document.getElementById('disForm').classList.remove('edit-mode','open');
       document.getElementById('kbPanel').classList.remove('open');
+      var _kbd=document.getElementById('kbBackdrop'); if(_kbd)_kbd.classList.remove('open');
+      window.closeAllRightPanels();
       window.cDet();
       break;
     case 'l': case 'L': window.toggleLayerMenu(); break;
@@ -762,15 +767,31 @@ document.addEventListener('click',function(e){
   }
 });
 
+// ── PANEL MANAGEMENT — mutual exclusivity ──
+window.closeAllRightPanels=function(except){
+  if(except!=='dp'){ var dp=document.getElementById('dp'); if(dp)dp.classList.remove('open'); selT=null; }
+  if(except!=='perf'){
+    var pp=document.getElementById('perfPanel'); if(pp)pp.classList.remove('open');
+    var pb=document.getElementById('perfBtn'); if(pb)pb.classList.remove('open');
+    perfOpen=false;
+  }
+  if(except!=='dmp'){ var dmp=document.getElementById('dmpPanel'); if(dmp)dmp.classList.remove('open'); }
+  if(except!=='attr'){ var attr=document.getElementById('attrPanel'); if(attr)attr.classList.remove('open'); }
+  if(except!=='mx'){ var mx=document.getElementById('mxPanel'); if(mx)mx.classList.remove('open'); }
+  document.body.classList.remove('rp-open');
+};
+
 // ── PERFORMANCE PANEL ──
 var perfOpen=false;
 window.togglePerfPanel=function(){
   var p=document.getElementById('perfPanel');
   var btn=document.getElementById('perfBtn');
+  if(!perfOpen){ window.closeAllRightPanels('perf'); }
   perfOpen=!perfOpen;
   p.classList.toggle('open',perfOpen);
   btn.classList.toggle('open',perfOpen);
-  if(perfOpen)renderPerfPanel();
+  if(perfOpen){ document.body.classList.add('rp-open'); renderPerfPanel(); }
+  else { document.body.classList.remove('rp-open'); }
 };
 function renderPerfPanel(){
   var v=trams.filter(function(t){return t.vis;});
@@ -949,7 +970,10 @@ updateTogglePos();
 
 // ── DETAIL PANEL ──
 var selT=null;
-window.oDet=function(t){selT=t;document.getElementById('dp').classList.add('open');rDet(t);};
+window.oDet=function(t){
+  if(window.closeAllRightPanels) window.closeAllRightPanels('dp');
+  selT=t;document.getElementById('dp').classList.add('open');rDet(t);
+};
 window.cDet=function(){selT=null;document.getElementById('dp').classList.remove('open');};
 function rDet(t){
   var c=sc(t.dv);document.getElementById('did').textContent=(idMode=='run'?t.run:t.id);document.getElementById('did').style.color=scHex(c);

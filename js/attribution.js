@@ -359,10 +359,12 @@ window.updateAttrTunable = function(key, val, disId) {
 window.openAttrPanel = function(disId) {
   var dis = disruptions.find(function(d) { return d.id === disId; });
   if (!dis) return;
+  if (window.closeAllRightPanels) window.closeAllRightPanels('attr');
   if (!attrResults[disId]) runAttribution(dis);
   renderAttrPanel(disId);
+  document.body.classList.add('rp-open');
 };
-window.closeAttrPanel = function() { document.getElementById('attrPanel').classList.remove('open'); };
+window.closeAttrPanel = function() { document.getElementById('attrPanel').classList.remove('open'); document.body.classList.remove('rp-open'); };
 
 // Override buildDisPopup to add attribution preview + button
 var _origBuildDisPopup = buildDisPopup;
