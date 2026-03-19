@@ -104,7 +104,7 @@ const GTFS_ROUTES = {
 (function w(){if(typeof L==='undefined'){setTimeout(w,80);return;}
 var R=GTFS_ROUTES;
 var map=L.map('map',{center:[-37.813,144.965],zoom:12,minZoom:12,maxZoom:17,zoomControl:true,attributionControl:true});
-var tiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OSM &copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
+var tiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',subdomains:'abcd',maxZoom:19}).addTo(map);
 tiles.on('tileload',function(){document.getElementById('ntm').style.display='none';});
 // Default: light mode
 document.body.classList.add('light');
@@ -344,9 +344,25 @@ function mkIcon(t){
   }
 }
 
+// ── TRAM HOVER TOOLTIP ──
+function tramTipHtml(t){
+  var arr=t.updn==='Down'?'&#9660; Southbound':'&#9650; Northbound';
+  var rc=(window.R&&window.R[t.route])?window.R[t.route].c:'#888';
+  var devStr=fmtDev(t.dv);
+  var devCol=scHex(sc(t.dv));
+  var isTrapped=(t.blockState==='trapped');
+  return '<div class="tram-tt">'+
+    '<div class="tram-tt-id">Tram <b>'+t.id+'</b><span class="tram-tt-run">Run '+t.run+'</span></div>'+
+    '<div class="tram-tt-route"><span class="tram-tt-rk" style="background:'+rc+'">Rt '+t.route+'</span></div>'+
+    '<div class="tram-tt-dir">'+arr+'</div>'+
+    '<div class="tram-tt-dev" style="color:'+devCol+'">'+(isTrapped?'&#9632; STOPPED':devStr)+'</div>'+
+    '</div>';
+}
+
 // ── CREATE MARKERS ──
 trams.forEach(function(t){
   var m=L.marker(tPos(t),{icon:mkIcon(t),zIndexOffset:200}).addTo(map);
+  m.bindTooltip(function(){return tramTipHtml(t);},{className:'tram-tt-wrap',direction:'top',offset:[0,-4],sticky:false});
   m.on('click',function(){oDet(t);});
   m.on('contextmenu',function(e){
     L.DomEvent.stopPropagation(e);L.DomEvent.preventDefault(e);
@@ -1980,7 +1996,7 @@ window.setRouteOpacity=function(val){
 
 // ── LIGHT/DARK THEME TOGGLE ──
 var lightTiles=tiles; // already added to map as default
-var darkTiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OSM &copy; CARTO',subdomains:'abcd',maxZoom:19});
+var darkTiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',subdomains:'abcd',maxZoom:19});
 var isDark=false; // default: light mode
 // Set correct button icon on load
 document.getElementById('themeBtn').innerHTML='\u263E'; // moon = switch to dark
