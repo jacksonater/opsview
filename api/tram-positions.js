@@ -149,11 +149,13 @@ module.exports = async function handler(req, res) {
         const v = entity.vehicle;
         const routeId = v.trip ? v.trip.routeId || '' : '';
 
-        // Extract route number from PTV routeId format "3-XXX-..."
+        // Extract route number from PTV routeId format "aus:vic:vic-03-{ROUTE}:"
+        // e.g. "aus:vic:vic-03-96:" → route "96"
+        // e.g. "aus:vic:vic-03-109:" → route "109"
         let routeNum = '';
         if (routeId) {
-          const parts = routeId.split('-');
-          if (parts.length >= 2) routeNum = parts[1];
+          const match = routeId.match(/vic-03-(\d+)/);
+          if (match) routeNum = match[1];
         }
 
         vehicles.push({
