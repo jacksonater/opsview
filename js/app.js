@@ -527,6 +527,7 @@ function anim(){
     if(t.mk&&t.vis)t.mk.setLatLng(tPos(t));
   });
   if(needStats){uSt();if(selT)rDet(selT);}
+  if(trackingTram && trackingTram.vis) map.panTo(tPos(trackingTram), {animate:false});
   requestAnimationFrame(anim);
 }
 requestAnimationFrame(anim);
@@ -667,8 +668,35 @@ function clearDisruptionFromTrams(disId){
   });
 }
 
+function makeLiveIcon(v, devClass){
+  var z=map.getZoom();
+  var arr=v.dirId===0?'\u25BC':'\u25B2';
+  var delaySecs=v._delay;
+  var isCancelled=v._cancelled;
+  var tramLabel=v.id?('T'+v.id):(v.label||'?');
+  var delayTag='';
+  if(isCancelled){
+    delayTag=' \u2715';
+  } else if(delaySecs!==null && delaySecs!==undefined && Math.abs(delaySecs)>=60){
+    var mins=Math.floor(Math.abs(delaySecs)/60);
+    delayTag=delaySecs>0?' +'+mins+'m':' \u2212'+mins+'m';
+  }
+  var routeKey=v.route||'?';
+  if(z<12){
+    var tip='Rt\u00A0'+routeKey+' '+arr+(delayTag?' ('+delayTag.trim()+')':'');
+    return L.divIcon({className:'tm',html:'<div class="ti-dot '+devClass+'" data-tip="'+tip+'"><div class="tp-dot"></div></div>',iconSize:[0,0],iconAnchor:[0,0]});
+  } else if(z<15){
+    return L.divIcon({className:'tm',html:'<div class="ti-cmp"><div class="tb-cmp '+devClass+'">'+routeKey+arr+(delayTag?'!':'')+'</div><div class="tp" style="top:1px;left:50%;width:12px;height:12px"></div></div>',iconSize:[0,0],iconAnchor:[0,0]});
+  } else {
+    var subLbl=routeKey+' '+arr+(delayTag?'<span class="tl-delay">'+delayTag+'</span>':'');
+    return L.divIcon({className:'tm',html:'<div class="ti '+devClass+'"><div class="tb '+devClass+'">'+tramLabel+'</div><div class="tl">'+subLbl+'</div><div class="tp"></div></div>',iconSize:[0,0],iconAnchor:[0,0]});
+  }
+}
 function refreshIcons(){
   trams.forEach(function(t){if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));});
+  if(liveMode && window._liveMkrs){
+    window._liveMkrs.forEach(function(m){if(m._v)m.setIcon(makeLiveIcon(m._v,m._devClass));});
+  }
   var z=map.getZoom(),b=document.getElementById('zoomBadge');
   if(z<12){b.className='tier-dot';b.textContent='● DOT VIEW  z'+z;}
   else if(z<15){b.className='tier-cmp';b.textContent='● COMPACT  z'+z;}
@@ -676,6 +704,8 @@ function refreshIcons(){
 }
 map.on('zoomend',refreshIcons);
 refreshIcons();
+// Load stop names in background — used for nearest-stop hints in disruption form + live detail panel
+setTimeout(loadStopNames, 2000);
 
 window.setSpeed=function(v){TIME_SCALE=parseInt(v);};
 
@@ -999,11 +1029,19 @@ updateTogglePos();
 
 // ── DETAIL PANEL ──
 var selT=null;
+var trackingTram=null;
 window.oDet=function(t){
   if(window.closeAllRightPanels) window.closeAllRightPanels('dp');
   selT=t;document.getElementById('dp').classList.add('open');rDet(t);
 };
-window.cDet=function(){selT=null;document.getElementById('dp').classList.remove('open');};
+window.cDet=function(){selT=null;trackingTram=null;document.getElementById('dp').classList.remove('open');};
+window.tramFocus=function(t){if(!t)return;map.flyTo(tPos(t),16,{duration:.5});};
+window.tramToggleTrack=function(t){
+  if(!t)return;
+  trackingTram=(trackingTram===t)?null:t;
+  if(trackingTram)map.panTo(tPos(t),{animate:false});
+  rDet(t);
+};
 function rDet(t){
   var c=sc(t.dv);document.getElementById('did').textContent=(idMode=='run'?t.run:t.id);document.getElementById('did').style.color=scHex(c);
   var cur=t.path[t.si],nxt=t.path[Math.min(t.si+1,t.path.length-1)];
@@ -1024,7 +1062,11 @@ function rDet(t){
     '<div class="dr"><span class="dlb">Sched Run</span><span class="dva">'+R[t.route].m+' min</span></div></div>'+
     '<div class="ds"><div class="dst">Crew</div><div class="dpn">Driver &mdash; Pending feed integration</div></div>'+
     '<div class="ds" id="dops"><div class="dst">Operations</div>'+
-    '<button class="df-log-tram-btn" onclick="logDisruptionFromTram(selT)">&#x26A0; Log Disruption from this Tram</button></div>';
+    '<div class="tram-actions">'+
+    '<button class="ta-btn ta-focus" onclick="tramFocus(selT)">&#x2316; Centre</button>'+
+    '<button class="ta-btn ta-track'+(trackingTram===t?' active':'')+'" onclick="tramToggleTrack(selT)">'+(trackingTram===t?'&#x25CF; Tracking':'&#x2609; Track')+'</button>'+
+    '<button class="ta-btn ta-dis" onclick="logDisruptionFromTram(selT)">&#x26A0; Disruption</button>'+
+    '</div></div>';
   aRV();
 }
 var role='c';
@@ -1100,6 +1142,11 @@ window.logDisruptionFromTram=function(t){
   form.classList.add('open');
 };
 
+window.logDisruptionFromLiveTram=function(id,route,dirId,la,lo){
+  var synth={id:'T'+id,route:String(route),updn:dirId===0?'Down':'Up',run:'?',path:[{la:la,lo:lo,n:'Live position'}],si:0,pr:0};
+  logDisruptionFromTram(synth);
+};
+
 // ══════════════════════════════════════════════════
 // LIVE DATA ENGINE — PTV GTFS-RT Vehicle Positions
 // + Trip Updates for real schedule adherence
@@ -1111,6 +1158,34 @@ var liveMode=false;
 var liveInterval=null;
 var liveTramData=null; // parsed vehicle positions
 var liveTripUpdates=null; // tripId → delay lookup
+var liveStopNames=null; // stopId → {name, lat, lon} — loaded once from /api/tram-stops
+var _prevLivePositions={}; // vehicleId → {la, lo, ts} — retained between fetches for speed estimation
+
+// Load stop names from static GTFS (fires once; result cached in liveStopNames)
+function loadStopNames(){
+  if(liveStopNames!==null) return;
+  liveStopNames={}; // sentinel so we don't double-fetch
+  fetch('/api/tram-stops')
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(d){if(d&&d.stops){liveStopNames=d.stops;console.log('Loaded '+d.count+' tram stop names');}})
+    .catch(function(){});
+}
+
+// Return the nearest tram stop within maxDist metres of (la, lo), or null
+window.nearestStop=function(la, lo, maxDist){
+  maxDist=maxDist||250;
+  if(!liveStopNames||!Object.keys(liveStopNames).length) return null;
+  var best=null, bestDist=maxDist;
+  var cosLat=Math.cos(la*Math.PI/180);
+  Object.keys(liveStopNames).forEach(function(id){
+    var s=liveStopNames[id];
+    if(s.lat===null||s.lon===null) return;
+    var dy=(la-s.lat)*111320, dx=(lo-s.lon)*111320*cosLat;
+    var d=Math.sqrt(dx*dx+dy*dy);
+    if(d<bestDist){bestDist=d;best={id:id,name:s.name,dist:Math.round(d)};}
+  });
+  return best;
+};
 
 function setLiveStatus(state,msg){
   var el=document.getElementById('liveStatus');
@@ -1151,7 +1226,12 @@ function fetchVehiclePositions(){
 
 function updateLiveMarkers(){
   if(!liveTramData||!liveMode)return;
-  
+
+  // Save current positions BEFORE clearing — used to estimate speed between updates
+  liveTramData.forEach(function(v){
+    if(v.id && v.la && v.lo) _prevLivePositions[v.id]={la:v.la,lo:v.lo,ts:v.ts||0};
+  });
+
   // Remove all mock trams
   trams.forEach(function(t){
     if(t.mk&&map.hasLayer(t.mk))map.removeLayer(t.mk);
@@ -1160,7 +1240,7 @@ function updateLiveMarkers(){
   // Create/update live tram markers
   // First time: create markers array
   if(!window._liveMkrs)window._liveMkrs=[];
-  
+
   // Clear old live markers
   window._liveMkrs.forEach(function(m){map.removeLayer(m);});
   window._liveMkrs=[];
@@ -1181,6 +1261,21 @@ function updateLiveMarkers(){
     var tu=liveTripUpdates&&v.tripId?liveTripUpdates[v.tripId]:null;
     var delaySecs=tu&&tu.delay!==null?tu.delay:null;
     var isCancelled=tu?tu.cancelled:false;
+
+    // Estimate speed from position delta between consecutive GTFS-RT updates
+    var prevPos=_prevLivePositions[v.id];
+    var estSpeedKmh=null;
+    if(prevPos&&v.ts&&prevPos.ts&&v.ts>prevPos.ts){
+      var cosLat=Math.cos(v.la*Math.PI/180);
+      var dy=(v.la-prevPos.la)*111320;
+      var dx=(v.lo-prevPos.lo)*111320*cosLat;
+      var distM=Math.sqrt(dy*dy+dx*dx);
+      var timeDelta=v.ts-prevPos.ts;
+      if(timeDelta>=10&&timeDelta<=300){
+        estSpeedKmh=Math.round(distM/timeDelta*3.6);
+      }
+    }
+    v._estSpeed=estSpeedKmh;
 
     // Determine colour class using YJM punctuality thresholds
     var devClass='green';
@@ -1208,12 +1303,12 @@ function updateLiveMarkers(){
       else delayStr=mins+'m '+secs+'s late';
     }
     
-    var icon=L.divIcon({
-      className:'tm',
-      html:'<div class="ti '+devClass+'"><div class="tb '+devClass+'">'+tramLabel+'</div><div class="tl">'+(routeKey||'?')+'</div><div class="tp"></div></div>',
-      iconSize:[0,0],iconAnchor:[0,0]
-    });
+    // Cache delay + cancelled on v for icon re-rendering on zoom changes
+    v._delay=delaySecs;
+    v._cancelled=isCancelled;
+    var icon=makeLiveIcon(v,devClass);
     var m=L.marker([v.la,v.lo],{icon:icon,zIndexOffset:200}).addTo(map);
+    m._v=v; m._devClass=devClass;
     m._route=routeKey;
     m.on('click',function(){
       // Show live detail
@@ -1233,10 +1328,26 @@ function updateLiveMarkers(){
       if(delaySecs!==null&&!isCancelled){
         schedSection+='<div class="dr"><span class="dlb">Raw Delay</span><span class="dva">'+(delaySecs>=0?'+':'')+delaySecs+'s</span></div>';
       }
-      if(tu&&tu.stopId){
-        schedSection+='<div class="dr"><span class="dlb">At Stop</span><span class="dva" style="font-size:9px">'+tu.stopId+'</span></div>';
+      if(tu&&tu.nextStopId){
+        var nextStopName=liveStopNames&&liveStopNames[tu.nextStopId]?liveStopNames[tu.nextStopId].name:tu.nextStopId;
+        var arrivalStr='';
+        if(tu.nextStopArrival){
+          var arrD=new Date(tu.nextStopArrival*1000);
+          arrivalStr=' <span style="color:var(--tx2);font-size:9px">due '+arrD.getHours()+':'+(arrD.getMinutes()<10?'0':'')+arrD.getMinutes()+'</span>';
+        }
+        schedSection+='<div class="dr"><span class="dlb">Next Stop</span><span class="dva" style="font-size:9px">'+nextStopName+arrivalStr+'</span></div>';
       }
       schedSection+='</div>';
+
+      // Data age
+      var dataAgeStr='';
+      if(v.ts>0){
+        var ageSec=Math.round(Date.now()/1000-v.ts);
+        var ageCol=ageSec<90?'var(--grn)':ageSec<180?'var(--amb)':'#e53e3e';
+        dataAgeStr='<div class="live-data-age" style="color:'+ageCol+'">&#x23F1; Data age: '+ageSec+'s</div>';
+      }
+      var bearingDirs=['N','NE','E','SE','S','SW','W','NW'];
+      var compassDir=bearingDirs[Math.round(v.bearing/45)%8]||'?';
 
       document.getElementById('dbd').innerHTML=
         '<div class="ds"><div class="dst">Service (LIVE)</div>'+
@@ -1247,12 +1358,17 @@ function updateLiveMarkers(){
         '<div class="dr"><span class="dlb">Towards</span><span class="dva">'+towards+'</span></div>'+
         '<div class="dr"><span class="dlb">Trip ID</span><span class="dva" style="font-size:8px">'+v.tripId+'</span></div></div>'+
         '<div class="ds"><div class="dst">Position (LIVE)</div>'+
-        '<div class="dr"><span class="dlb">Latitude</span><span class="dva">'+v.la.toFixed(5)+'</span></div>'+
-        '<div class="dr"><span class="dlb">Longitude</span><span class="dva">'+v.lo.toFixed(5)+'</span></div>'+
-        '<div class="dr"><span class="dlb">Bearing</span><span class="dva">'+Math.round(v.bearing)+'\u00B0</span></div>'+
-        '<div class="dr"><span class="dlb">Speed</span><span class="dva">'+(v.speed>0?Math.round(v.speed*3.6)+' km/h':'Stopped')+'</span></div></div>'+
+        '<div class="dr"><span class="dlb">Speed</span><span class="dva">'+(estSpeedKmh!==null?(estSpeedKmh===0?'&#x25A0; Stationary':'~'+estSpeedKmh+' km/h (est)'):(v.speed>0?Math.round(v.speed*3.6)+' km/h':'&#x25A0; Stopped'))+'</span></div>'+
+        '<div class="dr"><span class="dlb">Heading</span><span class="dva">'+Math.round(v.bearing)+'\u00B0 '+compassDir+'</span></div>'+
+        '<div class="dr"><span class="dlb">Coords</span><span class="dva" style="font-size:9px">'+v.la.toFixed(4)+', '+v.lo.toFixed(4)+'</span></div>'+
+        dataAgeStr+'</div>'+
         schedSection+
-        '<div class="ds"><div class="dst">Crew</div><div class="dpn">Driver \u2014 Pending HASTUS integration</div></div>';
+        '<div class="ds"><div class="dst">Crew</div><div class="dpn">Driver \u2014 Pending HASTUS integration</div></div>'+
+        '<div class="ds"><div class="dst">Operations</div>'+
+        '<div class="tram-actions">'+
+        '<button class="ta-btn ta-focus" onclick="map.flyTo(['+v.la+','+v.lo+'],16,{duration:.5})">&#x2316; Centre</button>'+
+        '<button class="ta-btn ta-dis" onclick="logDisruptionFromLiveTram(\''+v.id+'\',\''+v.route+'\','+v.dirId+','+v.la+','+v.lo+')">&#x26A0; Disruption</button>'+
+        '</div></div>';
     });
     window._liveMkrs.push(m);
   });
@@ -1282,6 +1398,7 @@ function updateLiveMarkers(){
 window.setDataMode=function(mode){
   if(mode==='live'){
     liveMode=true;
+    loadStopNames(); // fetch stop names once for stop ID → name resolution
     fetchVehiclePositions();
     // Refresh every 60 seconds (PTV feed updates every 60s)
     if(liveInterval)clearInterval(liveInterval);
