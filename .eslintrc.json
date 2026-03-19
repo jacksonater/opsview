@@ -1,0 +1,42 @@
+{
+  "env": {
+    "browser": true,
+    "es6": true,
+    "node": true
+  },
+  "globals": {
+    "L": "readonly"
+  },
+  "rules": {
+    "no-undef": "error",
+    "no-unused-vars": "warn",
+    "eqeqeq": ["error", "always"],
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error"
+  },
+  "overrides": [
+    {
+      "files": ["js/*.js"],
+      "globals": {
+        "L": "readonly",
+        "GTFS_ROUTES": "writable",
+        "window": "readonly"
+      }
+    },
+    {
+      "files": ["api/*.js"],
+      "env": {
+        "node": true,
+        "browser": false
+      }
+    },
+    {
+      "files": ["tests/*.js"],
+      "env": {
+        "node": true,
+        "jest": true
+      }
+    }
+  ]
+}

@@ -12,19 +12,22 @@ var renderDisLog=window.renderDisLog;
 // ATTRIBUTION ENGINE — deterministic trip attribution
 // ══════════════════════════════════════════════════
 
+// Read tunables from central config; fall back to hard-coded defaults so the
+// engine still works if config.js hasn't loaded yet (e.g. during unit tests).
+var _cfg = (window.OpsViewConfig && window.OpsViewConfig.attribution) || {};
 var ATTR_TUNABLES = {
-  theta_jump: 2.0,
-  theta_accept: 0.80,
-  theta_review: 0.55,
-  epsilon: 0.05,
-  T_max: 120,
-  D_max: 30,
-  w_spatial: 0.25,
-  w_temporal: 0.20,
-  w_deviation: 0.20,
-  w_nojump: 0.15,
-  w_continuity: 0.10,
-  w_unique: 0.10
+  theta_jump:   _cfg.theta_jump   !== undefined ? _cfg.theta_jump   : 2.0,
+  theta_accept: _cfg.theta_accept !== undefined ? _cfg.theta_accept : 0.80,
+  theta_review: _cfg.theta_review !== undefined ? _cfg.theta_review : 0.55,
+  epsilon:      _cfg.epsilon      !== undefined ? _cfg.epsilon      : 0.05,
+  T_max:        _cfg.T_max        !== undefined ? _cfg.T_max        : 120,
+  D_max:        _cfg.D_max        !== undefined ? _cfg.D_max        : 30,
+  w_spatial:    _cfg.w_spatial    !== undefined ? _cfg.w_spatial    : 0.25,
+  w_temporal:   _cfg.w_temporal   !== undefined ? _cfg.w_temporal   : 0.20,
+  w_deviation:  _cfg.w_deviation  !== undefined ? _cfg.w_deviation  : 0.20,
+  w_nojump:     _cfg.w_nojump     !== undefined ? _cfg.w_nojump     : 0.15,
+  w_continuity: _cfg.w_continuity !== undefined ? _cfg.w_continuity : 0.10,
+  w_unique:     _cfg.w_unique     !== undefined ? _cfg.w_unique     : 0.10
 };
 
 var attrResults = {};

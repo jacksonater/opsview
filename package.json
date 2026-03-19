@@ -3,7 +3,16 @@
   "version": "0.2.0",
   "private": true,
   "description": "OpsView — Melbourne Tram Network Operations Console",
+  "scripts": {
+    "test": "jest --testPathPattern=tests/",
+    "lint": "eslint js/ api/",
+    "refresh-timetable": "node scripts/refresh-timetable.js"
+  },
   "dependencies": {
     "protobufjs": "^7.4.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0"
   }
 }

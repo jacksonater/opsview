@@ -257,6 +257,16 @@ rks.forEach(function(k){
 });
 
 // ── HELPERS ──
+// Escape user-supplied strings before inserting into innerHTML.
+function esc(s){
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
 // ── RUN NUMBER ASSIGNMENT ──
 // Mock HASTUS-style run numbers: route prefix + 2-digit sequence
 var runSeq={};
@@ -1535,7 +1545,7 @@ function buildDisPopup(dis){
     '<div class="dp-row"><span class="dp-label">Direction</span><span class="dp-val">'+dis.dir+'</span></div>'+
     '<div class="dp-row"><span class="dp-label">Duration</span><span class="dp-val" id="disDur'+dis.id+'">00:00</span></div>'+
     '<div class="dp-row"><span class="dp-label">Trams on route</span><span class="dp-val warn">'+affectedTrams.length+'</span></div>';
-  if(dis.notes)h+='<div class="dp-row"><span class="dp-label">Notes</span><span class="dp-val">'+dis.notes+'</span></div>';
+  if(dis.notes)h+='<div class="dp-row"><span class="dp-label">Notes</span><span class="dp-val">'+esc(dis.notes)+'</span></div>';
 
   // ── TRAM IMPACT SUMMARY ──
   h+='<div class="dp-section"><div class="dp-stitle">Tram Impact</div>';
