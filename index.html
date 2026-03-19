@@ -89,7 +89,11 @@
 <div id="kbHint">? = shortcuts</div>
 <div class="dis-form" id="disForm">
   <div class="df-title"><span style="font-size:16px">&#x26A0;</span> <span id="dfTitleText">Create Disruption</span></div>
-  <label>Type</label>
+  <!-- Source badge: MAP-BASED or TRAM-BASED -->
+  <div id="dfSource" class="df-source-badge" style="display:none"></div>
+  <!-- Tram pre-fill strip (shown when entry is from tram click) -->
+  <div id="dfTramInfo" class="df-tram-info" style="display:none"></div>
+  <label>Incident Type</label>
   <select id="dfType">
     <option value="Vehicle breakdown">Vehicle breakdown</option>
     <option value="Collision">Collision</option>
@@ -108,12 +112,12 @@
     <div><label>Direction</label>
     <select id="dfDir"><option value="Both directions">Both directions</option><option value="Up only">Up only</option><option value="Down only">Down only</option></select></div>
   </div>
-  <label>Notes (optional)</label>
-  <textarea id="dfNotes" placeholder="Additional details..."></textarea>
+  <label>Narrative <span style="color:var(--tx3);font-size:9px;font-weight:400">(&#x2192; Maximo log)</span></label>
+  <textarea id="dfNotes" placeholder="Describe the incident for the Maximo record..."></textarea>
   <div id="dfCoord" style="font-size:9px;color:var(--tx3);margin-top:4px"></div>
   <div class="df-btns">
     <div class="df-btn df-cancel" onclick="cancelDisruption()">Cancel</div>
-    <div class="df-btn df-ok" id="dfOkBtn" onclick="confirmDisruption()">Create</div>
+    <div class="df-btn df-ok" id="dfOkBtn" onclick="confirmDisruption()">Create &amp; Log</div>
   </div>
 </div>
 <div class="job-panel" id="jobPanel"></div>
@@ -172,6 +176,19 @@
       <div class="attr-ctx" id="attrCtx"></div>
       <div class="attr-body" id="attrBody"></div>
     </div>
+    <!-- MAXIMO INTEGRATION PANEL -->
+    <div id="mxPanel">
+      <div class="mx-hdr">
+        <div class="mx-title">&#x1F4CB; MAXIMO LINK</div>
+        <div class="mx-hdr-right">
+          <span class="mx-demo-badge">DEMO</span>
+          <button class="mx-close" onclick="closeMaximoPanel()">&#x2715;</button>
+        </div>
+      </div>
+      <div class="mx-body" id="mxBody">
+        <div class="mx-empty">Select a disruption and click &#x201C;View Maximo Record&#x201D; to see the simulated Maximo integration.</div>
+      </div>
+    </div>
   </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -201,5 +218,7 @@
 </script>
 <!-- Timetable simulator (deferred — waits for opsview-ready) -->
 <script src="js/simulator.js"></script>
+<!-- Maximo integration simulation (deferred — waits for opsview-ready) -->
+<script src="js/maximo.js"></script>
 </body>
 </html>

@@ -511,3 +511,81 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 .attr-tbl tr[onclick]{cursor:pointer}
 .attr-detail-row{display:none}
 .attr-detail-row.open{display:table-row}
+
+/* ── ATTRIBUTION OVERRIDE CONTROLS ── */
+.attr-override-remove{margin-left:auto;flex-shrink:0;font-size:9px;padding:1px 5px;border-radius:2px;border:1px solid #e53e3e30;background:transparent;color:#e53e3e60;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .12s;line-height:1}
+.attr-override-remove:hover{background:#e53e3e20;color:#e53e3e;border-color:#e53e3e}
+.attr-override-badge{font-size:8px;padding:1px 4px;border-radius:2px;background:#4299e120;color:#4299e1;border:1px solid #4299e140;font-family:'JetBrains Mono',monospace;font-weight:700;flex-shrink:0}
+.attr-override-bar{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr);flex-wrap:wrap}
+.attr-add-manual-btn{padding:4px 10px;border-radius:3px;border:1px solid #4299e1;color:#4299e1;background:transparent;font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer;transition:all .12s}
+.attr-add-manual-btn:hover{background:#4299e120}
+.attr-reset-btn{padding:4px 10px;border-radius:3px;border:1px solid var(--bdr);color:var(--tx2);background:transparent;font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer;transition:all .12s}
+.attr-reset-btn:hover{border-color:var(--txt);color:var(--txt)}
+.attr-override-summary{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--tx3)}
+.attr-zero-trips{display:flex;gap:12px;align-items:flex-start;padding:14px;background:var(--pnl2);border:1px solid var(--bdr);border-radius:4px;margin-bottom:10px}
+.attr-zero-icon{font-size:20px;color:#00e5a0;flex-shrink:0;margin-top:2px}
+.attr-zero-msg{font-size:11px;color:var(--tx2);line-height:1.5}
+.attr-zero-msg span{font-size:10px;color:var(--tx3);display:block;margin-top:4px}
+
+/* ── MAXIMO INTEGRATION PANEL ── */
+#mxPanel{position:absolute;top:0;right:0;bottom:0;width:400px;background:var(--pnl);border-left:1px solid var(--bdr);z-index:985;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .2s ease;overflow:hidden}
+#mxPanel.open{transform:translateX(0)}
+.mx-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--bdr);flex-shrink:0;background:var(--bg2)}
+.mx-title{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#4299e1;letter-spacing:1px}
+.mx-hdr-right{display:flex;align-items:center;gap:8px}
+.mx-demo-badge{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:1px 6px;border-radius:2px;background:#f5962320;color:#f59623;border:1px solid #f5962350;letter-spacing:.5px}
+.mx-close{background:none;border:1px solid var(--bdr);color:var(--tx2);cursor:pointer;font-size:12px;padding:2px 7px;border-radius:3px;transition:all .12s}
+.mx-close:hover{border-color:var(--red);color:var(--red)}
+.mx-body{flex:1;overflow-y:auto;padding:14px}
+.mx-empty{padding:24px 0;text-align:center;color:var(--tx3);font-size:11px;line-height:1.6}
+.mx-ref-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.mx-ref-id{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#4299e1}
+.mx-sync-badge{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600}
+.mx-tmpl-row{display:flex;align-items:center;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.mx-tmpl-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:#4299e115;color:#4299e1;border:1px solid #4299e140;flex-shrink:0}
+.mx-tmpl-desc{font-size:10px;color:var(--tx2);flex:1}
+.mx-priority{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:1px 5px;border-radius:2px;flex-shrink:0}
+.mx-pri-1{background:#e53e3e20;color:#e53e3e;border:1px solid #e53e3e40}
+.mx-pri-2{background:#f5962320;color:#f59623;border:1px solid #f5962340}
+.mx-pri-3{background:#4299e120;color:#4299e1;border:1px solid #4299e140}
+.mx-section-title{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--tx3);font-weight:600;margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--bdr)}
+.mx-section-pending{color:#f59623}
+.mx-field-grid{background:var(--pnl2);border:1px solid var(--bdr);border-radius:4px;overflow:hidden}
+.mx-field-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 8px;border-bottom:1px solid #1f2d3d22;gap:10px}
+.mx-field-row:last-child{border-bottom:none}
+.mx-field-row.mx-field-narrative{flex-direction:column;gap:3px}
+.mx-field-row.mx-field-narrative .mx-field-value{color:var(--tx2);line-height:1.4;font-family:inherit;font-size:11px;white-space:normal;text-align:left}
+.mx-field-label{font-size:10px;color:var(--tx3);flex-shrink:0;min-width:90px}
+.mx-field-value{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--txt);text-align:right;flex:1;word-break:break-all}
+.mx-pending-list{background:var(--pnl2);border:1px solid var(--bdr);border-radius:4px;padding:6px 8px}
+.mx-pending-item{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:10px;color:var(--tx2);border-bottom:1px solid #1f2d3d22}
+.mx-pending-item:last-child{border-bottom:none}
+.mx-pending-cb{font-size:12px;color:var(--bdr2);flex-shrink:0}
+.mx-attr-link{font-size:11px;color:var(--tx2);padding:8px;background:var(--pnl2);border:1px solid var(--bdr);border-radius:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mx-inline-btn{padding:2px 8px;border-radius:3px;border:1px solid #00e5a0;color:#00e5a0;background:transparent;font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer;transition:all .12s;flex-shrink:0}
+.mx-inline-btn:hover{background:#00e5a020}
+.mx-actions{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
+.mx-open-btn{flex:1;padding:7px 10px;border-radius:3px;border:1px solid var(--bdr);color:var(--tx3);background:var(--pnl2);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:not-allowed;opacity:.6;text-align:center}
+.mx-api-note{font-size:8px;color:var(--tx3);display:block;margin-top:1px}
+.mx-refresh-btn{padding:7px 10px;border-radius:3px;border:1px solid var(--bdr);color:var(--tx2);background:transparent;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;transition:all .12s}
+.mx-refresh-btn:hover{border-color:var(--acc);color:var(--acc)}
+.mx-demo-note{margin-top:12px;padding:8px;background:var(--bg2);border:1px solid #f5962330;border-radius:3px;font-size:9px;color:#f5962380;line-height:1.5}
+
+/* ── MAXIMO MINI-PREVIEW IN DISRUPTION POPUP ── */
+.dp-mx-preview{background:#4299e108;border:1px solid #4299e133;border-radius:3px;margin:6px 0;padding:5px 8px}
+.dp-mx-preview-hdr{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#4299e1;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+.dp-mx-ref{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#4299e1;margin:2px 0}
+.dp-mx-btn{display:block;width:100%;margin-top:6px;padding:5px;background:#4299e118;border:1px solid #4299e1;color:#4299e1;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;text-align:center;transition:all .15s}
+.dp-mx-btn:hover{background:#4299e1;color:#fff}
+
+/* ── DISRUPTION FORM: SOURCE BADGE + TRAM PRE-FILL ── */
+.df-source-badge{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:3px 9px;border-radius:3px;border:1px solid;margin-bottom:8px;letter-spacing:.5px;text-transform:uppercase;text-align:center}
+.df-tram-info{background:var(--pnl2);border:1px solid var(--bdr);border-radius:3px;padding:6px 8px;margin-bottom:8px}
+.df-tram-row{display:flex;justify-content:space-between;font-size:10px;padding:2px 0;border-bottom:1px solid #1f2d3d22}
+.df-tram-row:last-child{border-bottom:none}
+.df-tram-row span:first-child{color:var(--tx3)}
+.df-tram-row span:last-child{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--txt)}
+
+/* ── TRAM DETAIL: LOG DISRUPTION BUTTON ── */
+.df-log-tram-btn{display:block;width:100%;margin-top:6px;padding:6px 8px;border:1px solid #e040fb;color:#e040fb;background:transparent;border-radius:3px;font-family:inherit;font-size:10px;cursor:pointer;text-align:left;transition:all .15s;font-family:'JetBrains Mono',monospace}
+.df-log-tram-btn:hover{background:#e040fb18;box-shadow:0 0 8px #e040fb33}

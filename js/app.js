@@ -970,7 +970,8 @@ function rDet(t){
     '<div class="dr"><span class="dlb">Deviation</span><span class="dva"><span class="dvb '+c+'">'+devTxt(t.dv)+'</span></span></div>'+
     '<div class="dr"><span class="dlb">Sched Run</span><span class="dva">'+R[t.route].m+' min</span></div></div>'+
     '<div class="ds"><div class="dst">Crew</div><div class="dpn">Driver &mdash; Pending feed integration</div></div>'+
-    '<div class="ds" id="dops"><div class="dst">Operations</div><div class="dpn">Controller actions &mdash; Sprint 2</div></div>';
+    '<div class="ds" id="dops"><div class="dst">Operations</div>'+
+    '<button class="df-log-tram-btn" onclick="logDisruptionFromTram(selT)">&#x26A0; Log Disruption from this Tram</button></div>';
   aRV();
 }
 var role='c';
@@ -981,6 +982,70 @@ function aRV(){
   var ds=document.getElementById('disCreateBtnStrip');if(ds)ds.style.display=role==='c'?'':'none';
 
 }
+
+// ── LOG DISRUPTION FROM TRAM ───────────────────────────────────────────────
+// Controller clicks a tram in the detail panel → pre-fills the disruption
+// form with tram data and positions it near the tram on the map.
+window.logDisruptionFromTram=function(t){
+  if(!t||role!=='c')return;
+  pendingFromTram=t;
+
+  // Populate route dropdown
+  var sel=document.getElementById('dfRoute');
+  sel.innerHTML='';
+  rks.forEach(function(k){
+    var o=document.createElement('option');o.value=k;o.textContent='Route '+k+' ('+R[k].o+' \u2014 '+R[k].d+')';
+    sel.appendChild(o);
+  });
+
+  // Pre-fill from tram data
+  sel.value=t.route;
+  document.getElementById('dfType').value='Vehicle breakdown';
+  document.getElementById('dfDir').value=t.updn==='Down'?'Down only':'Up only';
+  document.getElementById('dfNotes').value='';
+
+  // Source badge
+  var src=document.getElementById('dfSource');
+  if(src){
+    src.textContent='TRAM-BASED \u2014 T'+t.id+' \u2022 Rt '+t.route+' \u2022 '+t.updn;
+    src.style.display='block';
+  }
+
+  // Tram pre-fill strip
+  var ti=document.getElementById('dfTramInfo');
+  if(ti){
+    var rc=R[t.route]?R[t.route].c:'#888';
+    ti.innerHTML=
+      '<div class="df-tram-row"><span>Tram #</span><span>'+t.id+'</span></div>'+
+      '<div class="df-tram-row"><span>Run #</span><span>'+t.run+'</span></div>'+
+      '<div class="df-tram-row"><span>Route</span><span style="color:'+rc+'">'+t.route+'</span></div>'+
+      '<div class="df-tram-row"><span>Direction</span><span>'+(t.updn==='Down'?'\u25BC Down':'\u25B2 Up')+'</span></div>';
+    ti.style.display='block';
+  }
+
+  // Use tram's current position as the disruption location
+  var pos=tPos(t);
+  var la=pos?pos[0]:(t.path&&t.path[t.si]?t.path[t.si].la:t.la||0);
+  var lo=pos?pos[1]:(t.path&&t.path[t.si]?t.path[t.si].lo:t.lo||0);
+  pendingDisLatlng={lat:la,lng:lo};
+
+  // Show coord hint
+  document.getElementById('dfCoord').textContent='Pre-filled from Tram T'+t.id+' current position';
+  document.getElementById('dfCoord').style.color='var(--tx3)';
+
+  // Position form near tram on map
+  var form=document.getElementById('disForm');
+  var pt=map.latLngToContainerPoint(L.latLng(la,lo));
+  var mapEl=document.getElementById('mc');
+  var fx=Math.min(pt.x+12,mapEl.offsetWidth-300);
+  var fy=Math.max(10,Math.min(pt.y-120,mapEl.offsetHeight-420));
+  form.style.left=fx+'px';form.style.top=fy+'px';
+
+  disCreateMode=true;
+  document.body.classList.add('dis-create-mode');
+  document.getElementById('disCreateBtnStrip').classList.add('active');
+  form.classList.add('open');
+};
 
 // ══════════════════════════════════════════════════
 // LIVE DATA ENGINE — PTV GTFS-RT Vehicle Positions
@@ -1204,6 +1269,7 @@ var disGisMarkers=[];
 // ══════════════════════════════════════════════════
 var disCreateMode=false;
 var pendingDisLatlng=null;
+var pendingFromTram=null;
 var disCounter=0;
 
 window.enterDisruptionMode=function(){
@@ -1225,11 +1291,15 @@ window.enterDisruptionMode=function(){
 function exitDisruptionMode(){
   disCreateMode=false;
   pendingDisLatlng=null;
+  pendingFromTram=null;
   document.body.classList.remove('dis-create-mode');
   document.getElementById('disCreateBtn').classList.remove('active');
   document.getElementById('disCreateBtnStrip').classList.remove('active');
   document.getElementById('disForm').classList.remove('open');
   document.getElementById('liveStatus').className='live-indicator';
+  // Reset source badge and tram pre-fill
+  var src=document.getElementById('dfSource');if(src){src.style.display='none';src.textContent='';}
+  var ti=document.getElementById('dfTramInfo');if(ti){ti.style.display='none';ti.innerHTML='';}
 }
 
 window.cancelDisruption=function(){
@@ -1343,11 +1413,12 @@ window.confirmDisruption=function(){
     return;
   }
   // ── CREATE MODE ──
-  // BUG FIX: guard against form submission without a map placement click
+  disCounter++;
+  // Guard against form submission without a map placement click
   if(!pendingDisLatlng){
     document.getElementById('dfCoord').textContent='⚠ Click a point on the route before creating.';
     document.getElementById('dfCoord').style.color='var(--amb)';
-    disCounter--; // undo the increment done before the edit-mode branch above
+    disCounter--;
     return;
   }
   var primaryRoute=document.getElementById('dfRoute').value;
@@ -1383,7 +1454,8 @@ window.confirmDisruption=function(){
     lo:pendingDisLatlng.lng,
     dir:document.getElementById('dfDir').value,
     notes:document.getElementById('dfNotes').value,
-    start:Date.now()
+    start:Date.now(),
+    _fromTram:pendingFromTram?{id:pendingFromTram.id,run:pendingFromTram.run,route:pendingFromTram.route}:null
   };
   
   // Find crossovers specifically on the PRIMARY route only (not all affected routes),
