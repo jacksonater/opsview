@@ -974,13 +974,15 @@ function aRV(){
 
 // ══════════════════════════════════════════════════
 // LIVE DATA ENGINE — PTV GTFS-RT Vehicle Positions
-// via Vercel serverless proxy (/api/tram-positions)
-// API key stored server-side as Vercel env var.
+// + Trip Updates for real schedule adherence
+// via Vercel serverless proxies
 // ══════════════════════════════════════════════════
 var PROXY_URL='/api/tram-positions';
+var PROXY_TU_URL='/api/tram-trip-updates';
 var liveMode=false;
 var liveInterval=null;
 var liveTramData=null; // parsed vehicle positions
+var liveTripUpdates=null; // tripId → delay lookup
 
 function setLiveStatus(state,msg){
   var el=document.getElementById('liveStatus');
@@ -990,21 +992,22 @@ function setLiveStatus(state,msg){
 
 function fetchVehiclePositions(){
   setLiveStatus('loading','Fetching live data...');
-  fetch(PROXY_URL)
-  .then(function(res){
-    if(!res.ok){
-      return res.json().then(function(err){
-        throw new Error(err.error||('HTTP '+res.status));
-      });
-    }
-    return res.json();
-  })
-  .then(function(data){
-    liveTramData=data.vehicles;
-    var ts=data.timestamp?new Date(data.timestamp*1000).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'?';
-    setLiveStatus('active','LIVE \u2022 '+data.count+' trams \u2022 '+ts);
+  // Fetch both feeds in parallel
+  Promise.all([
+    fetch(PROXY_URL).then(function(r){return r.ok?r.json():r.json().then(function(e){throw new Error(e.error);})}),
+    fetch(PROXY_TU_URL).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;})
+  ])
+  .then(function(results){
+    var vpData=results[0];
+    var tuData=results[1];
+    liveTramData=vpData.vehicles;
+    liveTripUpdates=tuData?tuData.trips:null;
+    var ts=vpData.timestamp?new Date(vpData.timestamp*1000).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'?';
+    var tuInfo=tuData?(' \u2022 '+tuData.count+' trip updates'):'';
+    var cancelInfo=tuData&&tuData.cancelled>0?(' \u2022 '+tuData.cancelled+' cancelled'):'';
+    setLiveStatus('active','LIVE \u2022 '+vpData.count+' trams'+tuInfo+cancelInfo+' \u2022 '+ts);
     updateLiveMarkers();
-    console.log('Live data: '+data.count+' vehicles at '+ts);
+    console.log('Live data: '+vpData.count+' vehicles, '+(tuData?tuData.count:0)+' trip updates at '+ts);
   })
   .catch(function(err){
     console.error('Live fetch error:',err);
@@ -1048,8 +1051,37 @@ function updateLiveMarkers(){
     
     var tramLabel=v.id?('T'+v.id):v.label||'?';
     var tramClass=v.label||'';
-    var devClass='green'; // Default — we don't have delay data from VP feed
+
+    // Look up real delay from trip updates
+    var tu=liveTripUpdates&&v.tripId?liveTripUpdates[v.tripId]:null;
+    var delaySecs=tu&&tu.delay!==null?tu.delay:null;
+    var isCancelled=tu?tu.cancelled:false;
+
+    // Determine colour class using YJM punctuality thresholds
+    var devClass='green';
+    if(isCancelled){
+      devClass='magenta';
+    } else if(delaySecs!==null){
+      if(delaySecs<-60) devClass='blue';           // >1 min early
+      else if(delaySecs<=119) devClass='green';     // on time (within 2 min)
+      else if(delaySecs<=299) devClass='yellow';    // 2-5 min late
+      else if(delaySecs<=599) devClass='amber';     // 5-10 min late
+      else devClass='magenta';                      // 10+ min late
+    }
     counts[devClass]++;
+
+    // Format delay for display
+    var delayStr='No data';
+    if(isCancelled){
+      delayStr='CANCELLED';
+    } else if(delaySecs!==null){
+      var absD=Math.abs(delaySecs);
+      var mins=Math.floor(absD/60);
+      var secs=absD%60;
+      if(delaySecs<-60) delayStr=mins+'m '+secs+'s early';
+      else if(delaySecs<=119) delayStr='On time'+(delaySecs>0?' (+'+mins+'m '+secs+'s)':'');
+      else delayStr=mins+'m '+secs+'s late';
+    }
     
     var icon=L.divIcon({
       className:'tm',
@@ -1065,6 +1097,21 @@ function updateLiveMarkers(){
       var dd=DIR_DATA[routeKey]||{dn:'?',up:'?'};
       var dirLabel=v.dirId===0?'\u25BC Down':'\u25B2 Up';
       var towards=v.dirId===0?dd.dn:dd.up;
+
+      // Build schedule adherence section
+      var devBadgeCol={'blue':'var(--blu)','green':'var(--grn)','yellow':'var(--yel)','amber':'var(--amb)','magenta':'var(--mag)'}[devClass]||'var(--grn)';
+      var devBadgeBg={'blue':'var(--blu2)','green':'var(--grn2)','yellow':'var(--yel2)','amber':'var(--amb2)','magenta':'var(--mag2)'}[devClass]||'var(--grn2)';
+      var schedSection=
+        '<div class="ds"><div class="dst">Schedule Adherence (LIVE)</div>'+
+        '<div class="dr"><span class="dlb">Status</span><span class="dva"><span class="dvb '+devClass+'" style="background:'+devBadgeBg+';color:'+devBadgeCol+'">'+delayStr+'</span></span></div>';
+      if(delaySecs!==null&&!isCancelled){
+        schedSection+='<div class="dr"><span class="dlb">Raw Delay</span><span class="dva">'+(delaySecs>=0?'+':'')+delaySecs+'s</span></div>';
+      }
+      if(tu&&tu.stopId){
+        schedSection+='<div class="dr"><span class="dlb">At Stop</span><span class="dva" style="font-size:9px">'+tu.stopId+'</span></div>';
+      }
+      schedSection+='</div>';
+
       document.getElementById('dbd').innerHTML=
         '<div class="ds"><div class="dst">Service (LIVE)</div>'+
         '<div class="dr"><span class="dlb">Tram #</span><span class="dva">T'+v.id+'</span></div>'+
@@ -1078,20 +1125,32 @@ function updateLiveMarkers(){
         '<div class="dr"><span class="dlb">Longitude</span><span class="dva">'+v.lo.toFixed(5)+'</span></div>'+
         '<div class="dr"><span class="dlb">Bearing</span><span class="dva">'+Math.round(v.bearing)+'\u00B0</span></div>'+
         '<div class="dr"><span class="dlb">Speed</span><span class="dva">'+(v.speed>0?Math.round(v.speed*3.6)+' km/h':'Stopped')+'</span></div></div>'+
-        '<div class="ds"><div class="dst">Schedule Adherence</div>'+
-        '<div class="dpn">Requires Trip Updates feed integration<br>(available with same API key)</div></div>'+
+        schedSection+
         '<div class="ds"><div class="dst">Crew</div><div class="dpn">Driver \u2014 Pending HASTUS integration</div></div>';
     });
     window._liveMkrs.push(m);
   });
 
-  // Update stats
+  // Update stats with real counts
   document.getElementById('sBlu').textContent=counts.blue;
-  document.getElementById('sGrn').textContent=liveTramData.length;
+  document.getElementById('sGrn').textContent=counts.green;
   document.getElementById('sYel').textContent=counts.yellow;
   document.getElementById('sAmb').textContent=counts.amber;
   document.getElementById('sMag').textContent=counts.magenta;
-  document.getElementById('ff').textContent=window._liveMkrs.length+'/'+liveTramData.length+' visible';
+  var totalVis=window._liveMkrs.length;
+  var totalAll=liveTramData.length;
+  document.getElementById('ff').textContent=totalVis+'/'+totalAll+' visible';
+  // Update punctuality pill
+  var onTimePct=totalVis>0?Math.round((counts.green+counts.blue)/totalVis*100):0;
+  var ppVal=document.getElementById('ppVal');
+  var ppDot=document.getElementById('ppDot');
+  if(ppVal)ppVal.textContent=onTimePct+'%';
+  if(ppDot){
+    if(onTimePct>=90)ppDot.style.background='var(--grn)';
+    else if(onTimePct>=75)ppDot.style.background='var(--yel)';
+    else if(onTimePct>=60)ppDot.style.background='var(--amb)';
+    else ppDot.style.background='var(--mag)';
+  }
 }
 
 window.setDataMode=function(mode){
