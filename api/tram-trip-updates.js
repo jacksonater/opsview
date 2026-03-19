@@ -130,6 +130,8 @@ module.exports = async function handler(req, res) {
           vehicleId: vehicleId,
           cancelled: true,
           stopId: '',
+          nextStopId: '',
+          nextStopArrival: null,
           timestamp: tu.timestamp ? Number(tu.timestamp) : 0
         };
         continue;
@@ -154,11 +156,19 @@ module.exports = async function handler(req, res) {
         }
       }
 
+      // First entry in stop_time_update = next upcoming stop (GTFS-RT lists future stops first)
+      const nextStopId = stus.length > 0 ? (stus[0].stopId || '') : '';
+      // Scheduled arrival time at next stop (unix seconds), if provided
+      const nextStopArrival = stus.length > 0 && stus[0].arrival && stus[0].arrival.time
+        ? Number(stus[0].arrival.time) : null;
+
       trips[tripId] = {
         delay: bestDelay,
         vehicleId: vehicleId,
         cancelled: false,
         stopId: bestStopId,
+        nextStopId: nextStopId,
+        nextStopArrival: nextStopArrival,
         timestamp: tu.timestamp ? Number(tu.timestamp) : 0
       };
     }

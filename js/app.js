@@ -1328,9 +1328,14 @@ function updateLiveMarkers(){
       if(delaySecs!==null&&!isCancelled){
         schedSection+='<div class="dr"><span class="dlb">Raw Delay</span><span class="dva">'+(delaySecs>=0?'+':'')+delaySecs+'s</span></div>';
       }
-      if(tu&&tu.stopId){
-        var stopDisplay=liveStopNames&&liveStopNames[tu.stopId]?liveStopNames[tu.stopId].name:tu.stopId;
-        schedSection+='<div class="dr"><span class="dlb">At Stop</span><span class="dva" style="font-size:9px">'+stopDisplay+'</span></div>';
+      if(tu&&tu.nextStopId){
+        var nextStopName=liveStopNames&&liveStopNames[tu.nextStopId]?liveStopNames[tu.nextStopId].name:tu.nextStopId;
+        var arrivalStr='';
+        if(tu.nextStopArrival){
+          var arrD=new Date(tu.nextStopArrival*1000);
+          arrivalStr=' <span style="color:var(--tx2);font-size:9px">due '+arrD.getHours()+':'+(arrD.getMinutes()<10?'0':'')+arrD.getMinutes()+'</span>';
+        }
+        schedSection+='<div class="dr"><span class="dlb">Next Stop</span><span class="dva" style="font-size:9px">'+nextStopName+arrivalStr+'</span></div>';
       }
       schedSection+='</div>';
 
