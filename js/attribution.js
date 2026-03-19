@@ -12,22 +12,29 @@ var renderDisLog=window.renderDisLog;
 // ATTRIBUTION ENGINE — deterministic trip attribution
 // ══════════════════════════════════════════════════
 
+// Read tunables from central config; fall back to hard-coded defaults so the
+// engine still works if config.js hasn't loaded yet (e.g. during unit tests).
+var _cfg = (window.OpsViewConfig && window.OpsViewConfig.attribution) || {};
 var ATTR_TUNABLES = {
-  theta_jump: 2.0,
-  theta_accept: 0.80,
-  theta_review: 0.55,
-  epsilon: 0.05,
-  T_max: 120,
-  D_max: 30,
-  w_spatial: 0.25,
-  w_temporal: 0.20,
-  w_deviation: 0.20,
-  w_nojump: 0.15,
-  w_continuity: 0.10,
-  w_unique: 0.10
+  theta_jump:   _cfg.theta_jump   !== undefined ? _cfg.theta_jump   : 2.0,
+  theta_accept: _cfg.theta_accept !== undefined ? _cfg.theta_accept : 0.80,
+  theta_review: _cfg.theta_review !== undefined ? _cfg.theta_review : 0.55,
+  epsilon:      _cfg.epsilon      !== undefined ? _cfg.epsilon      : 0.05,
+  T_max:        _cfg.T_max        !== undefined ? _cfg.T_max        : 120,
+  D_max:        _cfg.D_max        !== undefined ? _cfg.D_max        : 30,
+  w_spatial:    _cfg.w_spatial    !== undefined ? _cfg.w_spatial    : 0.25,
+  w_temporal:   _cfg.w_temporal   !== undefined ? _cfg.w_temporal   : 0.20,
+  w_deviation:  _cfg.w_deviation  !== undefined ? _cfg.w_deviation  : 0.20,
+  w_nojump:     _cfg.w_nojump     !== undefined ? _cfg.w_nojump     : 0.15,
+  w_continuity: _cfg.w_continuity !== undefined ? _cfg.w_continuity : 0.10,
+  w_unique:     _cfg.w_unique     !== undefined ? _cfg.w_unique     : 0.10
 };
 
 var attrResults = {};
+// Human overrides: { disId: { removed: Set<tripId>, added: [{trip_id, reason}] } }
+var attrOverrides = {};
+// Expose results globally for Maximo panel to read
+window._attrResults = attrResults;
 
 function generateSyntheticTrips(dis) {
   var affectedRoutes = dis.routes || [dis.route];
@@ -113,8 +120,15 @@ function endLate(trip) { if (!trip.signposts.length) return false; var l = trip.
 function startLate(trip) { if (!trip.signposts.length) return false; var f = trip.signposts[0]; return f.delta !== null && f.delta > 0; }
 function missedSP(trip, si) { return si >= 0 && si < trip.signposts.length && trip.signposts[si].missed; }
 
+function disIncTimeMins(dis) {
+  // Convert disruption wall-clock start to minutes-since-midnight for trip matching.
+  // In sim mode the simulator runs at arbitrary times; fall back to current wall clock.
+  var d = new Date(dis.start);
+  return d.getHours() * 60 + d.getMinutes();
+}
+
 function ruleA(dis, trips) {
-  var incTime = 8 * 60 + 20;
+  var incTime = disIncTimeMins(dis);
   var cands = trips.filter(function(t) { return t.scheduled_start >= incTime; }).sort(function(a, b) { return a.scheduled_start - b.scheduled_start; });
   for (var i = 0; i < cands.length; i++) {
     var t = cands[i], dsi = t.dis_stop_idx;
@@ -146,7 +160,8 @@ function ruleC(dis, allTrips, primaryRunId, attributed) {
   Object.keys(otherRuns).forEach(function(runId) {
     var rTrips = otherRuns[runId].sort(function(a, b) { return a.scheduled_start - b.scheduled_start; });
     var ft = null;
-    for (var i = 0; i < rTrips.length; i++) { if (rTrips[i].scheduled_start >= (8 * 60 + 20)) { ft = rTrips[i]; break; } }
+    var incTimeMins = disIncTimeMins(dis);
+    for (var i = 0; i < rTrips.length; i++) { if (rTrips[i].scheduled_start >= incTimeMins) { ft = rTrips[i]; break; } }
     if (!ft) return;
     var dsi = ft.dis_stop_idx, dev = getDeviation(ft, dsi), dw = getDeltaW(ft, dsi);
     var impacted = (dev !== null && dw > 0 && Math.abs(dev) >= ATTR_TUNABLES.theta_jump * Math.max(dw, 0.5)) || missedSP(ft, dsi) || ft.is_short;
@@ -180,7 +195,7 @@ function computeConf(trip, dis, allTrips, attributed) {
   else if (trip.is_short) spatial = 0.5;
   var segMin = trip.signposts.length > 1 ? (trip.scheduled_end - trip.scheduled_start) / (trip.signposts.length - 1) : 0;
   var schedAtDis = trip.scheduled_start + (dsi >= 0 ? dsi * segMin : 0);
-  var incTime = 8 * 60 + 30;
+  var incTime = disIncTimeMins(dis);
   var temporal = 1 - Math.min(Math.abs(schedAtDis - incTime) / T.T_max, 1);
   var deviation = dev !== null ? Math.min(Math.abs(dev) / T.D_max, 1) : 0.3;
   var noJump = hasJump(trip, dsi, T.theta_jump) ? 0 : 1;
@@ -195,22 +210,45 @@ function computeConf(trip, dis, allTrips, attributed) {
 function runAttribution(dis) {
   var trips = generateSyntheticTrips(dis);
   var attributed = {};
+  var ov = attrOverrides[dis.id] || { removed: {}, added: [] };
   var results = { dis_id: dis.id, trips: trips, decisions: [], chain_confidence: 0 };
+
   var firstTrip = ruleA(dis, trips);
-  if (!firstTrip) { results.error = 'No first affected trip found — NEEDS_REVIEW'; attrResults[dis.id] = results; return results; }
-  attributed[firstTrip.trip_id] = { incident_id: dis.id, rule: 'A' };
-  results.decisions.push({ trip: firstTrip, rule: 'A', confidence: computeConf(firstTrip, dis, trips, attributed) });
-  var bChain = ruleB(dis, firstTrip, trips, attributed);
-  bChain.forEach(function(t) { attributed[t.trip_id] = { incident_id: dis.id, rule: 'B' }; results.decisions.push({ trip: t, rule: 'B', confidence: computeConf(t, dis, trips, attributed) }); });
-  rules12(dis, trips, attributed).forEach(function(e) { results.decisions.push({ trip: e.trip, rule: e.rule, confidence: computeConf(e.trip, dis, trips, attributed) }); });
-  ruleC(dis, trips, firstTrip.run_id, attributed).forEach(function(e) { results.decisions.push({ trip: e.trip, rule: e.rule, confidence: computeConf(e.trip, dis, trips, attributed) }); });
-  rules12(dis, trips, attributed).forEach(function(e) { results.decisions.push({ trip: e.trip, rule: e.rule, confidence: computeConf(e.trip, dis, trips, attributed) }); });
+  if (!firstTrip) {
+    // Zero-trip result is valid — log gracefully, still apply any manual adds
+    results.zeroTrips = true;
+  } else {
+    attributed[firstTrip.trip_id] = { incident_id: dis.id, rule: 'A' };
+    results.decisions.push({ trip: firstTrip, rule: 'A', confidence: computeConf(firstTrip, dis, trips, attributed) });
+    var bChain = ruleB(dis, firstTrip, trips, attributed);
+    bChain.forEach(function(t) { attributed[t.trip_id] = { incident_id: dis.id, rule: 'B' }; results.decisions.push({ trip: t, rule: 'B', confidence: computeConf(t, dis, trips, attributed) }); });
+    rules12(dis, trips, attributed).forEach(function(e) { results.decisions.push({ trip: e.trip, rule: e.rule, confidence: computeConf(e.trip, dis, trips, attributed) }); });
+    ruleC(dis, trips, firstTrip.run_id, attributed).forEach(function(e) { results.decisions.push({ trip: e.trip, rule: e.rule, confidence: computeConf(e.trip, dis, trips, attributed) }); });
+    rules12(dis, trips, attributed).forEach(function(e) { results.decisions.push({ trip: e.trip, rule: e.rule, confidence: computeConf(e.trip, dis, trips, attributed) }); });
+  }
+
+  // Apply overrides: remove engine decisions flagged for removal
+  results.decisions = results.decisions.filter(function(d) {
+    if (ov.removed[d.trip.trip_id]) { d._overrideRemoved = true; return false; }
+    return true;
+  });
+
+  // Apply overrides: add manually added trips
+  ov.added.forEach(function(addedTrip) {
+    if (!attributed[addedTrip.trip_id]) {
+      results.decisions.push({ trip: addedTrip, rule: 'M', confidence: { score: 1.0, spatial:1,temporal:1,deviation:1,noJump:1,continuity:1,uniqueness:1 }, _overrideAdded: true, state: 'PRE_ACCEPTED' });
+    }
+  });
+
   results.decisions.forEach(function(d) {
+    if (d._overrideAdded) { d.state = 'PRE_ACCEPTED'; return; }
     if (d.confidence.score >= ATTR_TUNABLES.theta_accept) d.state = 'PRE_ACCEPTED';
     else if (d.confidence.score >= ATTR_TUNABLES.theta_review) d.state = 'REVIEW';
     else d.state = 'LOW_CONFIDENCE';
   });
-  if (results.decisions.length > 0) results.chain_confidence = Math.min.apply(null, results.decisions.map(function(d) { return d.confidence.score; }));
+  if (results.decisions.length > 0) {
+    results.chain_confidence = Math.min.apply(null, results.decisions.map(function(d) { return d.confidence.score; }));
+  }
   attrResults[dis.id] = results;
   return results;
 }
@@ -220,9 +258,17 @@ function renderAttrPanel(disId) {
   var dis = disruptions.find(function(d) { return d.id === disId; }); if (!dis) return;
   var affRoutes = dis.routes || [dis.route];
   var routeLabels = affRoutes.map(function(r) { var c = R[r] ? R[r].c : '#888'; return '<span style="color:' + c + '">Rt ' + r + '</span>'; }).join(' / ');
-  document.getElementById('attrCtx').innerHTML = '<b>Disruption #' + dis.id + '</b> &nbsp;' + routeLabels + ' &nbsp;&bull;&nbsp; ' + dis.type + '<br><span style="color:var(--tx3)">' + results.decisions.length + ' trip' + (results.decisions.length !== 1 ? 's' : '') + ' attributed &nbsp;|&nbsp; ' + results.trips.length + ' trips evaluated</span>';
+  // Maximo reference (if synced)
+  var mxInc = window.SimMaximo ? window.SimMaximo.getIncident(dis.id) : null;
+  var mxRefStr = mxInc ? ' &nbsp;<span style="color:#4299e1;font-family:\'JetBrains Mono\',monospace;font-size:9px">' + mxInc.mxRef + '</span>' : '';
+  document.getElementById('attrCtx').innerHTML = '<b>Disruption #' + dis.id + '</b>' + mxRefStr + ' &nbsp;' + routeLabels + ' &nbsp;&bull;&nbsp; ' + dis.type + '<br><span style="color:var(--tx3)">' + results.decisions.length + ' trip' + (results.decisions.length !== 1 ? 's' : '') + ' attributed &nbsp;|&nbsp; ' + results.trips.length + ' trips evaluated</span>';
   var h = '';
-  if (results.error) { h += '<div style="padding:20px;text-align:center;color:var(--amb)">' + results.error + '</div>'; document.getElementById('attrBody').innerHTML = h; return; }
+  if (results.zeroTrips) {
+    h += '<div class="attr-zero-trips"><div class="attr-zero-icon">&#10003;</div><div class="attr-zero-msg">No trips attributed &mdash; incident logged for record.<br><span>This is valid: the disruption may have cleared before any scheduled service passed through, or no trams showed measurable degradation at this location.</span></div></div>';
+    h += '<div style="margin-top:12px"><button class="attr-add-manual-btn" onclick="attrAddManual('+disId+')">+ Manually Add Trip</button></div>';
+    document.getElementById('attrBody').innerHTML = h;
+    return;
+  }
   var nA = results.decisions.filter(function(d) { return d.state === 'PRE_ACCEPTED'; }).length;
   var nR = results.decisions.filter(function(d) { return d.state === 'REVIEW'; }).length;
   var nL = results.decisions.filter(function(d) { return d.state === 'LOW_CONFIDENCE'; }).length;
@@ -248,13 +294,18 @@ function renderAttrPanel(disId) {
       var peakDev = 0; t.signposts.forEach(function(sp) { if (sp.delta !== null && Math.abs(sp.delta) > Math.abs(peakDev)) peakDev = sp.delta; });
       var devCol = peakDev <= 1 ? '#00e5a0' : peakDev <= 5 ? '#f5d623' : peakDev <= 10 ? '#f59623' : '#e040fb';
       var rtCol = R[t.route_id] ? R[t.route_id].c : '#888';
+      var isOverrideAdded = d._overrideAdded ? true : false;
+      var overrideBadge = isOverrideAdded ? '<span class="attr-override-badge">MANUAL</span>' : '';
       h += '<div class="attr-trip" onclick="toggleAttrDetail(\'' + t.trip_id + '\')">';
       h += '<span class="attr-trip-rule ' + rl.cls + '">' + rule + '</span>';
       h += '<span class="attr-trip-id">' + t.trip_id + '</span>';
       h += '<span class="attr-trip-run" style="color:' + rtCol + '">Rt ' + t.route_id + '</span>';
       h += '<span class="attr-trip-dev" style="color:' + devCol + '">' + (t.is_cancelled ? 'CANCEL' : t.is_short ? 'SHORT' : (peakDev > 0 ? '+' : '') + peakDev.toFixed(1) + 'm') + '</span>';
       h += '<span class="attr-trip-conf" style="color:' + scCol + '">' + sc + '%</span>';
-      h += '<span class="attr-trip-state ' + stCls + '">' + stLbl + '</span></div>';
+      h += '<span class="attr-trip-state ' + stCls + '">' + stLbl + '</span>';
+      h += overrideBadge;
+      h += '<button class="attr-override-remove" title="Remove from attribution" onclick="event.stopPropagation();attrRemoveTrip(' + disId + ',\'' + t.trip_id + '\')">&#x2715;</button>';
+      h += '</div>';
       // Expandable detail
       h += '<div class="attr-detail" id="attrDet_' + t.trip_id.replace(/[^a-zA-Z0-9]/g, '_') + '" style="display:none">';
       h += '<div class="attr-detail-title">Confidence Breakdown</div>';
@@ -278,7 +329,19 @@ function renderAttrPanel(disId) {
   h += '<div class="attr-tunable-row"><label>θ_review</label><input type="range" min="0.30" max="0.75" step="0.05" value="' + ATTR_TUNABLES.theta_review + '" oninput="updateAttrTunable(\'theta_review\',this.value,' + disId + ')"><span class="attr-tv" id="atv_theta_review">' + ATTR_TUNABLES.theta_review + '</span></div>';
   h += '</div>';
   h += '<div style="margin-top:12px;padding:8px;background:var(--bg2);border:1px solid var(--bdr);border-radius:3px;font-size:9px;color:var(--tx3)">';
-  h += '<b style="color:var(--acc)">AUDIT</b> — ' + results.decisions.length + ' decisions logged from ' + results.trips.length + ' trips evaluated. Pipeline: A→B→1/2→C→B→1/2. Confidence weights sum to 1.0. All parameters tunable above — changes re-run the engine instantly.</div>';
+  h += '<b style="color:var(--acc)">AUDIT</b> — ' + results.decisions.length + ' decisions logged from ' + results.trips.length + ' trips evaluated. Pipeline: A\u2192B\u21921/2\u2192C\u21921/2. Confidence weights sum to 1.0. All parameters tunable above \u2014 changes re-run the engine instantly.</div>';
+
+  // Override controls
+  var ov = attrOverrides[disId] || {};
+  var nRemoved = ov.removed ? Object.keys(ov.removed).length : 0;
+  var nAdded   = ov.added ? ov.added.length : 0;
+  h += '<div class="attr-override-bar">';
+  h += '<button class="attr-add-manual-btn" onclick="attrAddManual(' + disId + ')">+ Add Trip Manually</button>';
+  if (nRemoved > 0 || nAdded > 0) {
+    h += ' <span class="attr-override-summary">' + (nRemoved ? nRemoved + ' removed' : '') + (nRemoved && nAdded ? ' &bull; ' : '') + (nAdded ? nAdded + ' added' : '') + '</span>';
+    h += ' <button class="attr-reset-btn" onclick="attrResetOverrides(' + disId + ')">Reset Overrides</button>';
+  }
+  h += '</div>';
   document.getElementById('attrBody').innerHTML = h;
   document.getElementById('attrPanel').classList.add('open');
 }
@@ -296,10 +359,12 @@ window.updateAttrTunable = function(key, val, disId) {
 window.openAttrPanel = function(disId) {
   var dis = disruptions.find(function(d) { return d.id === disId; });
   if (!dis) return;
+  if (window.closeAllRightPanels) window.closeAllRightPanels('attr');
   if (!attrResults[disId]) runAttribution(dis);
   renderAttrPanel(disId);
+  document.body.classList.add('rp-open');
 };
-window.closeAttrPanel = function() { document.getElementById('attrPanel').classList.remove('open'); };
+window.closeAttrPanel = function() { document.getElementById('attrPanel').classList.remove('open'); document.body.classList.remove('rp-open'); };
 
 // Override buildDisPopup to add attribution preview + button
 var _origBuildDisPopup = buildDisPopup;
@@ -333,6 +398,41 @@ addToDisLog = function(dis) {
     disruptionLog.unshift({ id: dis.id + 900, time: new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false }), route: dis.route, routes: dis.routes || [dis.route], type: 'Attribution: ' + results.decisions.length + ' trips attributed', start: dis.start, endTs: null, status: 'active' });
     renderDisLog();
   }
+};
+
+// ── OVERRIDE HANDLERS ─────────────────────────────────────────────────────
+window.attrRemoveTrip = function(disId, tripId) {
+  if (!attrOverrides[disId]) attrOverrides[disId] = { removed: {}, added: [] };
+  attrOverrides[disId].removed[tripId] = { ts: new Date().toISOString() };
+  var dis = disruptions.find(function(d) { return d.id === disId; });
+  if (dis) { runAttribution(dis); renderAttrPanel(disId); }
+};
+
+window.attrAddManual = function(disId) {
+  var dis = disruptions.find(function(d) { return d.id === disId; });
+  if (!dis) return;
+  var trips = attrResults[disId] ? attrResults[disId].trips : [];
+  // Find an un-attributed trip to suggest
+  var ov = attrOverrides[disId] || { removed: {}, added: [] };
+  var attributed = {};
+  if (attrResults[disId]) attrResults[disId].decisions.forEach(function(d) { attributed[d.trip.trip_id] = true; });
+  ov.added.forEach(function(t) { attributed[t.trip_id] = true; });
+  var candidates = trips.filter(function(t) { return !attributed[t.trip_id] && !ov.removed[t.trip_id]; });
+  if (candidates.length === 0) {
+    alert('No additional trips available to add — all evaluated trips are already attributed.');
+    return;
+  }
+  // Add the first unattributed candidate (in a real UI this would be a picker)
+  var pick = candidates[0];
+  if (!attrOverrides[disId]) attrOverrides[disId] = { removed: {}, added: [] };
+  attrOverrides[disId].added.push(pick);
+  runAttribution(dis); renderAttrPanel(disId);
+};
+
+window.attrResetOverrides = function(disId) {
+  attrOverrides[disId] = { removed: {}, added: [] };
+  var dis = disruptions.find(function(d) { return d.id === disId; });
+  if (dis) { runAttribution(dis); renderAttrPanel(disId); }
 };
 
 // ===== END ATTRIBUTION ENGINE =====

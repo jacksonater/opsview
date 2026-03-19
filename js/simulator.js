@@ -1044,7 +1044,20 @@ function init(){
   // ── PUBLIC API ──
   window.simTogglePlay = function(){
     if(!timetableData){
-      console.warn('Simulator: timetable data not loaded');
+      // Lazy-load timetable on first play press
+      var liveEl = document.getElementById('liveStatus');
+      if(liveEl){ liveEl.textContent = 'Loading timetable…'; liveEl.style.color = 'var(--yel)'; }
+      loadTimetable().then(function(){
+        if(!timetableData){
+          if(liveEl){ liveEl.textContent = 'Timetable failed to load'; liveEl.style.color = 'var(--mag)'; }
+          return;
+        }
+        if(liveEl){ liveEl.textContent = ''; liveEl.style.color = ''; }
+        window.simTogglePlay(); // retry now that data is available
+      }).catch(function(e){
+        console.error('Timetable load failed:', e);
+        if(liveEl){ liveEl.textContent = 'Timetable load error — check console'; liveEl.style.color = 'var(--mag)'; }
+      });
       return;
     }
 
@@ -1524,18 +1537,19 @@ function init(){
   window.simFindDisruptedSignposts = findDisruptedSignposts;
 
   // ── INITIALISE ──
-  Promise.all([loadTimetable(), loadSignposts()]).then(function(){
+  // Signposts are small (~200KB) so load eagerly for crossover display.
+  // Timetable is 5.5MB — load lazily on first play press to avoid
+  // blocking page load for users who never use the simulator.
+  loadSignposts().then(function(){
     try {
       buildSimUI();
       simInitialised = true;
-      console.log('Simulator ready — ' +
-        (timetableData ? Object.keys(timetableData).length : 0) + ' routes, ' +
-        'click play to start');
+      console.log('Simulator UI ready — timetable will load on first play');
     } catch(e) {
       console.error('Simulator UI init failed:', e);
     }
   }).catch(function(e){
-    console.error('Simulator data load failed:', e);
+    console.error('Simulator signpost load failed:', e);
   });
 }
 

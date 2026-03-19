@@ -104,7 +104,7 @@ const GTFS_ROUTES = {
 (function w(){if(typeof L==='undefined'){setTimeout(w,80);return;}
 var R=GTFS_ROUTES;
 var map=L.map('map',{center:[-37.813,144.965],zoom:12,minZoom:12,maxZoom:17,zoomControl:true,attributionControl:true});
-var tiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OSM &copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
+var tiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',subdomains:'abcd',maxZoom:19}).addTo(map);
 tiles.on('tileload',function(){document.getElementById('ntm').style.display='none';});
 // Default: light mode
 document.body.classList.add('light');
@@ -257,6 +257,16 @@ rks.forEach(function(k){
 });
 
 // ── HELPERS ──
+// Escape user-supplied strings before inserting into innerHTML.
+function esc(s){
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
 // ── RUN NUMBER ASSIGNMENT ──
 // Mock HASTUS-style run numbers: route prefix + 2-digit sequence
 var runSeq={};
@@ -334,9 +344,25 @@ function mkIcon(t){
   }
 }
 
+// ── TRAM HOVER TOOLTIP ──
+function tramTipHtml(t){
+  var arr=t.updn==='Down'?'&#9660; Southbound':'&#9650; Northbound';
+  var rc=(window.R&&window.R[t.route])?window.R[t.route].c:'#888';
+  var devStr=fmtDev(t.dv);
+  var devCol=scHex(sc(t.dv));
+  var isTrapped=(t.blockState==='trapped');
+  return '<div class="tram-tt">'+
+    '<div class="tram-tt-id">Tram <b>'+t.id+'</b><span class="tram-tt-run">Run '+t.run+'</span></div>'+
+    '<div class="tram-tt-route"><span class="tram-tt-rk" style="background:'+rc+'">Rt '+t.route+'</span></div>'+
+    '<div class="tram-tt-dir">'+arr+'</div>'+
+    '<div class="tram-tt-dev" style="color:'+devCol+'">'+(isTrapped?'&#9632; STOPPED':devStr)+'</div>'+
+    '</div>';
+}
+
 // ── CREATE MARKERS ──
 trams.forEach(function(t){
   var m=L.marker(tPos(t),{icon:mkIcon(t),zIndexOffset:200}).addTo(map);
+  m.bindTooltip(function(){return tramTipHtml(t);},{className:'tram-tt-wrap',direction:'top',offset:[0,-4],sticky:false});
   m.on('click',function(){oDet(t);});
   m.on('contextmenu',function(e){
     L.DomEvent.stopPropagation(e);L.DomEvent.preventDefault(e);
@@ -681,7 +707,10 @@ function updateNetStrip(){
 // ── KEYBOARD SHORTCUTS ──
 window.toggleKbPanel=function(){
   var p=document.getElementById('kbPanel');
-  p.classList.toggle('open');
+  var bd=document.getElementById('kbBackdrop');
+  var opening=!p.classList.contains('open');
+  p.classList.toggle('open',opening);
+  if(bd)bd.classList.toggle('open',opening);
 };
 document.addEventListener('keydown',function(e){
   var tag=e.target.tagName;
@@ -699,6 +728,8 @@ document.addEventListener('keydown',function(e){
       document.getElementById('dfOkBtn').textContent='Create';
       document.getElementById('disForm').classList.remove('edit-mode','open');
       document.getElementById('kbPanel').classList.remove('open');
+      var _kbd=document.getElementById('kbBackdrop'); if(_kbd)_kbd.classList.remove('open');
+      window.closeAllRightPanels();
       window.cDet();
       break;
     case 'l': case 'L': window.toggleLayerMenu(); break;
@@ -752,15 +783,31 @@ document.addEventListener('click',function(e){
   }
 });
 
+// ── PANEL MANAGEMENT — mutual exclusivity ──
+window.closeAllRightPanels=function(except){
+  if(except!=='dp'){ var dp=document.getElementById('dp'); if(dp)dp.classList.remove('open'); selT=null; }
+  if(except!=='perf'){
+    var pp=document.getElementById('perfPanel'); if(pp)pp.classList.remove('open');
+    var pb=document.getElementById('perfBtn'); if(pb)pb.classList.remove('open');
+    perfOpen=false;
+  }
+  if(except!=='dmp'){ var dmp=document.getElementById('dmpPanel'); if(dmp)dmp.classList.remove('open'); }
+  if(except!=='attr'){ var attr=document.getElementById('attrPanel'); if(attr)attr.classList.remove('open'); }
+  if(except!=='mx'){ var mx=document.getElementById('mxPanel'); if(mx)mx.classList.remove('open'); }
+  document.body.classList.remove('rp-open');
+};
+
 // ── PERFORMANCE PANEL ──
 var perfOpen=false;
 window.togglePerfPanel=function(){
   var p=document.getElementById('perfPanel');
   var btn=document.getElementById('perfBtn');
+  if(!perfOpen){ window.closeAllRightPanels('perf'); }
   perfOpen=!perfOpen;
   p.classList.toggle('open',perfOpen);
   btn.classList.toggle('open',perfOpen);
-  if(perfOpen)renderPerfPanel();
+  if(perfOpen){ document.body.classList.add('rp-open'); renderPerfPanel(); }
+  else { document.body.classList.remove('rp-open'); }
 };
 function renderPerfPanel(){
   var v=trams.filter(function(t){return t.vis;});
@@ -939,7 +986,10 @@ updateTogglePos();
 
 // ── DETAIL PANEL ──
 var selT=null;
-window.oDet=function(t){selT=t;document.getElementById('dp').classList.add('open');rDet(t);};
+window.oDet=function(t){
+  if(window.closeAllRightPanels) window.closeAllRightPanels('dp');
+  selT=t;document.getElementById('dp').classList.add('open');rDet(t);
+};
 window.cDet=function(){selT=null;document.getElementById('dp').classList.remove('open');};
 function rDet(t){
   var c=sc(t.dv);document.getElementById('did').textContent=(idMode=='run'?t.run:t.id);document.getElementById('did').style.color=scHex(c);
@@ -960,7 +1010,8 @@ function rDet(t){
     '<div class="dr"><span class="dlb">Deviation</span><span class="dva"><span class="dvb '+c+'">'+devTxt(t.dv)+'</span></span></div>'+
     '<div class="dr"><span class="dlb">Sched Run</span><span class="dva">'+R[t.route].m+' min</span></div></div>'+
     '<div class="ds"><div class="dst">Crew</div><div class="dpn">Driver &mdash; Pending feed integration</div></div>'+
-    '<div class="ds" id="dops"><div class="dst">Operations</div><div class="dpn">Controller actions &mdash; Sprint 2</div></div>';
+    '<div class="ds" id="dops"><div class="dst">Operations</div>'+
+    '<button class="df-log-tram-btn" onclick="logDisruptionFromTram(selT)">&#x26A0; Log Disruption from this Tram</button></div>';
   aRV();
 }
 var role='c';
@@ -971,6 +1022,70 @@ function aRV(){
   var ds=document.getElementById('disCreateBtnStrip');if(ds)ds.style.display=role==='c'?'':'none';
 
 }
+
+// ── LOG DISRUPTION FROM TRAM ───────────────────────────────────────────────
+// Controller clicks a tram in the detail panel → pre-fills the disruption
+// form with tram data and positions it near the tram on the map.
+window.logDisruptionFromTram=function(t){
+  if(!t||role!=='c')return;
+  pendingFromTram=t;
+
+  // Populate route dropdown
+  var sel=document.getElementById('dfRoute');
+  sel.innerHTML='';
+  rks.forEach(function(k){
+    var o=document.createElement('option');o.value=k;o.textContent='Route '+k+' ('+R[k].o+' \u2014 '+R[k].d+')';
+    sel.appendChild(o);
+  });
+
+  // Pre-fill from tram data
+  sel.value=t.route;
+  document.getElementById('dfType').value='Vehicle breakdown';
+  document.getElementById('dfDir').value=t.updn==='Down'?'Down only':'Up only';
+  document.getElementById('dfNotes').value='';
+
+  // Source badge
+  var src=document.getElementById('dfSource');
+  if(src){
+    src.textContent='TRAM-BASED \u2014 T'+t.id+' \u2022 Rt '+t.route+' \u2022 '+t.updn;
+    src.style.display='block';
+  }
+
+  // Tram pre-fill strip
+  var ti=document.getElementById('dfTramInfo');
+  if(ti){
+    var rc=R[t.route]?R[t.route].c:'#888';
+    ti.innerHTML=
+      '<div class="df-tram-row"><span>Tram #</span><span>'+t.id+'</span></div>'+
+      '<div class="df-tram-row"><span>Run #</span><span>'+t.run+'</span></div>'+
+      '<div class="df-tram-row"><span>Route</span><span style="color:'+rc+'">'+t.route+'</span></div>'+
+      '<div class="df-tram-row"><span>Direction</span><span>'+(t.updn==='Down'?'\u25BC Down':'\u25B2 Up')+'</span></div>';
+    ti.style.display='block';
+  }
+
+  // Use tram's current position as the disruption location
+  var pos=tPos(t);
+  var la=pos?pos[0]:(t.path&&t.path[t.si]?t.path[t.si].la:t.la||0);
+  var lo=pos?pos[1]:(t.path&&t.path[t.si]?t.path[t.si].lo:t.lo||0);
+  pendingDisLatlng={lat:la,lng:lo};
+
+  // Show coord hint
+  document.getElementById('dfCoord').textContent='Pre-filled from Tram T'+t.id+' current position';
+  document.getElementById('dfCoord').style.color='var(--tx3)';
+
+  // Position form near tram on map
+  var form=document.getElementById('disForm');
+  var pt=map.latLngToContainerPoint(L.latLng(la,lo));
+  var mapEl=document.getElementById('mc');
+  var fx=Math.min(pt.x+12,mapEl.offsetWidth-300);
+  var fy=Math.max(10,Math.min(pt.y-120,mapEl.offsetHeight-420));
+  form.style.left=fx+'px';form.style.top=fy+'px';
+
+  disCreateMode=true;
+  document.body.classList.add('dis-create-mode');
+  document.getElementById('disCreateBtnStrip').classList.add('active');
+  form.classList.add('open');
+};
 
 // ══════════════════════════════════════════════════
 // LIVE DATA ENGINE — PTV GTFS-RT Vehicle Positions
@@ -1194,6 +1309,7 @@ var disGisMarkers=[];
 // ══════════════════════════════════════════════════
 var disCreateMode=false;
 var pendingDisLatlng=null;
+var pendingFromTram=null;
 var disCounter=0;
 
 window.enterDisruptionMode=function(){
@@ -1215,11 +1331,15 @@ window.enterDisruptionMode=function(){
 function exitDisruptionMode(){
   disCreateMode=false;
   pendingDisLatlng=null;
+  pendingFromTram=null;
   document.body.classList.remove('dis-create-mode');
   document.getElementById('disCreateBtn').classList.remove('active');
   document.getElementById('disCreateBtnStrip').classList.remove('active');
   document.getElementById('disForm').classList.remove('open');
   document.getElementById('liveStatus').className='live-indicator';
+  // Reset source badge and tram pre-fill
+  var src=document.getElementById('dfSource');if(src){src.style.display='none';src.textContent='';}
+  var ti=document.getElementById('dfTramInfo');if(ti){ti.style.display='none';ti.innerHTML='';}
 }
 
 window.cancelDisruption=function(){
@@ -1333,11 +1453,12 @@ window.confirmDisruption=function(){
     return;
   }
   // ── CREATE MODE ──
-  // BUG FIX: guard against form submission without a map placement click
+  disCounter++;
+  // Guard against form submission without a map placement click
   if(!pendingDisLatlng){
     document.getElementById('dfCoord').textContent='⚠ Click a point on the route before creating.';
     document.getElementById('dfCoord').style.color='var(--amb)';
-    disCounter--; // undo the increment done before the edit-mode branch above
+    disCounter--;
     return;
   }
   var primaryRoute=document.getElementById('dfRoute').value;
@@ -1373,7 +1494,8 @@ window.confirmDisruption=function(){
     lo:pendingDisLatlng.lng,
     dir:document.getElementById('dfDir').value,
     notes:document.getElementById('dfNotes').value,
-    start:Date.now()
+    start:Date.now(),
+    _fromTram:pendingFromTram?{id:pendingFromTram.id,run:pendingFromTram.run,route:pendingFromTram.route}:null
   };
   
   // Find crossovers specifically on the PRIMARY route only (not all affected routes),
@@ -1535,7 +1657,7 @@ function buildDisPopup(dis){
     '<div class="dp-row"><span class="dp-label">Direction</span><span class="dp-val">'+dis.dir+'</span></div>'+
     '<div class="dp-row"><span class="dp-label">Duration</span><span class="dp-val" id="disDur'+dis.id+'">00:00</span></div>'+
     '<div class="dp-row"><span class="dp-label">Trams on route</span><span class="dp-val warn">'+affectedTrams.length+'</span></div>';
-  if(dis.notes)h+='<div class="dp-row"><span class="dp-label">Notes</span><span class="dp-val">'+dis.notes+'</span></div>';
+  if(dis.notes)h+='<div class="dp-row"><span class="dp-label">Notes</span><span class="dp-val">'+esc(dis.notes)+'</span></div>';
 
   // ── TRAM IMPACT SUMMARY ──
   h+='<div class="dp-section"><div class="dp-stitle">Tram Impact</div>';
@@ -1874,7 +1996,7 @@ window.setRouteOpacity=function(val){
 
 // ── LIGHT/DARK THEME TOGGLE ──
 var lightTiles=tiles; // already added to map as default
-var darkTiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OSM &copy; CARTO',subdomains:'abcd',maxZoom:19});
+var darkTiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',subdomains:'abcd',maxZoom:19});
 var isDark=false; // default: light mode
 // Set correct button icon on load
 document.getElementById('themeBtn').innerHTML='\u263E'; // moon = switch to dark
