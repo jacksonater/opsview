@@ -322,28 +322,10 @@ function tramTipHtml(t){
 // ── CREATE MARKERS ──
 trams.forEach(function(t){
   var m=L.marker(tPos(t),{icon:mkIcon(t),zIndexOffset:200}).addTo(map);
-  m.bindTooltip(function(){return tramTipHtml(t);},{className:'tram-tt-wrap',direction:'top',offset:[0,-4],sticky:false});
   m.on('click',function(){oDet(t);});
   m.on('contextmenu',function(e){
     L.DomEvent.stopPropagation(e);L.DomEvent.preventDefault(e);
-    // Pre-fill disruption form with this tram's data
-    pendingDisLatlng=e.latlng;
-    disCreateMode=false;
-    document.body.classList.remove('dis-create-mode');
-    document.getElementById('disCreateBtn').classList.remove('active');
-    // Populate route dropdown
-    var sel=document.getElementById('dfRoute');sel.innerHTML='';
-    rks.forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent='Route '+k+' ('+R[k].o+' \u2014 '+R[k].d+')';sel.appendChild(o);});
-    sel.value=t.route;
-    // Position form
-    var form=document.getElementById('disForm');
-    var pt=map.latLngToContainerPoint(e.latlng);
-    var mapEl=document.getElementById('mc');
-    form.style.left=Math.min(pt.x+10,mapEl.offsetWidth-300)+'px';
-    form.style.top=Math.max(10,Math.min(pt.y-100,mapEl.offsetHeight-350))+'px';
-    form.classList.add('open');
-    document.getElementById('dfCoord').textContent='Tram '+t.id+' (Rt '+t.route+') at '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5);
-    document.getElementById('dfNotes').value='Reported at tram #'+t.id+' on route '+t.route;
+    openTramCtxMenu(t, e.latlng);
   });
   t.mk=m;
 });
@@ -1104,12 +1086,13 @@ window.oDet=function(t){
   selT=t;document.getElementById('dp').classList.add('open');rDet(t);
 };
 window.cDet=function(){selT=null;trackingTram=null;document.getElementById('dp').classList.remove('open');};
-window.tramFocus=function(t){if(!t)return;map.flyTo(tPos(t),16,{duration:.5});};
+function tramPos(t){return t._simPos?[t._simPos.lat,t._simPos.lng]:tPos(t);}
+window.tramFocus=function(t){if(!t)return;map.flyTo(tramPos(t),16,{duration:.5});};
 window.tramToggleTrack=function(t){
   if(!t)return;
   trackingTram=(trackingTram===t)?null:t;
-  if(trackingTram)map.panTo(tPos(t),{animate:false});
-  rDet(t);
+  if(trackingTram)map.panTo(tramPos(t),{animate:false});
+  if(!t._simPos) rDet(t);
 };
 function rDet(t){
   var c=sc(t.dv);document.getElementById('did').textContent=(idMode=='run'?t.run:t.id);document.getElementById('did').style.color=scHex(c);
@@ -2313,6 +2296,89 @@ window.checkDisruptionOnTerminusReversal=checkDisruptionOnTerminusReversal;
 window.applyLayerVis=applyLayerVis;
 window.shapeSlice=shapeSlice; window.drawDisBlockedLine=drawDisBlockedLine;
 window.tramTipHtml=tramTipHtml; window.aRV=aRV;
+
+// ── TRAM CONTEXT MENU ──
+(function(){
+  var _ctxTram=null;
+  var _ctxLatlng=null;
+  var menu=null;
+
+  function closeCtxMenu(){
+    if(!menu) return;
+    menu.classList.remove('open');
+    _ctxTram=null; _ctxLatlng=null;
+  }
+
+  function openCtxMenu(t, latlng){
+    if(!menu) menu=document.getElementById('tramCtxMenu');
+    if(!menu) return;
+    _ctxTram=t; _ctxLatlng=latlng;
+
+    // Populate info section
+    var rc=(window.R&&window.R[t.route])?window.R[t.route].c:'#888';
+    document.getElementById('tcmId').textContent='Tram '+t.id;
+    document.getElementById('tcmRun').textContent='Run '+(t.run||'—');
+    var rkEl=document.getElementById('tcmRk');
+    rkEl.textContent='Rt '+t.route;
+    rkEl.style.background=rc;
+    document.getElementById('tcmDir').textContent=(t.updn==='Down'?'▼ Southbound':'▲ Northbound');
+    var devEl=document.getElementById('tcmDev');
+    var isTrapped=(t.blockState==='trapped');
+    if(isTrapped){
+      devEl.textContent='■ STOPPED';devEl.style.color='#fc5151';
+    } else {
+      var dv=t.dv||0;
+      devEl.textContent=devTxt(dv);
+      devEl.style.color=scHex(sc(dv));
+    }
+
+    // Position: prefer right/below click point, flip if near edge
+    var pt=map.latLngToContainerPoint(latlng);
+    var mapEl=document.getElementById('mc');
+    var mw=menu.offsetWidth||200, mh=menu.offsetHeight||200;
+    var x=pt.x+12, y=pt.y+12;
+    if(x+mw>mapEl.offsetWidth-8)  x=pt.x-mw-8;
+    if(y+mh>mapEl.offsetHeight-8) y=pt.y-mh-8;
+    if(x<4) x=4; if(y<4) y=4;
+    var rect=mapEl.getBoundingClientRect();
+    menu.style.left=(rect.left+x)+'px';
+    menu.style.top=(rect.top+y)+'px';
+    menu.classList.add('open');
+  }
+
+  window.openTramCtxMenu=openCtxMenu;
+  window.closeTramCtxMenu=closeCtxMenu;
+
+  // Button wiring — DOM is ready since app.js loads at bottom of <body>
+  menu=document.getElementById('tramCtxMenu');
+  if(menu){
+    document.getElementById('tcmBtnDetail').addEventListener('click',function(){
+      if(_ctxTram){
+        if(window._simRunning && window.openSimDetail) window.openSimDetail(_ctxTram,true);
+        else if(window.oDet) window.oDet(_ctxTram);
+      }
+      closeCtxMenu();
+    });
+    document.getElementById('tcmBtnCentre').addEventListener('click',function(){
+      if(_ctxTram && window.tramFocus) window.tramFocus(_ctxTram); closeCtxMenu();
+    });
+    document.getElementById('tcmBtnTrack').addEventListener('click',function(){
+      if(_ctxTram && window.tramToggleTrack) window.tramToggleTrack(_ctxTram); closeCtxMenu();
+    });
+    document.getElementById('tcmBtnDis').addEventListener('click',function(){
+      var t=_ctxTram, ll=_ctxLatlng; closeCtxMenu();
+      if(t && window.logDisruptionFromTram) window.logDisruptionFromTram(t);
+      else if(t && window.openDisFormFromTram) window.openDisFormFromTram(t, ll||{lat:0,lng:0});
+    });
+    // Close on click outside or Escape
+    document.addEventListener('click',function(e){
+      if(menu.classList.contains('open')&&!menu.contains(e.target)) closeCtxMenu();
+    });
+    document.addEventListener('keydown',function(e){if(e.key==='Escape') closeCtxMenu();});
+    // Close if map pans/zooms
+    map.on('movestart zoomstart',closeCtxMenu);
+  }
+})();
 
 // ── HELPER: open disruption form pre-filled from a tram (used by sim markers) ──
 window.openDisFormFromTram=function(t,latlng){

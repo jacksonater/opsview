@@ -160,6 +160,20 @@
 </div>
 <div class="ntm" id="ntm">Map tiles loading...<br>If blank, open this file in Chrome</div></div><div class="wm">Melbourne Tram Network — OpsView Simulator</div><div id="zoomBadge" class="tier-cmp">● COMPACT</div></div>
     <div id="dp"><div class="dh"><span class="did" id="did"></span><button class="dx" onclick="cDet()">&#x2715;</button></div><div class="db" id="dbd"></div></div>
+    <!-- TRAM CONTEXT MENU -->
+    <div id="tramCtxMenu">
+      <div class="tcm-info">
+        <div class="tcm-id"><span id="tcmId"></span><span class="tcm-run" id="tcmRun"></span></div>
+        <div class="tcm-route"><span class="tcm-rk" id="tcmRk"></span></div>
+        <div class="tcm-meta"><span id="tcmDir"></span><span class="tcm-dev" id="tcmDev"></span></div>
+      </div>
+      <div class="tcm-divider"></div>
+      <button class="tcm-btn" id="tcmBtnDetail">&#x2630; Open Detail</button>
+      <button class="tcm-btn" id="tcmBtnCentre">&#x2316; Centre on Map</button>
+      <button class="tcm-btn" id="tcmBtnTrack">&#x2609; Track Tram</button>
+      <div class="tcm-divider"></div>
+      <button class="tcm-btn tcm-btn-dis" id="tcmBtnDis">&#x26A0; Log Disruption</button>
+    </div>
     <!-- PERFORMANCE PANEL -->
     <div id="perfPanel">
       <div class="perf-hdr">
