@@ -69,7 +69,7 @@ function init(){
   var simTrams = [];          // tram objects managed by simulator
   var simMarkers = [];        // Leaflet markers for sim trams
   var simInitialised = false;
-  var SIM_MODE = false;       // true = simulator active, false = original mock mode
+  var SIM_MODE = false;       // true = simulator active, false = idle
 
   // ── DISRUPTION TRACKING ──
   // tripImpacts: log of trips affected by disruptions
@@ -1216,7 +1216,7 @@ function init(){
       '<button id="simStopBtn" onclick="window.simStop()" ' +
         'style="background:var(--pnl2);border:1px solid var(--bdr);color:var(--mag);' +
         'border-radius:3px;padding:2px 6px;font-size:10px;cursor:pointer;font-family:inherit;display:none" ' +
-        'title="Stop simulation and return to mock mode">&#9632;</button>';
+        'title="Stop and reset simulation">&#9632;</button>';
 
     // Insert before the clock div
     var clk = hr.querySelector('.clk');
@@ -1330,9 +1330,10 @@ function init(){
     });
     simTrams = [];
 
-    // Restore original trams (they were removed from map but still in memory)
-    // Actually, we need to recreate them since we replaced window.trams
-    // Force page reload is cleanest — but let's try restoring
+    // Reset window.trams to empty — trams will repopulate when simulator restarts
+    window.trams = [];
+    trams = window.trams;
+
     var pb3 = document.getElementById('simPlayBtn');
     var sb3 = document.getElementById('simStopBtn');
     var le3 = document.getElementById('liveStatus');
@@ -1340,9 +1341,7 @@ function init(){
     if(sb3) sb3.style.display = 'none';
     if(le3) le3.textContent = '';
     restoreRealClock();
-
-    // Reload page to cleanly restore mock mode
-    location.reload();
+    if(window.uSt) window.uSt();
   };
 
   window.simSetTime = function(hhmm){

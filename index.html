@@ -30,7 +30,7 @@
     </div>
     <div class="hr">
       <button class="perf-btn" id="perfBtn" onclick="togglePerfPanel()">▦ Performance</button>
-      <div class="spd"><label>Data:</label><select id="dataMode" onchange="setDataMode(this.value)"><option value="mock">Mock</option><option value="live">Live API</option></select></div>
+      <div class="spd"><label>Data:</label><select id="dataMode" onchange="setDataMode(this.value)"><option value="demo" selected>Demo</option><option value="live">Live API</option></select></div>
       <div class="spd"><label>ID:</label><select id="idMode" onchange="setIdMode(this.value)"><option value="tram">Tram #</option><option value="run">Run #</option></select></div>
       <div class="spd"><label>Find:</label><input id="tramSearch" type="text" placeholder="T2156..." style="width:62px;background:var(--pnl2);border:1px solid var(--bdr);color:var(--txt);padding:2px 4px;border-radius:3px;font-family:inherit;font-size:10px" oninput="filterTram(this.value)"></div>
       <div class="spd"><label>Speed:</label><select id="spdSel" onchange="setSpeed(this.value)"><option value="1">1x</option><option value="3">3x</option><option value="5" selected>5x</option><option value="10">10x</option><option value="20">20x</option></select></div>

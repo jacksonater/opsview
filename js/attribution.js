@@ -153,7 +153,7 @@ function getTripsForDisruption(dis) {
         }
 
         allTrips.push({
-          trip_id: routeId + '-' + runId + '-Q' + trip.q,
+          trip_id: runId + '/' + trip.q,
           route_id: routeId,
           run_id: runId,
           sequence: trip.q,
