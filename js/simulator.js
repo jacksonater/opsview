@@ -370,7 +370,10 @@ function init(){
 
       if(tramObj.vis && !tramObj.searchHide) marker.addTo(map);
 
-      marker.on('click', function(){ openSimDetail(tramObj); });
+      marker.on('click', function(e){
+        if(e && e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
+        openSimDetail(tramObj, true);
+      });
       tramObj.mk = marker;
       simTrams.push(tramObj);
       fleetIdx++;
@@ -383,11 +386,24 @@ function init(){
   }
 
   // ── DETAIL PANEL FOR SIM TRAMS ──
-  function openSimDetail(t){
+  // openSimDetail: called both from click handlers (isClick=true) and the
+  // animation loop (isClick=false).  On click we use window.oDet() so that
+  // other right-panels are closed and selT is set exactly as the rest of the
+  // app expects.  On animation-loop refreshes we skip that overhead.
+  function openSimDetail(t, isClick){
     var dp = document.getElementById('dp');
     var did = document.getElementById('did');
     var dbd = document.getElementById('dbd');
     if(!dp || !did || !dbd) return;
+
+    if(isClick && window.oDet){
+      // Let oDet handle panel management (closes other panels, sets selT,
+      // adds the 'open' class).  Its rDet() content will be overwritten
+      // immediately below, so the extra DOM write is negligible.
+      window.oDet(t);
+    } else if(!dp.classList.contains('open')){
+      dp.classList.add('open');
+    }
 
     var devStr = window.devTxt(t.dv);
     var c = sc(t.dv);
@@ -1167,7 +1183,10 @@ function init(){
         zIndexOffset: 200
       });
       if(tramObj.vis && !tramObj.searchHide) marker.addTo(map);
-      marker.on('click', function(){ openSimDetail(tramObj); });
+      marker.on('click', function(e){
+        if(e && e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
+        openSimDetail(tramObj, true);
+      });
       tramObj.mk = marker;
       simTrams.push(tramObj);
       fleetIdx++;
