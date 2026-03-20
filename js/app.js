@@ -1147,6 +1147,7 @@ window.logDisruptionFromTram=function(t){
 
   // Pre-fill from tram data
   sel.value=t.route;
+  updateDirDropdown(t.route);
   document.getElementById('dfType').value='Vehicle breakdown';
   document.getElementById('dfDir').value=t.updn==='Down'?'Down only':'Up only';
   document.getElementById('dfNotes').value='';
@@ -1494,6 +1495,25 @@ var pendingDisLatlng=null;
 var pendingFromTram=null;
 var disCounter=0;
 
+function updateDirDropdown(route){
+  var dd=window.DIR_DATA&&window.DIR_DATA[String(route)];
+  var sel=document.getElementById('dfDir');
+  if(!sel)return;
+  var cur=sel.value;
+  sel.innerHTML='';
+  var both=document.createElement('option');
+  both.value='Both directions';both.textContent='Both directions';sel.appendChild(both);
+  var upOpt=document.createElement('option');
+  upOpt.value='Up only';
+  upOpt.textContent=dd?'\u25B2 Up \u2014 '+dd.up:'Up only';
+  sel.appendChild(upOpt);
+  var dnOpt=document.createElement('option');
+  dnOpt.value='Down only';
+  dnOpt.textContent=dd?'\u25BC Down \u2014 '+dd.dn:'Down only';
+  sel.appendChild(dnOpt);
+  if(cur&&sel.querySelector('option[value="'+cur+'"]'))sel.value=cur;
+}
+
 window.enterDisruptionMode=function(){
   if(disCreateMode){exitDisruptionMode();return;}
   disCreateMode=true;
@@ -1510,6 +1530,7 @@ window.enterDisruptionMode=function(){
     var o=document.createElement('option');o.value=k;o.textContent='Route '+k+' ('+R[k].o+' — '+R[k].d+')';
     sel.appendChild(o);
   });
+  updateDirDropdown(sel.value);
   // Reset location strip and open drawer immediately
   var strip=document.getElementById('dfLocationStrip');
   if(strip) strip.classList.remove('located');
@@ -1588,7 +1609,7 @@ map.on('click',function(e){
   if(strip) strip.classList.add('located');
   setLiveStatus('active','Location set — fill in the form and click Create');
   // Set nearest route as default
-  if(nearRoute)document.getElementById('dfRoute').value=nearRoute;
+  if(nearRoute){document.getElementById('dfRoute').value=nearRoute;updateDirDropdown(nearRoute);}
 });
 
 // ── EDIT DISRUPTION ──
@@ -1603,6 +1624,7 @@ window.openEditDis=function(id){
   var sel=document.getElementById('dfRoute');sel.innerHTML='';
   rks.forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent='Route '+k+' ('+R[k].o+' — '+R[k].d+')';sel.appendChild(o);});
   sel.value=dis.route;
+  updateDirDropdown(dis.route);
   document.getElementById('dfType').value=dis.type;
   document.getElementById('dfDir').value=dis.dir;
   document.getElementById('dfNotes').value=dis.notes||'';
@@ -2401,6 +2423,7 @@ window.openDisFormFromTram=function(t,latlng){
   var sel=document.getElementById('dfRoute');sel.innerHTML='';
   rks.forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent='Route '+k+' ('+R[k].o+' \u2014 '+R[k].d+')';sel.appendChild(o);});
   sel.value=t.route;
+  updateDirDropdown(t.route);
   var dtEl=document.getElementById('dfType');if(dtEl)dtEl.value='Vehicle breakdown';
   var ddEl=document.getElementById('dfDir');if(ddEl)ddEl.value=t.updn==='Down'?'Down only':'Up only';
   document.getElementById('dfNotes').value='Reported at tram #'+t.id+' on route '+t.route;

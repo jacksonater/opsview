@@ -138,7 +138,7 @@
       <option value="Other">Other</option>
     </select>
     <label>Route affected</label>
-    <select id="dfRoute"></select>
+    <select id="dfRoute" onchange="updateDirDropdown(this.value)"></select>
     <div class="df-row">
       <div><label>Direction</label>
       <select id="dfDir"><option value="Both directions">Both directions</option><option value="Up only">Up only</option><option value="Down only">Down only</option></select></div>

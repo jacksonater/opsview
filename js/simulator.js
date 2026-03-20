@@ -1384,6 +1384,7 @@ function init(){
   };
 
   window.openSimDetail = function(t, isClick){ openSimDetail(t, isClick); };
+  window.DIR_DATA = DIR_DATA;
 
   window.simStop = function(){
     SIM_MODE = false;
