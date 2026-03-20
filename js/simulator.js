@@ -713,6 +713,16 @@ function init(){
   }
 
   // ── CHECK IF A SIM TRAM SHOULD BE DISRUPTED ──
+  // ── DISRUPTION ZONE DETECTION ──
+  // The purple disrupted zone = the space between two hard bounds.
+  // southBound = nearest crossover OR route terminus toward route start.
+  // northBound = nearest crossover OR route terminus toward route end.
+  // Both are always defined (set at disruption creation time in app.js).
+  //
+  // Rule — no exceptions:
+  //   tram inside [southBound … northBound]  → trapped
+  //   tram south of southBound               → short-work back to southBound
+  //   tram north of northBound               → short-work back to northBound
   function checkSimTramDisruption(t, disruptions){
     var pos = t._simPos;
     if(!pos && t.path && t.path[0]) pos = {lat: t.path[0].la, lng: t.path[0].lo};
@@ -728,82 +738,42 @@ function init(){
       if(t.updn === 'Down' && !affectDown) continue;
       if(t.updn === 'Up'   && !affectUp)   continue;
 
-      var dToDis = geoDist(pos.lat, pos.lng, dis.la, dis.lo);
+      // southBound / northBound are always defined by confirmDisruption:
+      // real XO if one exists near the disruption on that side, route terminus otherwise.
+      var sB = dis.southBound;
+      var nB = dis.northBound;
 
-      // No crossover data — synthesize turnback points 500m each side along route shape
-      if(!dis.southXO && !dis.northXO){
-        var synShape = R[t.route] ? R[t.route].shape : null;
-        if(!synShape || synShape.length < 2){
-          // Fallback: simple proximity trap only
-          if(dToDis < 300) trapSimTram(t, dis);
-          return;
-        }
-        var TURNBACK_M = 500;
-        var disShapeIdx = nearestShapeIdx(synShape, dis.la, dis.lo);
-        // Walk backward ~500m for south synthetic XO
-        var cumS = 0, sIdx = disShapeIdx;
-        for(var si2 = disShapeIdx; si2 > 0; si2--){
-          cumS += geoDist(synShape[si2][0],synShape[si2][1],synShape[si2-1][0],synShape[si2-1][1]);
-          if(cumS >= TURNBACK_M){ sIdx = si2 - 1; break; }
-        }
-        // Walk forward ~500m for north synthetic XO
-        var cumN = 0, nIdx = disShapeIdx;
-        for(var ni2 = disShapeIdx; ni2 < synShape.length - 1; ni2++){
-          cumN += geoDist(synShape[ni2][0],synShape[ni2][1],synShape[ni2+1][0],synShape[ni2+1][1]);
-          if(cumN >= TURNBACK_M){ nIdx = ni2 + 1; break; }
-        }
-        var synSouth = {la: synShape[sIdx][0], lo: synShape[sIdx][1]};
-        var synNorth = {la: synShape[nIdx][0], lo: synShape[nIdx][1]};
-        var tramShapeIdx = nearestShapeIdx(synShape, pos.lat, pos.lng);
-        if(tramShapeIdx >= sIdx && tramShapeIdx <= nIdx){
-          // Tram is inside the block zone — trap it
-          trapSimTram(t, dis);
-        } else if(tramShapeIdx < sIdx){
-          // Approaching from south — turn back at south synthetic XO
-          startShortWorking(t, dis, synSouth);
-        } else {
-          // Approaching from north — turn back at north synthetic XO
-          startShortWorking(t, dis, synNorth);
-        }
+      // Route shape for this tram (used for along-route index comparison)
+      var rShape = R[t.route] ? R[t.route].shape : null;
+      if(!rShape || rShape.length < 2){
+        // No shape data — simple proximity trap only
+        if(geoDist(pos.lat, pos.lng, dis.la, dis.lo) < 300) trapSimTram(t, dis);
         return;
       }
 
-      // Geographic classification (crossovers known)
-      var dToSouth = dis.southXO ? geoDist(pos.lat, pos.lng, dis.southXO.la, dis.southXO.lo) : 99999;
-      var dToNorth = dis.northXO ? geoDist(pos.lat, pos.lng, dis.northXO.la, dis.northXO.lo) : 99999;
-      var xoSpan = (dis.southXO && dis.northXO) ? geoDist(dis.southXO.la, dis.southXO.lo, dis.northXO.la, dis.northXO.lo) : 9999;
-
-      // When only one XO exists, use route shape to determine if tram is inside the block zone
-      var isBetween;
-      if(dis.southXO && dis.northXO){
-        isBetween = (dToDis < xoSpan * 0.6) && (dToSouth < xoSpan) && (dToNorth < xoSpan);
-      } else {
-        // Single XO: check via route shape index
-        var rShape = R[t.route] ? R[t.route].shape : null;
-        if(rShape){
-          var disRI = nearestShapeIdx(rShape, dis.la, dis.lo);
-          var tramRI = nearestShapeIdx(rShape, pos.lat, pos.lng);
-          var xoRI  = dis.southXO ? nearestShapeIdx(rShape, dis.southXO.la, dis.southXO.lo)
-                                  : nearestShapeIdx(rShape, dis.northXO.la, dis.northXO.lo);
-          // "Between" = tram is on the far side of the disruption from the XO
-          isBetween = dis.southXO ? (tramRI > disRI) : (tramRI < disRI);
-        } else {
-          isBetween = dToDis < 300;
-        }
+      if(!sB && !nB){
+        // Disruption has no bounds at all (very old record) — fallback
+        if(geoDist(pos.lat, pos.lng, dis.la, dis.lo) < 300) trapSimTram(t, dis);
+        return;
       }
 
-      if(isBetween){
+      // Classify via along-route shape index
+      var tramIdx = nearestShapeIdx(rShape, pos.lat, pos.lng);
+      var sIdx    = sB ? nearestShapeIdx(rShape, sB.la, sB.lo) : 0;
+      var nIdx    = nB ? nearestShapeIdx(rShape, nB.la, nB.lo) : rShape.length - 1;
+
+      // Ensure sIdx <= nIdx (shape direction may differ per route)
+      if(sIdx > nIdx){ var tmp = sIdx; sIdx = nIdx; nIdx = tmp; }
+
+      if(tramIdx >= sIdx && tramIdx <= nIdx){
+        // Inside the block zone — trap in place
         trapSimTram(t, dis);
+      } else if(tramIdx < sIdx){
+        // South of zone — turn back at south bound (XO or terminus)
+        startShortWorking(t, dis, sB);
       } else {
-        // Outside — assign turnback to nearer crossover
-        var nearerIsSouth = (dToSouth < dToNorth);
-        var xo = nearerIsSouth ? dis.southXO : dis.northXO;
-        if(xo){
-          startShortWorking(t, dis, xo);
-        } else {
-          // Both XOs null shouldn't reach here, but trap as fallback
-          if(dToDis < 300) trapSimTram(t, dis);
-        }
+        // North of zone — turn back at north bound (XO or terminus)
+        startShortWorking(t, dis, nB);
       }
       return; // only process first matching disruption
     }

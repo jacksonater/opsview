@@ -1710,6 +1710,14 @@ window.confirmDisruption=function(){
 
   dis.southXO=before.length?before[before.length-1]:null; // last before = closest upstream
   dis.northXO=after.length?after[0]:null;
+
+  // Always define two hard bounds: XO if available, route terminus otherwise.
+  // The purple disrupted zone is EXACTLY the space between these two bounds.
+  // southBound = lower along-route param (toward route origin / terminus A)
+  // northBound = higher along-route param (toward route destination / terminus B)
+  var _fwd=primaryShape; // R[primaryRoute].fwd — {la,lo} array
+  dis.southBound = dis.southXO || (_fwd&&_fwd.length ? {la:_fwd[0].la, lo:_fwd[0].lo, _isTerminus:true, n:R[primaryRoute].o} : null);
+  dis.northBound = dis.northXO || (_fwd&&_fwd.length ? {la:_fwd[_fwd.length-1].la, lo:_fwd[_fwd.length-1].lo, _isTerminus:true, n:R[primaryRoute].d} : null);
   dis.routeXOs=routeXOs;
   dis._disParam=disParam;
   dis._primaryShape=primaryShape;
