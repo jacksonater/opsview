@@ -220,41 +220,10 @@ var DIR_DATA={
 };
 
 // ── TRAM FLEET ──
-// Fleet IDs: T2001–T2250 (250 vehicles; covers full peak deployment)
+// Trams are populated by the timetable simulator (demo mode) or live GTFS-RT feed.
+// No random/mock trams are generated at startup.
 var TIME_SCALE=5;
-var FL=(function(){var a=[];for(var i=1;i<=250;i++)a.push('T'+(2000+i));return a;})();
-var trams=[],fi=0;
-// Tram counts per route — Thursday 1630 peak
-// Calculated as: round_trip_minutes / peak_headway_minutes
-// Rt  1: 90min RT / 6.5min  = 14   Rt  3: 90 / 10   =  9   Rt  5: 66 / 12  =  6
-// Rt  6: 80 / 10  =  8              Rt 11: 110 / 8   = 14   Rt 12: 80 / 10  =  8
-// Rt 16: 80 / 10  =  8              Rt 19: 90 / 8    = 11   Rt 30: 40 / 12  =  3
-// Rt 35: 45 loop / 12 = 3 (winds down ~5pm but still running at 1630)
-// Rt 48: 80 / 10  =  8              Rt 57: 80 / 8    = 10   Rt 58: 100 / 8  = 13
-// Rt 59: 90 / 10  =  9              Rt 64: 80 / 8    = 10   Rt 67: 70 / 8   =  9
-// Rt 70: 100 / 8  = 13              Rt 72: 70 / 12   =  6   Rt 75: 110 / 10 = 11
-// Rt 78: 60 / 12  =  5              Rt 82: 60 / 12   =  5   Rt 86: 110 / 8  = 14
-// Rt 96: 80 / 8   = 10              Rt109: 110 / 8   = 14   Total: ~221
-var tpc={'1':14,'3':9,'5':6,'6':8,'11':14,'12':8,'16':8,'19':11,'30':3,'35':3,'48':8,'57':10,'58':13,'59':9,'64':10,'67':9,'70':13,'72':6,'75':11,'78':5,'82':5,'86':14,'96':10,'109':14};
-var devOpts=[0,0,0,10,20,30,45,60,80,90,120,150,180,240,300,360,420,540,660,-30,-60,-90,-120];
-
-rks.forEach(function(k){
-  var r=R[k],cnt=tpc[k]||2;
-  for(var i=0;i<cnt;i++){
-    var dev=devOpts[Math.floor(Math.random()*devOpts.length)];
-    var dir=Math.random()>.5?0:1;
-    var path=dir===0?r.fwd.slice():r.rev.slice();
-    var si=Math.floor(Math.random()*(path.length-1));
-    var dd=DIR_DATA[k]||{fwdDn:true,dn:'',up:''};
-    var isFwd=(dir===0);
-    var updn=dd.fwdDn?( isFwd?'Down':'Up'):( isFwd?'Up':'Down');
-    var updnDest=updn==='Down'?dd.dn:dd.up;
-    trams.push({id:FL[fi%FL.length],route:k,dest:dir===0?r.d:r.o,dir:dir===0?'Outbound':'Inbound',
-      updn:updn,updnDest:updnDest,
-      path:path,si:si,pr:Math.random(),dv:dev,mk:null,vis:true,searchHide:false,lt:Date.now()-Math.random()*20000});
-    fi++;
-  }
-});
+var trams=[];
 
 // ── HELPERS ──
 // Escape user-supplied strings before inserting into innerHTML.
@@ -267,15 +236,6 @@ function esc(s){
     .replace(/'/g,'&#39;');
 }
 
-// ── RUN NUMBER ASSIGNMENT ──
-// Mock HASTUS-style run numbers: route prefix + 2-digit sequence
-var runSeq={};
-trams.forEach(function(t){
-  if(!runSeq[t.route])runSeq[t.route]=1;
-  var seq=runSeq[t.route]++;
-  // Format: route number + dash + zero-padded sequence (e.g. 96-01, 109-03)
-  t.run=t.route+'-'+('0'+seq).slice(-2);
-});
 
 var idMode='tram';
 window.setIdMode=function(v){
@@ -1027,7 +987,7 @@ window.fAll=function(){soloRoute=null;rks.forEach(function(k){aR.add(k);});aFilt
 window.fClr=function(){soloRoute=null;aR.clear();aFilt();};
 function aFilt(){
   if(liveMode){
-    // Filter live markers; mock trams stay hidden (don't touch them)
+    // Filter live markers; simulator trams are managed separately
     var visCount=0,totalCount=window._liveMkrs?window._liveMkrs.length:0;
     if(window._liveMkrs){
       window._liveMkrs.forEach(function(m){
@@ -1264,7 +1224,7 @@ function updateLiveMarkers(){
     if(v.id && v.la && v.lo) _prevLivePositions[v.id]={la:v.la,lo:v.lo,ts:v.ts||0};
   });
 
-  // Remove all mock trams
+  // Remove any existing tram markers (sim trams) before showing live data
   trams.forEach(function(t){
     if(t.mk&&map.hasLayer(t.mk))map.removeLayer(t.mk);
   });
@@ -1429,6 +1389,13 @@ function updateLiveMarkers(){
 
 window.setDataMode=function(mode){
   if(mode==='live'){
+    // Stop simulator if running
+    if(window.simIsActive&&window.simIsActive()&&window.simStop){
+      // Stop without activating demo restart
+      window._suppressDemoRestart=true;
+      window.simStop();
+      window._suppressDemoRestart=false;
+    }
     liveMode=true;
     loadStopNames(); // fetch stop names once for stop ID → name resolution
     fetchVehiclePositions();
@@ -1436,19 +1403,19 @@ window.setDataMode=function(mode){
     if(liveInterval)clearInterval(liveInterval);
     liveInterval=setInterval(fetchVehiclePositions,60000);
   } else {
+    // Demo mode: timetable-driven simulator
     liveMode=false;
     if(liveInterval){clearInterval(liveInterval);liveInterval=null;}
     setLiveStatus('','');
     document.getElementById('liveStatus').className='live-indicator';
-    // Restore mock trams
     if(window._liveMkrs){
       window._liveMkrs.forEach(function(m){map.removeLayer(m);});
       window._liveMkrs=[];
     }
-    trams.forEach(function(t){
-      if(t.vis&&t.mk&&!map.hasLayer(t.mk))t.mk.addTo(map);
-    });
-    uSt();
+    // Auto-start timetable simulator
+    if(window.simTogglePlay&&!window.simIsActive()){
+      window.simTogglePlay();
+    }
   }
 };
 
@@ -2269,8 +2236,11 @@ window.checkDisruptionOnTerminusReversal=checkDisruptionOnTerminusReversal;
 window.applyLayerVis=applyLayerVis;
 window.shapeSlice=shapeSlice; window.drawDisBlockedLine=drawDisBlockedLine;
 
-// Signal that app.js is ready
+// Signal that app.js is ready — simulator.js init() runs synchronously here
 window._opsviewReady=true;
 document.dispatchEvent(new Event('opsview-ready'));
+
+// Auto-activate demo mode (timetable simulator) on startup
+window.setDataMode('demo');
 
 })();
