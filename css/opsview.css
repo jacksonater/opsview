@@ -1150,3 +1150,13 @@ details[open] .attr-tunables-summary::before{content:'▼ '}
 .light .perf-hero-ring{box-shadow:0 0 16px -4px var(--hero-col,var(--acc)),inset 0 0 0 6px var(--pnl)}
 .light .perf-hero-inner{background:var(--pnl)}
 .light #demoToast{background:rgba(255,255,255,.97);border-color:var(--bdr2);color:var(--txt)}
+
+/* ── DMP co-route secondary match styling ──────────────────────────── */
+.dmp-coroute-divider{
+  font-size:9px;font-family:'JetBrains Mono',monospace;
+  text-transform:uppercase;letter-spacing:1px;
+  color:var(--tx3);padding:6px 0 4px;
+  border-top:1px solid var(--bdr);margin-top:6px;
+}
+.dmp-alt-secondary{opacity:.75}
+.dmp-alt-secondary .dmp-sc-id{color:var(--tx2)}

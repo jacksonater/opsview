@@ -1938,7 +1938,7 @@ function buildDisPopup(dis){
   // ── DMP AUTO-MATCH PREVIEW ──
   if(typeof getDmpScenarios==='function'){
     var affRoutes=dis.routes||[dis.route];
-    var scoredMatches=getDmpScenarios(affRoutes,dis.la,dis.lo);
+    var scoredMatches=getDmpScenarios(affRoutes,dis.la,dis.lo,dis.route);
     h+='<div class="dp-dmp-preview">';
     h+='<div class="dp-dmp-preview-hdr">📋 DMP Scenarios <span class="dp-dmp-preview-count">'+scoredMatches.length+' matched</span></div>';
     if(scoredMatches.length===0){

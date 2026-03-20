@@ -48,7 +48,7 @@ window.OpsViewConfig = {
   // ── Traffic overlay ─────────────────────────────────────────────────────
   // TomTom free tier: sign up at developer.tomtom.com (2,500 map tile req/day)
   // Leave empty string to get an in-app prompt when the button is clicked.
-  tomtomKey: ''
+  tomtomKey: 'g0up9RnrmGlkKfJpSXr4hqm0AxgTgGme'
 
 };
 
