@@ -308,16 +308,25 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 /* DISRUPTION CREATION */
 .dis-create-mode #mc{cursor:crosshair!important}
 .dis-create-mode .leaflet-container{cursor:crosshair!important}
-.dis-form{position:absolute;z-index:970;background:var(--pnl);border:1px solid var(--bdr);border-radius:6px;padding:14px;width:280px;box-shadow:0 8px 32px #000a;display:none}
-.dis-form.open{display:block}
-.dis-form .df-title{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#e040fb;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+/* Slide-in drawer */
+.dis-form{position:fixed;right:0;top:0;bottom:0;width:300px;z-index:970;background:var(--pnl);border-left:1px solid var(--bdr);box-shadow:-8px 0 32px #000a;display:block;transform:translateX(100%);transition:transform .25s ease;overflow-y:auto;border-radius:0;padding:0}
+.dis-form.open{transform:translateX(0)}
+.df-hdr{position:sticky;top:0;background:var(--pnl);border-bottom:1px solid var(--bdr);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;z-index:1}
+.df-hdr-title{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#e040fb;display:flex;align-items:center;gap:6px}
+.df-hdr-close{background:none;border:none;color:var(--tx3);font-size:14px;cursor:pointer;padding:2px 6px;border-radius:3px;transition:color .12s,background .12s}
+.df-hdr-close:hover{color:var(--txt);background:rgba(255,255,255,.07)}
+.df-body{padding:12px 14px}
+.df-location-strip{background:var(--pnl2);border:1px solid var(--bdr);border-radius:4px;padding:7px 10px;margin-bottom:10px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--tx3);display:flex;align-items:flex-start;gap:6px;cursor:default}
+.df-location-strip.located{border-color:#00e5a040;color:#00e5a0}
+.df-location-strip.located .df-loc-icon{color:#00e5a0}
+.df-loc-icon{font-size:11px;flex-shrink:0;margin-top:1px}
 .dis-form label{display:block;font-size:10px;color:var(--tx2);margin:8px 0 3px;text-transform:uppercase;letter-spacing:.5px}
 .dis-form select,.dis-form input,.dis-form textarea{width:100%;background:var(--pnl2);border:1px solid var(--bdr);color:var(--txt);padding:5px 8px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:11px;box-sizing:border-box}
-.dis-form textarea{height:50px;resize:vertical}
+.dis-form textarea{height:60px;resize:vertical}
 .dis-form .df-row{display:flex;gap:6px}
 .dis-form .df-row>*{flex:1}
-.dis-form .df-btns{display:flex;gap:6px;margin-top:12px}
-.dis-form .df-btn{flex:1;padding:6px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;border:1px solid;text-align:center}
+.dis-form .df-btns{display:flex;gap:6px;margin-top:14px}
+.dis-form .df-btn{flex:1;padding:7px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;border:1px solid;text-align:center}
 .dis-form .df-ok{background:#00e5a020;border-color:#00e5a0;color:#00e5a0}
 .dis-form .df-ok:hover{background:#00e5a0;color:#0a0f16}
 .dis-form .df-cancel{background:transparent;border-color:var(--bdr);color:var(--tx2)}
@@ -485,7 +494,7 @@ body.rp-open .job-panel.has-jobs{right:428px}
 /* Edit disruption */
 .dp-edit-btn{display:block;width:100%;margin-top:6px;padding:5px;background:#4299e118;border:1px solid #4299e1;color:#4299e1;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;text-align:center;transition:all .15s}
 .dp-edit-btn:hover{background:#4299e1;color:#fff}
-#disForm.edit-mode .df-title{color:var(--blu)}
+#disForm.edit-mode .df-hdr-title{color:var(--blu)}
 #disForm.edit-mode .df-ok{background:#4299e1;border-color:#4299e1}
 /* Inline DMP preview in popup */
 .dp-dmp-preview{background:#1a0d2000;border:1px solid #e040fb33;border-radius:3px;margin:6px 0;padding:5px 8px}
