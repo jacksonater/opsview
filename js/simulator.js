@@ -315,6 +315,30 @@ function init(){
   }
 
   // ── BUILD SIM TRAMS ──
+  // ── SHARED MARKER EVENT BINDING ──
+  // Attaches tooltip, click-to-detail and right-click-to-disruption to every
+  // sim tram marker.  Called from both rebuildSimTrams and rescanTrips.
+  function bindSimMarkerEvents(marker, tramObj){
+    // Hover tooltip (same layout as original trams)
+    if(window.tramTipHtml){
+      marker.bindTooltip(function(){ return window.tramTipHtml(tramObj); },
+        {className:'tram-tt-wrap', direction:'top', offset:[0,-4], sticky:false});
+    }
+    // Left-click → open detail panel
+    marker.on('click', function(e){
+      if(e && e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
+      openSimDetail(tramObj, true);
+    });
+    // Right-click → pre-fill disruption form (same as original trams)
+    marker.on('contextmenu', function(e){
+      if(e && e.originalEvent){
+        L.DomEvent.stopPropagation(e.originalEvent);
+        L.DomEvent.preventDefault(e.originalEvent);
+      }
+      if(window.openDisFormFromTram) window.openDisFormFromTram(tramObj, e.latlng);
+    });
+  }
+
   function rebuildSimTrams(){
     // Remove old sim markers
     simTrams.forEach(function(t){
@@ -369,19 +393,18 @@ function init(){
       });
 
       if(tramObj.vis && !tramObj.searchHide) marker.addTo(map);
-
-      marker.on('click', function(e){
-        if(e && e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
-        openSimDetail(tramObj, true);
-      });
+      bindSimMarkerEvents(marker, tramObj);
       tramObj.mk = marker;
       simTrams.push(tramObj);
       fleetIdx++;
     });
 
-    // Replace the global trams array so stats/filters/detail work
-    window.trams = simTrams;
-    trams = simTrams;
+    // Sync in-place so app.js's local `trams` closure reference stays valid.
+    // Simply replacing window.trams would leave app.js's variable pointing at
+    // the old empty array, breaking stats, filter, search and the perf panel.
+    trams.length = 0;
+    for (var si2 = 0; si2 < simTrams.length; si2++) trams.push(simTrams[si2]);
+    window.trams = trams;
     uSt();
   }
 
@@ -512,10 +535,18 @@ function init(){
       '</div>' +
       disSection +
       '<div class="ds"><div class="dst">Crew</div><div class="dpn">Driver \u2014 Pending feed integration</div></div>' +
-      tripSignposts;
+      tripSignposts +
+      '<div class="ds" id="dops"><div class="dst">Operations</div>' +
+      '<div class="tram-actions">' +
+      '<button class="ta-btn ta-focus" onclick="tramFocus(window._simSelectedTram)">&#x2316; Centre</button>' +
+      '<button class="ta-btn ta-track" onclick="tramToggleTrack(window._simSelectedTram)">&#x2609; Track</button>' +
+      '<button class="ta-btn ta-dis" onclick="logDisruptionFromTram(window._simSelectedTram)">&#x26A0; Disruption</button>' +
+      '</div></div>';
 
     dp.classList.add('open');
     window._simSelectedTram = t;
+    // Show/hide ops section based on role (controller only)
+    if(window.aRV) window.aRV();
   }
 
   // ── ANIMATION LOOP (DISRUPTION-AWARE) ──
@@ -664,7 +695,7 @@ function init(){
         checkSimTramDisruption(t, disruptions);
       }
 
-      if(t.mk && t.vis && !t.searchHide){
+      if(t.mk && t.vis && !t.searchHide && !t.declutterHide){
         t.mk.setLatLng([pos.lat, pos.lng]);
         t.mk.setIcon(mkIcon(t));
       }
@@ -1183,17 +1214,16 @@ function init(){
         zIndexOffset: 200
       });
       if(tramObj.vis && !tramObj.searchHide) marker.addTo(map);
-      marker.on('click', function(e){
-        if(e && e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
-        openSimDetail(tramObj, true);
-      });
+      bindSimMarkerEvents(marker, tramObj);
       tramObj.mk = marker;
       simTrams.push(tramObj);
       fleetIdx++;
     });
 
-    window.trams = simTrams;
-    trams = simTrams;
+    // In-place sync (same reasoning as rebuildSimTrams)
+    trams.length = 0;
+    for (var ri2 = 0; ri2 < simTrams.length; ri2++) trams.push(simTrams[ri2]);
+    window.trams = trams;
   }
 
   // ── CLOCK DISPLAY ──
@@ -1349,9 +1379,9 @@ function init(){
     });
     simTrams = [];
 
-    // Reset window.trams to empty — trams will repopulate when simulator restarts
-    window.trams = [];
-    trams = window.trams;
+    // Clear in-place so app.js's local reference sees the empty array
+    trams.length = 0;
+    window.trams = trams;
 
     var pb3 = document.getElementById('simPlayBtn');
     var sb3 = document.getElementById('simStopBtn');

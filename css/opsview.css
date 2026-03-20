@@ -105,6 +105,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 
 /* ZOOM LEVEL BADGE — shows current detail tier */
 #zoomBadge{position:absolute;bottom:28px;right:8px;z-index:800;font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 7px;border-radius:3px;background:var(--pnl);border:1px solid var(--bdr);color:var(--tx3);pointer-events:none;letter-spacing:.5px;transition:color .2s,border-color .2s}
+#zoomBadge.tier-net{color:#666;border-color:#66630;font-style:italic}
 #zoomBadge.tier-dot{color:#4299e1;border-color:#4299e130}
 #zoomBadge.tier-cmp{color:#00e5a0;border-color:#00e5a030}
 #zoomBadge.tier-full{color:#f5d623;border-color:#f5d62330}
