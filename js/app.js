@@ -1107,8 +1107,8 @@ function rDet(t){
     '<div class="dr"><span class="dlb">Towards</span><span class="dva">'+t.updnDest+'</span></div>'+
     '<div class="dr"><span class="dlb">Termini</span><span class="dva" style="font-size:9px">'+R[t.route].o+' — '+R[t.route].d+'</span></div></div>'+
     '<div class="ds"><div class="dst">Position</div>'+
-    '<div class="dr"><span class="dlb">Near Stop</span><span class="dva">'+cur.n+'</span></div>'+
-    '<div class="dr"><span class="dlb">Next Stop</span><span class="dva">'+nxt.n+'</span></div></div>'+
+    '<div class="dr"><span class="dlb">Current Signpost</span><span class="dva">'+cur.n+'</span></div>'+
+    '<div class="dr"><span class="dlb">Next Signpost</span><span class="dva">'+nxt.n+'</span></div></div>'+
     '<div class="ds"><div class="dst">Schedule Adherence</div>'+
     '<div class="dr"><span class="dlb">Deviation</span><span class="dva"><span class="dvb '+c+'">'+devTxt(t.dv)+'</span></span></div>'+
     '<div class="dr"><span class="dlb">Sched Run</span><span class="dva">'+R[t.route].m+' min</span></div></div>'+
@@ -2352,6 +2352,11 @@ window.tramTipHtml=tramTipHtml; window.aRV=aRV;
   // Button wiring — DOM is ready since app.js loads at bottom of <body>
   menu=document.getElementById('tramCtxMenu');
   if(menu){
+    // Click the info section → fly to tram on map
+    document.getElementById('tcmInfoSection').addEventListener('click',function(){
+      if(_ctxTram && window.tramFocus) window.tramFocus(_ctxTram);
+      closeCtxMenu();
+    });
     document.getElementById('tcmBtnDetail').addEventListener('click',function(){
       if(_ctxTram){
         if(window._simRunning && window.openSimDetail) window.openSimDetail(_ctxTram,true);
