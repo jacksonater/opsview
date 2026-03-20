@@ -319,23 +319,18 @@ function init(){
   // Attaches tooltip, click-to-detail and right-click-to-disruption to every
   // sim tram marker.  Called from both rebuildSimTrams and rescanTrips.
   function bindSimMarkerEvents(marker, tramObj){
-    // Hover tooltip (same layout as original trams)
-    if(window.tramTipHtml){
-      marker.bindTooltip(function(){ return window.tramTipHtml(tramObj); },
-        {className:'tram-tt-wrap', direction:'top', offset:[0,-4], sticky:false});
-    }
     // Left-click → open detail panel
     marker.on('click', function(e){
       if(e && e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
       openSimDetail(tramObj, true);
     });
-    // Right-click → pre-fill disruption form (same as original trams)
+    // Right-click → tram context menu
     marker.on('contextmenu', function(e){
       if(e && e.originalEvent){
         L.DomEvent.stopPropagation(e.originalEvent);
         L.DomEvent.preventDefault(e.originalEvent);
       }
-      if(window.openDisFormFromTram) window.openDisFormFromTram(tramObj, e.latlng);
+      if(window.openTramCtxMenu) window.openTramCtxMenu(tramObj, e.latlng);
     });
   }
 
@@ -1361,6 +1356,8 @@ function init(){
       simAnimFrame = requestAnimationFrame(simAnim);
     }
   };
+
+  window.openSimDetail = function(t, isClick){ openSimDetail(t, isClick); };
 
   window.simStop = function(){
     SIM_MODE = false;
