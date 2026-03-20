@@ -156,7 +156,11 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      // First entry in stop_time_update = next upcoming stop (GTFS-RT lists future stops first)
+      // First entry in stop_time_update = next upcoming stop.
+      // Assumption: PTV's feed lists stops in stop_sequence order and
+      // omits already-passed stops, so stus[0] is always the next stop
+      // the tram will reach.  If PTV ever includes past stops, this
+      // would need filtering by arrival.time > now.
       const nextStopId = stus.length > 0 ? (stus[0].stopId || '') : '';
       // Scheduled arrival time at next stop (unix seconds), if provided
       const nextStopArrival = stus.length > 0 && stus[0].arrival && stus[0].arrival.time

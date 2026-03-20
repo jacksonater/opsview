@@ -101,7 +101,7 @@ function init(){
   function loadTimetable(){
     return fetch('data/timetable.json')
       .then(function(r){ return r.json(); })
-      .then(function(d){ timetableData = d; })
+      .then(function(d){ timetableData = d; window._timetableData = d; })
       .catch(function(e){ console.warn('Simulator: timetable.json not found', e); });
   }
 

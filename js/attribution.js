@@ -1,4 +1,4 @@
-// attribution.js — Attribution Engine (Rules A/B/C/1/2 + confidence scoring)
+// attribution.js — Attribution Engine (Rules A/B/C/D/1/2 + confidence scoring)
 // Deferred: waits for app.js to be ready
 
 (function(){
@@ -11,6 +11,18 @@ var renderDisLog=window.renderDisLog;
 
 // ATTRIBUTION ENGINE — deterministic trip attribution
 // ══════════════════════════════════════════════════
+
+// ── TIMETABLE DATA ──────────────────────────────────────────────────────
+// Load timetable.json eagerly so attribution can pull real scheduled trips
+// rather than generating synthetic ones.  The data is shared with the
+// simulator via window._timetableData (whoever loads first wins).
+var _timetableData = window._timetableData || null;
+if (!_timetableData) {
+  fetch('data/timetable.json')
+    .then(function(r) { return r.json(); })
+    .then(function(d) { _timetableData = d; window._timetableData = d; })
+    .catch(function() { console.warn('Attribution: timetable.json not found — synthetic fallback'); });
+}
 
 // Read tunables from central config; fall back to hard-coded defaults so the
 // engine still works if config.js hasn't loaded yet (e.g. during unit tests).
@@ -36,90 +48,132 @@ var attrOverrides = {};
 // Expose results globally for Maximo panel to read
 window._attrResults = attrResults;
 
-function generateSyntheticTrips(dis) {
+// ── TRIP GENERATION ─────────────────────────────────────────────────────
+// Pulls real scheduled trips from timetable.json for affected routes
+// within ±2 hours of the disruption.  Delay / short / cancel / diversion
+// impacts are simulated deterministically (seeded by dis.id) because
+// observed performance data is not yet piped into the engine.
+
+function getTripsForDisruption(dis) {
+  // Prefer timetable data loaded by this module or the simulator
+  var tt = _timetableData || window._timetableData;
+  if (!tt) {
+    console.warn('Attribution: timetable not loaded — no trips to evaluate');
+    return [];
+  }
+
   var affectedRoutes = dis.routes || [dis.route];
-  var allTrips = [];
-  var runCounter = 0;
-  // Use dis.id as seed for reproducible results per disruption
+  var incTimeMins = disIncTimeMins(dis);
+  var windowMins = 120; // ±2 hours
+
   var seed = dis.id * 137 + 42;
   function pseudoRand() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return (seed % 10000) / 10000; }
 
-  affectedRoutes.forEach(function(rk) {
-    var route = R[rk];
-    if (!route) return;
-    var stops = route.stops;
-    if (!stops || stops.length < 3) return;
-    var nRuns = 3 + Math.floor(pseudoRand() * 2);
-    for (var ri = 0; ri < nRuns; ri++) {
-      runCounter++;
-      var runId = rk + '-' + String(runCounter).padStart(2, '0');
-      var nTrips = 3 + Math.floor(pseudoRand() * 3);
-      var baseTime = 8 * 60 + ri * 25;
-      for (var ti = 0; ti < nTrips; ti++) {
-        var tripId = runId + '-T' + (ti + 1);
-        var tripStart = baseTime + ti * (route.m + 5);
-        var direction = ti % 2 === 0 ? 'Down' : 'Up';
-        var tripStops = direction === 'Down' ? stops.slice() : stops.slice().reverse();
-        var disStopIdx = -1, minStopDist = Infinity;
-        tripStops.forEach(function(s, idx) {
-          var d = geoDist(s.la, s.lo, dis.la, dis.lo);
-          if (d < minStopDist) { minStopDist = d; disStopIdx = idx; }
+  var allTrips = [];
+
+  affectedRoutes.forEach(function(routeId) {
+    var routeRuns = tt[routeId];
+    if (!routeRuns) return;
+
+    Object.keys(routeRuns).forEach(function(runId) {
+      var trips = routeRuns[runId];
+
+      trips.forEach(function(trip) {
+        var wps = trip.w;
+        if (!wps || wps.length < 2) return;
+
+        var tripStartMins = wps[0].t / 60;
+        var tripEndMins = wps[wps.length - 1].t / 60;
+        if (tripEndMins < tripStartMins) tripEndMins += 1440;
+
+        // Skip trips outside the disruption window
+        if (tripEndMins < incTimeMins - windowMins) return;
+        if (tripStartMins > incTimeMins + windowMins) return;
+
+        // Find closest waypoint to disruption location
+        var disStopIdx = -1, minDist = Infinity;
+        wps.forEach(function(wp, idx) {
+          var d = geoDist(wp.a, wp.o, dis.la, dis.lo);
+          if (d < minDist) { minDist = d; disStopIdx = idx; }
         });
+
+        // ── Simulate disruption impact at each signpost ──
         var signposts = [];
         var prevDelay = 0;
         var hitDisruption = false;
         var isCancelled = false;
         var isShort = false;
-        var segMinutes = route.m / Math.max(1, tripStops.length - 1);
-        // Determine if this trip will divert around the disruption zone.
-        // Only trips close in time to the disruption and with room either side are candidates.
         var isDiverted = false;
         var divBlock = null;
-        if (disStopIdx >= 1 && disStopIdx < tripStops.length - 2) {
-          var tripProxCheck = Math.abs(tripStart + disStopIdx * segMinutes - (8 * 60 + 30));
-          if (tripProxCheck < 90 && pseudoRand() < 0.15) {
+
+        // Diversion candidate: trip has room either side of disruption stop
+        if (disStopIdx >= 1 && disStopIdx < wps.length - 2) {
+          var wpTimeMins = wps[disStopIdx].t / 60;
+          if (Math.abs(wpTimeMins - incTimeMins) < 90 && pseudoRand() < 0.15) {
             isDiverted = true;
-            divBlock = { start: Math.max(0, disStopIdx - 1), end: Math.min(tripStops.length - 2, disStopIdx + 1) };
+            divBlock = { start: Math.max(0, disStopIdx - 1), end: Math.min(wps.length - 2, disStopIdx + 1) };
           }
         }
-        for (var si = 0; si < tripStops.length; si++) {
-          var schedTime = tripStart + si * segMinutes;
+
+        for (var si = 0; si < wps.length; si++) {
+          var wp = wps[si];
+          var schedTimeMins = wp.t / 60;
           var delta = prevDelay;
           var distToDis = Math.abs(si - disStopIdx);
           var missed = false;
+
           if (isDiverted && si >= divBlock.start && si <= divBlock.end) {
-            // Bypass block — tram physically routes around this section
             missed = true;
-            // delta holds at pre-diversion level; no disruption contact
           } else if (isDiverted && si === divBlock.end + 1 && !hitDisruption) {
-            // Rejoin point — add diversion overhead (longer route = 4–8 min)
             hitDisruption = true;
             delta += 4 + Math.floor(pseudoRand() * 4);
           } else if (hitDisruption) {
             delta = Math.max(0, prevDelay - pseudoRand() * 1.5);
           } else if (distToDis <= 1 && !hitDisruption) {
             hitDisruption = true;
-            var tripProximity = Math.abs(tripStart + disStopIdx * segMinutes - (8 * 60 + 30));
-            if (tripProximity < 60) delta += 5 + Math.floor(pseudoRand() * 12);
-            else if (tripProximity < 120) delta += 2 + Math.floor(pseudoRand() * 6);
+            var proximity = Math.abs(wps[disStopIdx].t / 60 - incTimeMins);
+            if (proximity < 60) delta += 5 + Math.floor(pseudoRand() * 12);
+            else if (proximity < 120) delta += 2 + Math.floor(pseudoRand() * 6);
             else delta += Math.floor(pseudoRand() * 3);
           } else {
             delta += (pseudoRand() - 0.4) * 0.8;
           }
+
           if (!missed) {
             if (distToDis <= 1 && pseudoRand() < 0.12) missed = true;
             else if (pseudoRand() < 0.02) missed = true;
           }
+
           if (!isDiverted && si > disStopIdx + 1 && distToDis <= 2 && !isShort && pseudoRand() < 0.08) { isShort = true; break; }
-          if (ti === 0 && si === 0 && pseudoRand() < 0.04) { isCancelled = true; break; }
+          if (trip.q === 1 && si === 0 && pseudoRand() < 0.04) { isCancelled = true; break; }
+
           delta = Math.max(-2, delta);
-          signposts.push({ code: tripStops[si].n, la: tripStops[si].la, lo: tripStops[si].lo, scheduled: schedTime, actual: missed ? null : schedTime + delta, delta: missed ? null : delta, missed: missed, stopIdx: si });
+          signposts.push({ code: wp.c, la: wp.a, lo: wp.o, scheduled: schedTimeMins, actual: missed ? null : schedTimeMins + delta, delta: missed ? null : delta, missed: missed, stopIdx: si });
           prevDelay = delta;
         }
-        allTrips.push({ trip_id: tripId, route_id: rk, run_id: runId, sequence: ti + 1, direction: direction, scheduled_start: tripStart, scheduled_end: tripStart + route.m, signposts: signposts, dis_stop_idx: disStopIdx, is_cancelled: isCancelled, is_short: isShort, short_at: isShort ? signposts.length - 1 : null, is_diversion: isDiverted, diversion_block: divBlock, attribution: null, confidence: null });
-      }
-    }
+
+        allTrips.push({
+          trip_id: routeId + '-' + runId + '-Q' + trip.q,
+          route_id: routeId,
+          run_id: runId,
+          sequence: trip.q,
+          direction: trip.d,
+          scheduled_start: tripStartMins,
+          scheduled_end: tripEndMins,
+          signposts: signposts,
+          dis_stop_idx: disStopIdx,
+          is_cancelled: isCancelled,
+          is_short: isShort,
+          short_at: isShort ? signposts.length - 1 : null,
+          is_diversion: isDiverted,
+          diversion_block: divBlock,
+          attribution: null,
+          confidence: null
+        });
+      });
+    });
   });
+
   return allTrips;
 }
 
@@ -186,8 +240,22 @@ function ruleC(dis, allTrips, primaryRunId, attributed) {
     var incTimeMins = disIncTimeMins(dis);
     for (var i = 0; i < rTrips.length; i++) { if (rTrips[i].scheduled_start >= incTimeMins) { ft = rTrips[i]; break; } }
     if (!ft) return;
-    var dsi = ft.dis_stop_idx, dev = getDeviation(ft, dsi), dw = getDeltaW(ft, dsi);
-    var impacted = (dev !== null && dw > 0 && Math.abs(dev) >= ATTR_TUNABLES.theta_jump * Math.max(dw, 0.5)) || missedSP(ft, dsi) || ft.is_short;
+    var dsi = ft.dis_stop_idx, dev = getDeviation(ft, dsi);
+    // "Either condition" impact test:
+    //   1) Absolute — deviation at disruption stop exceeds 2 minutes
+    //   2) Delta-over-baseline — deviation is significantly worse than
+    //      the trip's pre-disruption trend (first 3 signposts)
+    //   3) Missed signpost or short-worked
+    var absThreshold = 2; // minutes
+    var absoluteImpact = dev !== null && dev > absThreshold;
+    var baseline = 0, baseCount = 0;
+    for (var bi = 0; bi < Math.min(dsi, 3); bi++) {
+      var bd = getDeviation(ft, bi);
+      if (bd !== null) { baseline += bd; baseCount++; }
+    }
+    if (baseCount > 0) baseline /= baseCount;
+    var deltaOverBaseline = dev !== null && (dev - baseline) > absThreshold;
+    var impacted = absoluteImpact || deltaOverBaseline || missedSP(ft, dsi) || ft.is_short;
     if (!impacted) return;
     if (!attributed[ft.trip_id]) {
       result.push({ trip: ft, rule: 'C' }); attributed[ft.trip_id] = { incident_id: dis.id, rule: 'C' };
@@ -261,13 +329,37 @@ function computeConf(trip, dis, allTrips, attributed) {
   var continuity = 0;
   var prevTrip = allTrips.find(function(x) { return x.run_id === trip.run_id && x.sequence === trip.sequence - 1; });
   if (prevTrip && attributed[prevTrip.trip_id]) continuity = 1;
+
+  // Uniqueness: penalise trips that fall in the spatial+temporal window of
+  // multiple active disruptions.  uniqueness = 1/N where N = number of
+  // disruptions this trip plausibly matches.
   var uniqueness = 1.0;
+  var otherDis = disruptions.filter(function(d) { return d.id !== dis.id; });
+  if (otherDis.length > 0) {
+    var matchCount = 1; // current disruption
+    var segMin = trip.signposts.length > 1 ? (trip.scheduled_end - trip.scheduled_start) / (trip.signposts.length - 1) : 0;
+    otherDis.forEach(function(od) {
+      var odStopIdx = -1, odMinDist = Infinity;
+      trip.signposts.forEach(function(sp, idx) {
+        var d = geoDist(sp.la, sp.lo, od.la, od.lo);
+        if (d < odMinDist) { odMinDist = d; odStopIdx = idx; }
+      });
+      var odDev = getDeviation(trip, odStopIdx);
+      var odIncTime = disIncTimeMins(od);
+      var schedAtOd = trip.scheduled_start + (odStopIdx >= 0 ? odStopIdx * segMin : 0);
+      var spatialMatch = (odDev !== null && odDev > 0) || missedSP(trip, odStopIdx);
+      var temporalMatch = Math.abs(schedAtOd - odIncTime) < T.T_max;
+      if (spatialMatch && temporalMatch) matchCount++;
+    });
+    uniqueness = 1.0 / matchCount;
+  }
+
   var score = T.w_spatial * spatial + T.w_temporal * temporal + T.w_deviation * deviation + T.w_nojump * noJump + T.w_continuity * continuity + T.w_unique * uniqueness;
-  return { spatial: spatial, temporal: Math.round(temporal * 100) / 100, deviation: Math.round(deviation * 100) / 100, noJump: noJump, continuity: continuity, uniqueness: uniqueness, score: Math.round(score * 100) / 100 };
+  return { spatial: spatial, temporal: Math.round(temporal * 100) / 100, deviation: Math.round(deviation * 100) / 100, noJump: noJump, continuity: continuity, uniqueness: Math.round(uniqueness * 100) / 100, score: Math.round(score * 100) / 100 };
 }
 
 function runAttribution(dis) {
-  var trips = generateSyntheticTrips(dis);
+  var trips = getTripsForDisruption(dis);
   var attributed = {};
   var ov = attrOverrides[dis.id] || { removed: {}, added: [] };
   var results = { dis_id: dis.id, trips: trips, decisions: [], chain_confidence: 0 };
@@ -303,8 +395,15 @@ function runAttribution(dis) {
 
   results.decisions.forEach(function(d) {
     if (d._overrideAdded) { d.state = 'PRE_ACCEPTED'; return; }
-    if (d.confidence.score >= ATTR_TUNABLES.theta_accept) d.state = 'PRE_ACCEPTED';
-    else if (d.confidence.score >= ATTR_TUNABLES.theta_review) d.state = 'REVIEW';
+    if (d.confidence.score >= ATTR_TUNABLES.theta_accept) {
+      // Epsilon tie-break: if trip matches multiple disruptions (low uniqueness)
+      // and score only barely clears the accept threshold, flag for human review
+      if (d.confidence.uniqueness < 1.0 && d.confidence.score < ATTR_TUNABLES.theta_accept + ATTR_TUNABLES.epsilon) {
+        d.state = 'REVIEW';
+      } else {
+        d.state = 'PRE_ACCEPTED';
+      }
+    } else if (d.confidence.score >= ATTR_TUNABLES.theta_review) d.state = 'REVIEW';
     else d.state = 'LOW_CONFIDENCE';
   });
   if (results.decisions.length > 0) {

@@ -480,8 +480,12 @@ function anim(){
           var rb=R[t.route];t.dest=t.dir==='Outbound'?rb.d:rb.o;
           var ddb=DIR_DATA[t.route];if(ddb)t.updnDest=t.updn==='Down'?ddb.dn:ddb.up;
           t.dv=Math.min(900,t.dv+600);
-          // Clear state — tram heads to terminus, re-evaluated there
-          delete t.blockedByDis;delete t.blockState;delete t._turnbackXO;
+          // Keep disruption tag — tram reversed away from zone, heading to terminus.
+          // 'returning' state allows normal movement but prevents the tram from
+          // being "free" (untagged) and potentially re-entering the zone at
+          // high sim speeds before reaching the terminus for re-evaluation.
+          t.blockState='returning';
+          delete t._turnbackXO;
           if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
           needStats=true;
           return;
@@ -510,11 +514,11 @@ function anim(){
         if(Math.random()<.3)t.dv+=Math.floor(Math.random()*61)-30;
         t.dv=Math.max(-180,Math.min(900,t.dv));
  
-        // ── Clear escaping state at terminus ──
-        if(t.blockState==='escaping'){
+        // ── Clear transient disruption states at terminus ──
+        if(t.blockState==='escaping'||t.blockState==='returning'){
           delete t.blockedByDis;delete t.blockState;delete t._disBaselineDv;
         }
- 
+
         // ── Check if tram should now short-work ──
         if(disruptions.length>0&&!t.blockedByDis){
           checkDisruptionOnTerminusReversal(t);
