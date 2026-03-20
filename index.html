@@ -65,6 +65,7 @@
       <span id="netSub">All routes operating — no disruptions active</span>
     </div>
     <div id="netStripRight">
+      <button id="demoBtnStrip" title="Run scripted investor demo sequence">&#x25B6; Demo</button>
       <button id="disCreateBtnStrip" class="strip-dis-btn" onclick="enterDisruptionMode()" title="Place disruption on map">&#x26A0; + Log Disruption</button>
     </div>
   </div>
@@ -157,7 +158,7 @@
     <input type="range" class="lyr-slider" id="routeOpacitySlider" min="5" max="100" value="75" step="5" oninput="setRouteOpacity(this.value)">
   </div>
 </div>
-<div class="ntm" id="ntm">Map tiles loading...<br>If blank, open this file in Chrome</div></div><div class="wm">PROTOTYPE DATA — NOT LIVE FEED</div><div id="zoomBadge" class="tier-cmp">● COMPACT</div></div>
+<div class="ntm" id="ntm">Map tiles loading...<br>If blank, open this file in Chrome</div></div><div class="wm">Melbourne Tram Network — OpsView Simulator</div><div id="zoomBadge" class="tier-cmp">● COMPACT</div></div>
     <div id="dp"><div class="dh"><span class="did" id="did"></span><button class="dx" onclick="cDet()">&#x2715;</button></div><div class="db" id="dbd"></div></div>
     <!-- PERFORMANCE PANEL -->
     <div id="perfPanel">
@@ -247,6 +248,8 @@
 <script src="js/traffic.js"></script>
 <!-- Attribution history panel -->
 <script src="js/history.js"></script>
+<!-- Scripted investor demo sequence -->
+<script src="js/demo.js"></script>
 
 <!-- History panel overlay (full-screen slide-in) -->
 <div id="historyPanel" onclick="if(event.target===this)window.DisHistory.close()">

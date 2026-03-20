@@ -937,3 +937,216 @@ details[open] .attr-tunables-summary::before{content:'▼ '}
 .hist-state-ok{background:#00e5a022;color:var(--grn);border:1px solid var(--grn)55}
 .hist-state-rev{background:#ffa00022;color:var(--yel);border:1px solid var(--yel)55}
 .hist-state-low{background:#ff525222;color:#ff5252;border:1px solid #ff525255}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   INVESTOR PRESENTATION POLISH — appended styles
+   Overrides and enhancements for a premium, investor-ready appearance
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Header upgrade ─────────────────────────────────────────────────── */
+#hdr{
+  background:linear-gradient(180deg,#0d1622 0%,#0a0f16 100%);
+  border-bottom-color:#1f2d3d;
+  box-shadow:0 1px 12px #00000044;
+}
+.logo{
+  font-size:16px;letter-spacing:2px;
+  background:linear-gradient(135deg,#00e5a0,#4299e1);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.logo span{-webkit-text-fill-color:var(--tx3);background:none;background-clip:unset}
+
+/* ── Watermark — presenter-mode branding ──────────────────────────────*/
+.wm{
+  font-size:10px;color:#ffffff12;letter-spacing:4px;
+  text-shadow:0 0 20px #00e5a020;
+}
+
+/* ── Header buttons — unified pill style ─────────────────────────────*/
+#hdr button:not(.rb):not(.perf-btn){
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;border-radius:4px;padding:3px 9px;
+  border:1px solid var(--bdr);background:transparent;
+  color:var(--tx2);cursor:pointer;transition:all .15s;
+}
+#hdr button:not(.rb):not(.perf-btn):hover{
+  border-color:var(--acc);color:var(--acc);
+}
+#themeBtn{border-radius:4px!important;border:1px solid var(--bdr)!important}
+
+/* ── Network strip — upgraded disruption-active state ────────────────*/
+#netStrip{height:34px;border-bottom-width:1.5px}
+#netLabel{font-size:11px;letter-spacing:2px}
+#netSub{font-size:10px}
+#netStrip.dis-active{
+  background:linear-gradient(90deg,#150820,#1a0d20,#150820);
+  border-bottom-color:#e040fb55;
+  box-shadow:0 2px 16px #e040fb18 inset;
+}
+
+/* ── DISRUPTION LOG — card-based entries ─────────────────────────────*/
+#disLog.open{max-height:180px}
+.dislog-body{max-height:140px;padding:6px 8px;display:flex;flex-direction:column;gap:4px}
+.dislog-hdr{padding:5px 14px}
+.dislog-title{font-size:10px;letter-spacing:1.5px}
+
+.dlc{
+  background:var(--pnl);border:1px solid var(--bdr);border-radius:5px;
+  border-left:3px solid var(--acc);padding:6px 10px;
+  display:flex;flex-direction:column;gap:3px;
+  transition:background .12s;flex-shrink:0;
+}
+.dlc:hover{background:var(--pnl2)}
+.dlc-hd{display:flex;align-items:center;gap:6px}
+.dlc-routes{display:flex;gap:4px;align-items:center}
+.dlc-rt{
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;
+  background:currentColor;-webkit-background-clip:unset;background-clip:unset;
+  /* use inherited color: just output the text */
+}
+.dlc-type-badge{
+  flex:1;font-size:10px;color:var(--txt);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.dlc-x{
+  background:none;border:1px solid #e040fb33;color:#e040fb;
+  border-radius:3px;padding:0 5px;font-size:9px;cursor:pointer;
+  font-family:'JetBrains Mono',monospace;flex-shrink:0;transition:all .12s;
+}
+.dlc-x:hover{background:#e040fb;color:#fff;border-color:#e040fb}
+.dlc-ft{display:flex;align-items:center;gap:8px;font-size:9px}
+.dlc-ts{font-family:'JetBrains Mono',monospace;color:var(--tx3);flex-shrink:0}
+.dlc-dur{font-family:'JetBrains Mono',monospace;color:var(--txt);flex-shrink:0}
+.dlc-extra{color:var(--tx3);flex:1}
+.dlc-status-active{
+  font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;
+  padding:1px 6px;border-radius:2px;
+  background:#e040fb18;color:#e040fb;border:1px solid #e040fb44;
+  flex-shrink:0;
+}
+.dlc-status-cleared{
+  font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;
+  padding:1px 6px;border-radius:2px;
+  background:#00e5a012;color:#00e5a0;border:1px solid #00e5a030;
+  flex-shrink:0;
+}
+
+/* ── PERFORMANCE PANEL — hero KPI redesign ───────────────────────────*/
+.perf-hero{
+  display:flex;align-items:center;gap:14px;
+  padding:12px 0 10px;margin-bottom:10px;
+  border-bottom:1px solid var(--bdr);
+}
+.perf-hero-ring{
+  width:72px;height:72px;border-radius:50%;flex-shrink:0;
+  background:conic-gradient(var(--hero-col,var(--grn)) 0deg,var(--pnl2) 0deg);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 20px -4px var(--hero-col,var(--grn)),inset 0 0 0 6px var(--pnl);
+  position:relative;
+}
+.perf-hero-inner{
+  width:54px;height:54px;border-radius:50%;
+  background:var(--pnl);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  border:1px solid var(--bdr);
+}
+.perf-hero-pct{
+  font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;
+  line-height:1;
+}
+.perf-hero-unit{font-size:13px;font-weight:400}
+.perf-hero-sub{font-size:8px;color:var(--tx3);letter-spacing:.5px;margin-top:1px}
+.perf-hero-meta{flex:1;min-width:0}
+.perf-hero-label{font-size:11px;font-weight:600;color:var(--txt);margin-bottom:5px}
+.perf-hero-bar-wrap{
+  height:5px;background:var(--pnl2);border-radius:3px;
+  overflow:hidden;margin-bottom:5px;
+}
+.perf-hero-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.perf-hero-hint{font-size:9px;color:var(--tx3)}
+.perf-kpi-row3{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;
+}
+.perf-kpi-sm{
+  background:var(--pnl2);border:1px solid var(--bdr);
+  border-radius:4px;padding:6px 8px;text-align:center;
+}
+.perf-kpi-val2{
+  font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;
+  color:var(--acc);line-height:1.15;
+}
+/* Hero ring sweep: dynamically calculated via JS (conic-gradient degree) */
+/* Until JS sets it, use a static 75% ring */
+.perf-hero-ring{
+  background:conic-gradient(
+    var(--hero-col,var(--grn)) calc(var(--hero-pct,75) * 3.6deg),
+    var(--pnl2) 0deg
+  );
+}
+
+/* ── Demo button ─────────────────────────────────────────────────────*/
+#demoBtnStrip{
+  padding:3px 10px;border-radius:3px;cursor:pointer;
+  font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:600;
+  border:1px solid var(--bdr);color:var(--tx2);background:transparent;
+  transition:all .15s;letter-spacing:.5px;
+}
+#demoBtnStrip:hover{border-color:var(--acc);color:var(--acc);background:var(--grn2)}
+#demoBtnStrip.demo-running{
+  border-color:#e040fb;color:#e040fb;background:#e040fb10;
+  animation:disPulse 1.2s ease-in-out infinite;
+}
+
+/* ── Demo toast notification ─────────────────────────────────────────*/
+#demoToast{
+  position:fixed;bottom:56px;left:50%;transform:translateX(-50%) translateY(8px);
+  background:rgba(13,22,34,.97);border:1px solid var(--bdr2);
+  border-radius:6px;padding:8px 18px;font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:var(--txt);z-index:9999;
+  box-shadow:0 4px 20px #000a,0 0 0 1px rgba(255,255,255,.06);
+  opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;
+  white-space:nowrap;max-width:520px;text-align:center;
+  border-left:3px solid var(--acc);
+}
+#demoToast.demo-toast-show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Scrollbar polish for panels ─────────────────────────────────────*/
+.dislog-body::-webkit-scrollbar,
+.perf-body::-webkit-scrollbar,
+.attr-body::-webkit-scrollbar,
+.hist-body::-webkit-scrollbar{width:4px}
+.dislog-body::-webkit-scrollbar-track,
+.perf-body::-webkit-scrollbar-track,
+.attr-body::-webkit-scrollbar-track,
+.hist-body::-webkit-scrollbar-track{background:var(--bg2)}
+.dislog-body::-webkit-scrollbar-thumb,
+.perf-body::-webkit-scrollbar-thumb,
+.attr-body::-webkit-scrollbar-thumb,
+.hist-body::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+
+/* ── Network strip route health pills (in disruption state) ──────────*/
+.ns-route-pill{
+  font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;
+  padding:1px 5px;border-radius:3px;border:1px solid currentColor;
+  opacity:.9;
+}
+
+/* ── Perf panel header upgrade ───────────────────────────────────────*/
+.perf-hdr{
+  background:linear-gradient(180deg,var(--pnl2) 0%,var(--pnl) 100%);
+  border-bottom:1px solid var(--bdr);
+}
+.perf-title{
+  font-size:11px;letter-spacing:2px;
+  background:linear-gradient(90deg,var(--acc),var(--blu));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+
+/* ── Light theme overrides for new elements ──────────────────────────*/
+.light .dlc{background:var(--pnl);border-color:var(--bdr)}
+.light .dlc:hover{background:var(--pnl2)}
+.light .perf-hero-ring{box-shadow:0 0 16px -4px var(--hero-col,var(--acc)),inset 0 0 0 6px var(--pnl)}
+.light .perf-hero-inner{background:var(--pnl)}
+.light #demoToast{background:rgba(255,255,255,.97);border-color:var(--bdr2);color:var(--txt)}
