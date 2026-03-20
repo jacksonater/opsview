@@ -135,7 +135,10 @@ function renderAlerts() {
       '<div class="alert-card" id="alert-card-' + a.id + '">' +
         '<div class="alert-card-hdr">' +
           '<span class="' + badgeCls + '">' + badgeTxt + '</span>' +
-          '<span class="alert-tram">T' + escHtml(String(a.tramId)) +
+          '<span class="alert-tram alert-tram-jump" ' +
+            'onclick="window.Alerts.jumpToTram(' + a.id + ')" ' +
+            'title="Click to snap map to this tram">' +
+            '\u2316 T' + escHtml(String(a.tramId)) +
             ' \u00B7 Rt\u00A0' + escHtml(String(a.tramRoute)) + '</span>' +
           '<button class="alert-dismiss" ' +
             'onclick="window.Alerts.dismiss(' + a.id + ',false,false)" ' +
@@ -320,6 +323,19 @@ function createMaximo(alertId) {
   }
 }
 
+function jumpToTram(alertId) {
+  var a = alertQueue.find(function(x) { return x.id === alertId; }) ||
+          alertHistory.find(function(x) { return x.id === alertId; });
+  if (!a) return;
+  // Find the tram's current position from the live trams array
+  var trams = window.trams || [];
+  var t = null;
+  for (var i = 0; i < trams.length; i++) {
+    if (String(trams[i].id) === String(a.tramId)) { t = trams[i]; break; }
+  }
+  if (t && window.tramFocus) window.tramFocus(t);
+}
+
 // ── PUBLIC API ────────────────────────────────────────────────────────────
 window.Alerts = {
   checkSignpostJump:   checkSignpostJump,
@@ -330,6 +346,7 @@ window.Alerts = {
   attributeToLog:      attributeToLog,
   createMaximo:        createMaximo,
   toggleBell:          toggleBellPanel,
+  jumpToTram:          jumpToTram,
   getHistory:          function() { return alertHistory.slice(); },
   getUnread:           function() { return unreadCount; }
 };

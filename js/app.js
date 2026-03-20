@@ -1147,6 +1147,7 @@ window.logDisruptionFromTram=function(t){
 
   // Pre-fill from tram data
   sel.value=t.route;
+  updateDirDropdown(t.route);
   document.getElementById('dfType').value='Vehicle breakdown';
   document.getElementById('dfDir').value=t.updn==='Down'?'Down only':'Up only';
   document.getElementById('dfNotes').value='';
@@ -1177,21 +1178,16 @@ window.logDisruptionFromTram=function(t){
   pendingDisLatlng={lat:la,lng:lo};
 
   // Show coord hint
-  document.getElementById('dfCoord').textContent='Pre-filled from Tram T'+t.id+' current position';
-  document.getElementById('dfCoord').style.color='var(--tx3)';
-
-  // Position form near tram on map
-  var form=document.getElementById('disForm');
-  var pt=map.latLngToContainerPoint(L.latLng(la,lo));
-  var mapEl=document.getElementById('mc');
-  var fx=Math.min(pt.x+12,mapEl.offsetWidth-300);
-  var fy=Math.max(10,Math.min(pt.y-120,mapEl.offsetHeight-420));
-  form.style.left=fx+'px';form.style.top=fy+'px';
+  document.getElementById('dfCoord').textContent='Tram T'+t.id+' \u2014 '+la.toFixed(5)+', '+lo.toFixed(5);
+  var strip=document.getElementById('dfLocationStrip');if(strip)strip.classList.add('located');
 
   disCreateMode=true;
   document.body.classList.add('dis-create-mode');
   document.getElementById('disCreateBtnStrip').classList.add('active');
-  form.classList.add('open');
+  document.getElementById('dfTitleText').textContent='Create Disruption';
+  document.getElementById('dfOkBtn').textContent='Create \u0026 Log';
+  document.getElementById('disForm').classList.remove('edit-mode');
+  document.getElementById('disForm').classList.add('open');
 };
 
 window.logDisruptionFromLiveTram=function(id,route,dirId,la,lo){
@@ -1499,13 +1495,34 @@ var pendingDisLatlng=null;
 var pendingFromTram=null;
 var disCounter=0;
 
+function updateDirDropdown(route){
+  var dd=window.DIR_DATA&&window.DIR_DATA[String(route)];
+  var sel=document.getElementById('dfDir');
+  if(!sel)return;
+  var cur=sel.value;
+  sel.innerHTML='';
+  var both=document.createElement('option');
+  both.value='Both directions';both.textContent='Both directions';sel.appendChild(both);
+  var upOpt=document.createElement('option');
+  upOpt.value='Up only';
+  upOpt.textContent=dd?'\u25B2 Up \u2014 '+dd.up:'Up only';
+  sel.appendChild(upOpt);
+  var dnOpt=document.createElement('option');
+  dnOpt.value='Down only';
+  dnOpt.textContent=dd?'\u25BC Down \u2014 '+dd.dn:'Down only';
+  sel.appendChild(dnOpt);
+  if(cur&&sel.querySelector('option[value="'+cur+'"]'))sel.value=cur;
+}
+
 window.enterDisruptionMode=function(){
   if(disCreateMode){exitDisruptionMode();return;}
   disCreateMode=true;
+  pendingDisLatlng=null;
+  pendingFromTram=null;
   document.body.classList.add('dis-create-mode');
   document.getElementById('disCreateBtn').classList.add('active');
   document.getElementById('disCreateBtnStrip').classList.add('active');
-  setLiveStatus('loading','Click on a tram route to place disruption');
+  setLiveStatus('loading','Click on a tram route to set disruption location');
   // Populate route dropdown
   var sel=document.getElementById('dfRoute');
   sel.innerHTML='';
@@ -1513,6 +1530,16 @@ window.enterDisruptionMode=function(){
     var o=document.createElement('option');o.value=k;o.textContent='Route '+k+' ('+R[k].o+' — '+R[k].d+')';
     sel.appendChild(o);
   });
+  updateDirDropdown(sel.value);
+  // Reset location strip and open drawer immediately
+  var strip=document.getElementById('dfLocationStrip');
+  if(strip) strip.classList.remove('located');
+  document.getElementById('dfCoord').textContent='Click on the map to set location';
+  var src=document.getElementById('dfSource');if(src){src.style.display='none';src.textContent='';}
+  var ti=document.getElementById('dfTramInfo');if(ti){ti.style.display='none';ti.innerHTML='';}
+  document.getElementById('dfTitleText').textContent='Create Disruption';
+  document.getElementById('dfOkBtn').textContent='Create \u0026 Log';
+  document.getElementById('disForm').classList.add('open');
 };
 
 function exitDisruptionMode(){
@@ -1524,7 +1551,8 @@ function exitDisruptionMode(){
   document.getElementById('disCreateBtnStrip').classList.remove('active');
   document.getElementById('disForm').classList.remove('open');
   document.getElementById('liveStatus').className='live-indicator';
-  // Reset source badge and tram pre-fill
+  var strip=document.getElementById('dfLocationStrip');
+  if(strip) strip.classList.remove('located');
   var src=document.getElementById('dfSource');if(src){src.style.display='none';src.textContent='';}
   var ti=document.getElementById('dfTramInfo');if(ti){ti.style.display='none';ti.innerHTML='';}
 }
@@ -1575,18 +1603,13 @@ map.on('click',function(e){
   // Snap the placement to the route line
   pendingDisLatlng={lat:snapLat,lng:snapLng};
 
-  // Position the form near the snapped point
-  var form=document.getElementById('disForm');
-  var pt=map.latLngToContainerPoint(L.latLng(snapLat,snapLng));
-  var mapEl=document.getElementById('mc');
-  var mx=mapEl.offsetWidth,my=mapEl.offsetHeight;
-  var fx=Math.min(pt.x+10,mx-300),fy=Math.min(pt.y-100,my-350);
-  if(fy<10)fy=10;
-  form.style.left=fx+'px';form.style.top=fy+'px';
-  form.classList.add('open');
-  document.getElementById('dfCoord').textContent='Snapped to Rt '+nearRoute+' — '+Math.round(minDist)+'m from click';
+  // Update location strip in the drawer
+  document.getElementById('dfCoord').textContent='Rt '+nearRoute+' — '+snapLat.toFixed(5)+', '+snapLng.toFixed(5)+(minDist>10?' ('+Math.round(minDist)+'m snap)':'');
+  var strip=document.getElementById('dfLocationStrip');
+  if(strip) strip.classList.add('located');
+  setLiveStatus('active','Location set — fill in the form and click Create');
   // Set nearest route as default
-  if(nearRoute)document.getElementById('dfRoute').value=nearRoute;
+  if(nearRoute){document.getElementById('dfRoute').value=nearRoute;updateDirDropdown(nearRoute);}
 });
 
 // ── EDIT DISRUPTION ──
@@ -1601,21 +1624,18 @@ window.openEditDis=function(id){
   var sel=document.getElementById('dfRoute');sel.innerHTML='';
   rks.forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent='Route '+k+' ('+R[k].o+' — '+R[k].d+')';sel.appendChild(o);});
   sel.value=dis.route;
+  updateDirDropdown(dis.route);
   document.getElementById('dfType').value=dis.type;
   document.getElementById('dfDir').value=dis.dir;
   document.getElementById('dfNotes').value=dis.notes||'';
   document.getElementById('dfCoord').textContent='Editing Disruption #'+id+' — change type, direction or notes, then Save';
   document.getElementById('dfTitleText').textContent='Edit Disruption #'+id;
   document.getElementById('dfOkBtn').textContent='Save';
+  document.getElementById('dfCoord').textContent='Editing Disruption #'+id+' — update fields then Save';
+  var strip=document.getElementById('dfLocationStrip');
+  if(strip) strip.classList.add('located');
   var form=document.getElementById('disForm');
   form.classList.add('edit-mode');
-  // Position form near the marker
-  if(dis.marker){
-    var pt=map.latLngToContainerPoint([dis.la,dis.lo]);
-    var mapEl=document.getElementById('mc');
-    form.style.left=Math.min(pt.x+10,mapEl.offsetWidth-300)+'px';
-    form.style.top=Math.max(10,Math.min(pt.y-100,mapEl.offsetHeight-350))+'px';
-  }
   form.classList.add('open');
 };
 
@@ -1712,6 +1732,14 @@ window.confirmDisruption=function(){
 
   dis.southXO=before.length?before[before.length-1]:null; // last before = closest upstream
   dis.northXO=after.length?after[0]:null;
+
+  // Always define two hard bounds: XO if available, route terminus otherwise.
+  // The purple disrupted zone is EXACTLY the space between these two bounds.
+  // southBound = lower along-route param (toward route origin / terminus A)
+  // northBound = higher along-route param (toward route destination / terminus B)
+  var _fwd=primaryShape; // R[primaryRoute].fwd — {la,lo} array
+  dis.southBound = dis.southXO || (_fwd&&_fwd.length ? {la:_fwd[0].la, lo:_fwd[0].lo, _isTerminus:true, n:R[primaryRoute].o} : null);
+  dis.northBound = dis.northXO || (_fwd&&_fwd.length ? {la:_fwd[_fwd.length-1].la, lo:_fwd[_fwd.length-1].lo, _isTerminus:true, n:R[primaryRoute].d} : null);
   dis.routeXOs=routeXOs;
   dis._disParam=disParam;
   dis._primaryShape=primaryShape;
@@ -2395,16 +2423,16 @@ window.openDisFormFromTram=function(t,latlng){
   var sel=document.getElementById('dfRoute');sel.innerHTML='';
   rks.forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent='Route '+k+' ('+R[k].o+' \u2014 '+R[k].d+')';sel.appendChild(o);});
   sel.value=t.route;
+  updateDirDropdown(t.route);
   var dtEl=document.getElementById('dfType');if(dtEl)dtEl.value='Vehicle breakdown';
   var ddEl=document.getElementById('dfDir');if(ddEl)ddEl.value=t.updn==='Down'?'Down only':'Up only';
   document.getElementById('dfNotes').value='Reported at tram #'+t.id+' on route '+t.route;
-  var coord=document.getElementById('dfCoord');if(coord)coord.textContent='Tram '+t.id+' (Rt '+t.route+') at '+latlng.lat.toFixed(5)+','+latlng.lng.toFixed(5);
-  var form=document.getElementById('disForm');
-  var pt=map.latLngToContainerPoint(latlng);
-  var mapEl=document.getElementById('mc');
-  form.style.left=Math.min(pt.x+10,mapEl.offsetWidth-300)+'px';
-  form.style.top=Math.max(10,Math.min(pt.y-100,mapEl.offsetHeight-350))+'px';
-  form.classList.add('open');
+  document.getElementById('dfCoord').textContent='Tram '+t.id+' (Rt '+t.route+') \u2014 '+latlng.lat.toFixed(5)+', '+latlng.lng.toFixed(5);
+  var strip=document.getElementById('dfLocationStrip');if(strip)strip.classList.add('located');
+  document.getElementById('dfTitleText').textContent='Create Disruption';
+  document.getElementById('dfOkBtn').textContent='Create \u0026 Log';
+  document.getElementById('disForm').classList.remove('edit-mode');
+  document.getElementById('disForm').classList.add('open');
 };
 
 // Signal that app.js is ready — simulator.js init() runs synchronously here

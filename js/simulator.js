@@ -713,6 +713,16 @@ function init(){
   }
 
   // ── CHECK IF A SIM TRAM SHOULD BE DISRUPTED ──
+  // ── DISRUPTION ZONE DETECTION ──
+  // The purple disrupted zone = the space between two hard bounds.
+  // southBound = nearest crossover OR route terminus toward route start.
+  // northBound = nearest crossover OR route terminus toward route end.
+  // Both are always defined (set at disruption creation time in app.js).
+  //
+  // Rule — no exceptions:
+  //   tram inside [southBound … northBound]  → trapped
+  //   tram south of southBound               → short-work back to southBound
+  //   tram north of northBound               → short-work back to northBound
   function checkSimTramDisruption(t, disruptions){
     var pos = t._simPos;
     if(!pos && t.path && t.path[0]) pos = {lat: t.path[0].la, lng: t.path[0].lo};
@@ -728,31 +738,42 @@ function init(){
       if(t.updn === 'Down' && !affectDown) continue;
       if(t.updn === 'Up'   && !affectUp)   continue;
 
-      // No crossover data — proximity trap
-      if(!dis.southXO && !dis.northXO){
-        if(geoDist(pos.lat, pos.lng, dis.la, dis.lo) < 300){
-          trapSimTram(t, dis);
-        }
+      // southBound / northBound are always defined by confirmDisruption:
+      // real XO if one exists near the disruption on that side, route terminus otherwise.
+      var sB = dis.southBound;
+      var nB = dis.northBound;
+
+      // Route shape for this tram (used for along-route index comparison)
+      var rShape = R[t.route] ? R[t.route].shape : null;
+      if(!rShape || rShape.length < 2){
+        // No shape data — simple proximity trap only
+        if(geoDist(pos.lat, pos.lng, dis.la, dis.lo) < 300) trapSimTram(t, dis);
         return;
       }
 
-      // Geographic classification
-      var dToSouth = dis.southXO ? geoDist(pos.lat, pos.lng, dis.southXO.la, dis.southXO.lo) : 99999;
-      var dToNorth = dis.northXO ? geoDist(pos.lat, pos.lng, dis.northXO.la, dis.northXO.lo) : 99999;
-      var dToDis = geoDist(pos.lat, pos.lng, dis.la, dis.lo);
-      var xoSpan = (dis.southXO && dis.northXO) ? geoDist(dis.southXO.la, dis.southXO.lo, dis.northXO.la, dis.northXO.lo) : 9999;
+      if(!sB && !nB){
+        // Disruption has no bounds at all (very old record) — fallback
+        if(geoDist(pos.lat, pos.lng, dis.la, dis.lo) < 300) trapSimTram(t, dis);
+        return;
+      }
 
-      var isBetween = (dToDis < xoSpan * 0.6) && (dToSouth < xoSpan) && (dToNorth < xoSpan);
+      // Classify via along-route shape index
+      var tramIdx = nearestShapeIdx(rShape, pos.lat, pos.lng);
+      var sIdx    = sB ? nearestShapeIdx(rShape, sB.la, sB.lo) : 0;
+      var nIdx    = nB ? nearestShapeIdx(rShape, nB.la, nB.lo) : rShape.length - 1;
 
-      if(isBetween){
+      // Ensure sIdx <= nIdx (shape direction may differ per route)
+      if(sIdx > nIdx){ var tmp = sIdx; sIdx = nIdx; nIdx = tmp; }
+
+      if(tramIdx >= sIdx && tramIdx <= nIdx){
+        // Inside the block zone — trap in place
         trapSimTram(t, dis);
+      } else if(tramIdx < sIdx){
+        // South of zone — turn back at south bound (XO or terminus)
+        startShortWorking(t, dis, sB);
       } else {
-        // Outside — assign turnback to nearer crossover
-        var nearerIsSouth = (dToSouth < dToNorth);
-        var xo = nearerIsSouth ? dis.southXO : dis.northXO;
-        if(xo){
-          startShortWorking(t, dis, xo);
-        }
+        // North of zone — turn back at north bound (XO or terminus)
+        startShortWorking(t, dis, nB);
       }
       return; // only process first matching disruption
     }
@@ -1363,6 +1384,7 @@ function init(){
   };
 
   window.openSimDetail = function(t, isClick){ openSimDetail(t, isClick); };
+  window.DIR_DATA = DIR_DATA;
 
   window.simStop = function(){
     SIM_MODE = false;

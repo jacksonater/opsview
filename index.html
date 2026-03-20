@@ -110,36 +110,45 @@
 </div>
 <div id="kbHint">? = shortcuts</div>
 <div class="dis-form" id="disForm">
-  <div class="df-title"><span style="font-size:16px">&#x26A0;</span> <span id="dfTitleText">Create Disruption</span></div>
-  <!-- Source badge: MAP-BASED or TRAM-BASED -->
-  <div id="dfSource" class="df-source-badge" style="display:none"></div>
-  <!-- Tram pre-fill strip (shown when entry is from tram click) -->
-  <div id="dfTramInfo" class="df-tram-info" style="display:none"></div>
-  <label>Incident Type</label>
-  <select id="dfType">
-    <option value="Vehicle breakdown">Vehicle breakdown</option>
-    <option value="Collision">Collision</option>
-    <option value="Infrastructure failure">Infrastructure failure</option>
-    <option value="Police/emergency">Police/emergency services</option>
-    <option value="Obstruction on track">Obstruction on track</option>
-    <option value="Overhead wire down">Overhead wire down</option>
-    <option value="Points failure">Points failure</option>
-    <option value="Signal priority fault">Signal priority fault</option>
-    <option value="Passenger incident">Passenger incident</option>
-    <option value="Other">Other</option>
-  </select>
-  <label>Route affected</label>
-  <select id="dfRoute"></select>
-  <div class="df-row">
-    <div><label>Direction</label>
-    <select id="dfDir"><option value="Both directions">Both directions</option><option value="Up only">Up only</option><option value="Down only">Down only</option></select></div>
+  <div class="df-hdr">
+    <div class="df-hdr-title"><span style="font-size:14px">&#x26A0;</span> <span id="dfTitleText">Create Disruption</span></div>
+    <button class="df-hdr-close" onclick="cancelDisruption()" title="Close">&#x2715;</button>
   </div>
-  <label>Narrative <span style="color:var(--tx3);font-size:9px;font-weight:400">(&#x2192; Maximo log)</span></label>
-  <textarea id="dfNotes" placeholder="Describe the incident for the Maximo record..."></textarea>
-  <div id="dfCoord" style="font-size:9px;color:var(--tx3);margin-top:4px"></div>
-  <div class="df-btns">
-    <div class="df-btn df-cancel" onclick="cancelDisruption()">Cancel</div>
-    <div class="df-btn df-ok" id="dfOkBtn" onclick="confirmDisruption()">Create &amp; Log</div>
+  <div class="df-body">
+    <!-- Location indicator -->
+    <div class="df-location-strip" id="dfLocationStrip">
+      <span class="df-loc-icon">&#x2316;</span>
+      <span id="dfCoord">Click on the map to set location</span>
+    </div>
+    <!-- Source badge: MAP-BASED or TRAM-BASED -->
+    <div id="dfSource" class="df-source-badge" style="display:none"></div>
+    <!-- Tram pre-fill strip (shown when entry is from tram click) -->
+    <div id="dfTramInfo" class="df-tram-info" style="display:none"></div>
+    <label>Incident Type</label>
+    <select id="dfType">
+      <option value="Vehicle breakdown">Vehicle breakdown</option>
+      <option value="Collision">Collision</option>
+      <option value="Infrastructure failure">Infrastructure failure</option>
+      <option value="Police/emergency">Police/emergency services</option>
+      <option value="Obstruction on track">Obstruction on track</option>
+      <option value="Overhead wire down">Overhead wire down</option>
+      <option value="Points failure">Points failure</option>
+      <option value="Signal priority fault">Signal priority fault</option>
+      <option value="Passenger incident">Passenger incident</option>
+      <option value="Other">Other</option>
+    </select>
+    <label>Route affected</label>
+    <select id="dfRoute" onchange="updateDirDropdown(this.value)"></select>
+    <div class="df-row">
+      <div><label>Direction</label>
+      <select id="dfDir"><option value="Both directions">Both directions</option><option value="Up only">Up only</option><option value="Down only">Down only</option></select></div>
+    </div>
+    <label>Narrative <span style="color:var(--tx3);font-size:9px;font-weight:400">(&#x2192; Maximo log)</span></label>
+    <textarea id="dfNotes" placeholder="Describe the incident for the Maximo record..."></textarea>
+    <div class="df-btns">
+      <div class="df-btn df-cancel" onclick="cancelDisruption()">Cancel</div>
+      <div class="df-btn df-ok" id="dfOkBtn" onclick="confirmDisruption()">Create &amp; Log</div>
+    </div>
   </div>
 </div>
 <div class="job-panel" id="jobPanel"></div>
