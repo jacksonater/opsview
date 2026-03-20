@@ -35,6 +35,24 @@
       <div class="spd"><label>Find:</label><input id="tramSearch" type="text" placeholder="T2156..." style="width:62px;background:var(--pnl2);border:1px solid var(--bdr);color:var(--txt);padding:2px 4px;border-radius:3px;font-family:inherit;font-size:10px" oninput="filterTram(this.value)"></div>
       <div class="spd"><label>Speed:</label><select id="spdSel" onchange="setSpeed(this.value)"><option value="1">1x</option><option value="3">3x</option><option value="5" selected>5x</option><option value="10">10x</option><option value="20">20x</option></select></div>
       <div class="clk"><span class="cd" id="cD"></span><span id="cT"></span></div>
+      <!-- Traffic overlay toggle -->
+      <div style="position:relative">
+        <button id="trafficToggleBtn" onclick="window.TrafficOverlay&&window.TrafficOverlay.toggle()" title="Toggle traffic flow overlay">&#x1F6A6; Traffic</button>
+        <div id="trafficKeyNote">
+          <strong>TomTom API key required</strong>
+          Add <code>tomtomKey: 'YOUR_KEY'</code> to <code>OpsViewConfig</code> in
+          <code>js/config.js</code>.<br>Free tier: developer.tomtom.com
+        </div>
+      </div>
+      <!-- History button -->
+      <button id="historyBtn" onclick="window.DisHistory&&window.DisHistory.open()" title="View attribution history">
+        &#x1F4DC; History<span id="historyBadge"></span>
+      </button>
+      <!-- Notification bell -->
+      <div style="position:relative">
+        <button id="alertBell" onclick="window.Alerts&&window.Alerts.toggleBell()" title="Deviation alerts">&#x1F514;<span id="alertBellBadge"></span></button>
+        <div id="alertBellPanel"></div>
+      </div>
       <button class="rb" id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark" style="border:1px solid var(--bdr);border-radius:4px;margin-right:4px;padding:3px 8px">&#x263C;</button>
       <div class="rtg"><button class="rb a" id="rC" onclick="setRole('c')">Controller</button><button class="rb" id="rR" onclick="setRole('r')">Read-Only</button></div>
     </div>
@@ -72,6 +90,8 @@
     </div>
     <button class="fp-toggle" id="fpToggle" onclick="togglePanel()" title="Toggle route panel">&#x25B6;</button>
     <div id="mc"><div id="map"><div class="live-indicator" id="liveStatus"></div>
+<!-- Deviation alert cards — top-right of map -->
+<div id="alertContainer"></div>
 <div id="mapGrain"></div>
 <div id="mapScanlines"></div>
 <div id="kbBackdrop" onclick="toggleKbPanel()"></div>
@@ -221,5 +241,25 @@
 <script src="js/simulator.js"></script>
 <!-- Maximo integration simulation (deferred — waits for opsview-ready) -->
 <script src="js/maximo.js"></script>
+<!-- Deviation alert system -->
+<script src="js/alerts.js"></script>
+<!-- TomTom traffic overlay -->
+<script src="js/traffic.js"></script>
+<!-- Attribution history panel -->
+<script src="js/history.js"></script>
+
+<!-- History panel overlay (full-screen slide-in) -->
+<div id="historyPanel" onclick="if(event.target===this)window.DisHistory.close()">
+  <div class="hist-container">
+    <div class="hist-panel-hdr">
+      <span class="hist-panel-title">&#x1F4DC; Attribution History</span>
+      <button class="hist-panel-close" onclick="window.DisHistory.close()">&#x2715;</button>
+    </div>
+    <div class="hist-body">
+      <div id="historyList"></div>
+      <div id="historyDetail"></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

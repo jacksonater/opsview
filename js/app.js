@@ -1879,6 +1879,8 @@ window.removeDis=function(id){
   if(d.blockedLine)map.removeLayer(d.blockedLine);
   if(d.timer)clearInterval(d.timer);
   clearDisruptionFromTrams(id); // release trapped/turnback trams for this disruption
+  // Snapshot attribution results into history before removing
+  if(window.DisHistory) window.DisHistory.recordClosure(d, disruptionLog.find(function(e){return e.id===id;}));
   disruptions.splice(idx,1);
   if(disruptions.length===0){
     layerState.xovers=false;applyLayerVis();
@@ -2097,7 +2099,8 @@ window.simDisruption=function(){
 function clearAllDisruptions(){
   disruptions.forEach(function(d){
     if(d.timer)clearInterval(d.timer);
-    clearDisruptionFromTrams(d.id); // release all trams blocked by this disruption
+    clearDisruptionFromTrams(d.id);
+    if(window.DisHistory) window.DisHistory.recordClosure(d, disruptionLog.find(function(e){return e.id===d.id;}));
   });
   disruptions.splice(0); // empty in-place to preserve window.disruptions reference
   disMarkers.forEach(function(m){map.removeLayer(m);});disMarkers=[];

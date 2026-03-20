@@ -584,6 +584,20 @@ function init(){
       t.dv = calcDeviation(t._simTrip, simTime);
       t.path = [{la: pos.lat, lo: pos.lng, n: pos.nearStop}];
 
+      // ── DEVIATION JUMP ALERT ──
+      // Fire when a tram advances to a new waypoint and the deviation has
+      // jumped significantly compared to the previous signpost.
+      if(window.Alerts) {
+        if(t._lastWpIdx !== undefined && pos.wpIdx === t._lastWpIdx + 1) {
+          var newWp = t._simTrip.waypoints[pos.wpIdx];
+          window.Alerts.checkSignpostJump(t, pos.wpIdx, newWp ? newWp.c : '?', t.dv);
+        } else if(t._lastWpIdx !== undefined && pos.wpIdx !== t._lastWpIdx) {
+          // Waypoint index regressed or skipped (trip change) — reset tracking
+          window.Alerts.resetTram(t.id);
+        }
+      }
+      t._lastWpIdx = pos.wpIdx;
+
       // ── CHECK: has this tram entered a disruption zone? ──
       if(!t.blockedByDis && disruptions.length > 0){
         checkSimTramDisruption(t, disruptions);
@@ -658,6 +672,8 @@ function init(){
     t.blockState = 'trapped';
     t._trappedAtSim = simTime;
     t._preTrapDv = t.dv;
+    // Tram is now captured — resolve any open deviation alert for it
+    if(window.Alerts) window.Alerts.resolveForTram(t.id);
     
     // Log trip impact
     if(t._simTrip){
@@ -1199,6 +1215,7 @@ function init(){
       // Entering sim mode
       SIM_MODE = true;
       simPlaying = true;
+      window._simRunning = true;
 
       var timeInput = document.getElementById('simTimeInput');
       simTime = hhmmToSecs(timeInput.value);
@@ -1254,6 +1271,7 @@ function init(){
   window.simStop = function(){
     SIM_MODE = false;
     simPlaying = false;
+    window._simRunning = false;
     if(simAnimFrame) cancelAnimationFrame(simAnimFrame);
     simAnimFrame = null;
 

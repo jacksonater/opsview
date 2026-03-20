@@ -43,7 +43,12 @@ window.OpsViewConfig = {
     snapThresholdM:   200,  // max metres from route line for a valid click
     coRouteRadiusM:   60,   // radius for detecting co-routed lines at disruption point
     crossoverRadiusM: 300   // max metres from route shape to include a crossover
-  }
+  },
+
+  // ── Traffic overlay ─────────────────────────────────────────────────────
+  // TomTom free tier: sign up at developer.tomtom.com (2,500 map tile req/day)
+  // Leave empty string to get an in-app prompt when the button is clicked.
+  tomtomKey: ''
 
 };
 
