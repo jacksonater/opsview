@@ -457,9 +457,12 @@ function init(){
       puncPct = passed > 0 ? Math.round(onTime / passed * 100) + '%' : '—';
 
       // Build signpost schedule table for current trip
-      tripSignposts = '<div class="ds"><div class="dst">Trip Signposts — ' + t.run + '</div>';
+      tripSignposts = '<div class="ds"><div class="dst">Trip Signposts — ' + (t._simTrip ? t._simTrip.run : t.run) + '</div>';
       tripSignposts += '<table style="width:100%;font-size:9px;font-family:\'JetBrains Mono\',monospace;border-collapse:collapse">';
       tripSignposts += '<tr style="color:var(--tx3);font-size:8px"><th style="text-align:left;padding:2px 3px">Seq</th><th style="text-align:left;padding:2px 3px">Code</th><th style="text-align:left;padding:2px 3px">Name</th><th style="padding:2px 3px">Sched</th><th style="padding:2px 3px">Status</th></tr>';
+
+      // Is this tram turned short (short-working but not just trapped in place)?
+      var isShortWorking = t.blockedByDis && t.blockState !== 'trapped' && t.blockState !== 'recovery';
 
       for(var si = 0; si < wps.length; si++){
         var wp = wps[si];
@@ -468,28 +471,30 @@ function init(){
         var wpAdj = wp.t;
         var status = '';
         var rowStyle = '';
+        var spNameStyle = 'color:var(--tx2)';
 
-        if(simTime >= wpAdj || (simTime + 86400) >= wpAdj){
+        var isPast = (simTime >= wpAdj || (simTime + 86400) >= wpAdj);
+
+        if(isPast){
           // Passed this signpost
-          var devAtSP = t.dv; // simplified — use tram's current deviation
+          var devAtSP = t.dv;
           if(Math.abs(devAtSP) <= 119) status = '<span style="color:var(--grn)">\u2713 On time</span>';
           else if(devAtSP > 0) status = '<span style="color:var(--blu)">' + window.devTxt(devAtSP) + '</span>';
           else status = '<span style="color:var(--yel)">' + window.devTxt(devAtSP) + '</span>';
+        } else if(isShortWorking){
+          // Future signpost that won't be served due to turn-short
+          status = '<span style="color:#666">\u2715 Cancelled</span>';
+          rowStyle = 'opacity:0.35';
+          spNameStyle = 'color:#555;text-decoration:line-through';
         } else {
           status = '<span style="color:var(--tx3)">—</span>';
           rowStyle = 'opacity:0.5';
         }
 
-        // Highlight if this signpost is in a disrupted zone
-        var isDisrupted = false;
-        if(t.blockedByDis){
-          isDisrupted = true; // simplified — all signposts on a disrupted tram are potentially affected
-        }
-
         tripSignposts += '<tr style="border-bottom:1px solid var(--bdr);' + rowStyle + '">';
         tripSignposts += '<td style="padding:2px 3px;color:var(--tx3)">' + si + '</td>';
         tripSignposts += '<td style="padding:2px 3px;font-weight:600">' + wp.c + '</td>';
-        tripSignposts += '<td style="padding:2px 3px;font-size:8px;color:var(--tx2)">' + spName + '</td>';
+        tripSignposts += '<td style="padding:2px 3px;font-size:8px;' + spNameStyle + '">' + spName + '</td>';
         tripSignposts += '<td style="padding:2px 3px;text-align:center">' + schedTime + '</td>';
         tripSignposts += '<td style="padding:2px 3px;text-align:center">' + status + '</td>';
         tripSignposts += '</tr>';
@@ -512,7 +517,7 @@ function init(){
       '<div class="ds"><div class="dst">Service</div>' +
       '<div class="dr"><span class="dlb">Tram #</span><span class="dva">' + t.id + '</span></div>' +
       '<div class="dr"><span class="dlb">Run #</span><span class="dva">' + (t._simTrip ? t._simTrip.run : '—') + '</span></div>' +
-      '<div class="dr"><span class="dlb">Trip</span><span class="dva">' + t.run + '</span></div>' +
+      '<div class="dr"><span class="dlb">Trip</span><span class="dva">' + t.run.split('/').pop() + '</span></div>' +
       '<div class="dr"><span class="dlb">Route</span><span class="dva" style="color:' + routeCol + '">' + t.route + '</span></div>' +
       '<div class="dr"><span class="dlb">Direction</span><span class="dva">' + arr + ' ' + t.updn + '</span></div>' +
       '<div class="dr"><span class="dlb">Destination</span><span class="dva">' + t.updnDest + '</span></div>' +
@@ -520,8 +525,8 @@ function init(){
         (t._simTrip && t._simTrip.isSynthetic ? 'Synthetic' : 'Timetable') + '</span></div>' +
       '</div>' +
       '<div class="ds"><div class="dst">Position</div>' +
-      '<div class="dr"><span class="dlb">Current Stop</span><span class="dva">' + (t._nearStop || '—') + '</span></div>' +
-      '<div class="dr"><span class="dlb">Next Stop</span><span class="dva">' + (t._nextStop || '—') + '</span></div>' +
+      '<div class="dr"><span class="dlb">Current Signpost</span><span class="dva">' + (t._nearStop || '—') + '</span></div>' +
+      '<div class="dr"><span class="dlb">Next Signpost</span><span class="dva">' + (t._nextStop || '—') + '</span></div>' +
       '</div>' +
       '<div class="ds"><div class="dst">Performance</div>' +
       '<div class="dr"><span class="dlb">Deviation</span><span class="dva"><span class="dvb ' + c + '">' + devStr + '</span></span></div>' +
