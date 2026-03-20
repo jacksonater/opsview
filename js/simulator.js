@@ -101,7 +101,7 @@ function init(){
   function loadTimetable(){
     return fetch('data/timetable.json')
       .then(function(r){ return r.json(); })
-      .then(function(d){ timetableData = d; })
+      .then(function(d){ timetableData = d; window._timetableData = d; })
       .catch(function(e){ console.warn('Simulator: timetable.json not found', e); });
   }
 
@@ -237,36 +237,81 @@ function init(){
   }
 
   // ── CALCULATE MOCK DEVIATION ──
-  // For demo, generate realistic-looking deviation per trip based on
-  // time of day and a hash of the run ID
+  // Realistic multi-factor deviation model for demo/investor scenarios.
+  // Each trip gets a stable performance band (chronic early / on-time /
+  // typically late / chronic late), then time-of-day and route congestion
+  // factors are applied, followed by non-linear trip-progress compounding
+  // and a small micro-variation noise term so numbers look live.
   function calcDeviation(trip, timeSecs){
-    // Hash the run+seq for deterministic but varied deviation
-    var hash = 0;
+    // ── Deterministic hash for this specific trip ──
     var str = trip.run + '/' + trip.seq;
+    var hash = 0;
     for(var i = 0; i < str.length; i++){
       hash = ((hash << 5) - hash) + str.charCodeAt(i);
       hash |= 0;
     }
-    var base = ((hash & 0x7fffffff) % 200) - 40; // -40 to +160 seconds
+    var h1 = Math.abs(hash) % 10000;          // band selector 0-9999
+    var h2 = (Math.abs(hash) >> 8) & 0xfff;  // noise seed A
+    var h3 = (Math.abs(hash) >> 20) & 0xfff; // noise seed B
 
-    // Peak hour multiplier (more delay 7-9am and 4-6:30pm)
+    // ── Performance band (stable per trip across the whole run) ──
+    // 10% chronic early | 45% on-time | 30% typically late | 15% chronic late
+    var baseDev;
+    if     (h1 < 1000) { baseDev = -45 + (h1 / 1000) * 30; }          // -45 to -15s
+    else if(h1 < 5500) { baseDev = -10 + ((h1 - 1000) / 4500) * 100; }// -10 to +90s
+    else if(h1 < 8500) { baseDev = 90  + ((h1 - 5500) / 3000) * 150; }// 90 to 240s
+    else               { baseDev = 240 + ((h1 - 8500) / 1500) * 240; }// 240 to 480s
+
+    // ── Route-specific congestion factor ──
+    // Inner-city high-frequency routes suffer more signal/traffic delay
+    var routeFactors = {
+      '86':1.45,'96':1.35,'109':1.30,'19':1.25,'57':1.20,
+      '58':1.15,'11':1.10,'48':1.10,'30':1.20,'35':1.15,
+      '12':1.05,'70':1.05,'72':1.05
+    };
+    var routeFactor = routeFactors[trip.route] || 1.0;
+
+    // ── Time-of-day peak multiplier (bell-curve shaped) ──
     var hour = timeSecs / 3600;
     var peakMult = 1.0;
-    if((hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 18.5)) peakMult = 1.8;
-    else if(hour >= 12 && hour <= 14) peakMult = 1.2;
-    else if(hour < 6 || hour > 22) peakMult = 0.5;
-
-    // Progress through trip adds some cumulative delay
-    var wps = trip.waypoints;
-    var progress = 0;
-    if(wps.length > 1){
-      var elapsed = timeSecs - wps[0].t;
-      var total = wps[wps.length-1].t - wps[0].t;
-      if(total > 0) progress = Math.max(0, Math.min(1, elapsed / total));
+    if(hour >= 7.5 && hour < 9.5){
+      // AM peak: bell peaking ~08:30
+      var t1 = (hour - 7.5) / 2.0;
+      peakMult = 1.0 + 0.90 * Math.sin(t1 * Math.PI);
+    } else if(hour >= 16.0 && hour < 19.0){
+      // PM peak: heavier bell peaking ~17:30
+      var t2 = (hour - 16.0) / 3.0;
+      peakMult = 1.0 + 1.15 * Math.sin(t2 * Math.PI);
+    } else if(hour >= 12.0 && hour < 13.5){
+      peakMult = 1.18;
+    } else if(hour < 5.5 || hour > 23.0){
+      peakMult = 0.55;
+    } else if(hour >= 9.5 && hour < 12.0){
+      // Shoulder ramp up from off-peak to lunch
+      peakMult = 0.85 + ((hour - 9.5) / 2.5) * 0.15;
     }
 
-    var dev = Math.round(base * peakMult + progress * 45);
-    return Math.max(-180, Math.min(900, dev));
+    // ── Non-linear trip-progress compounding ──
+    // Delays compound faster in the second half of a long trip
+    var wps = trip.waypoints;
+    var progress = 0;
+    if(wps && wps.length > 1){
+      var elapsed = timeSecs - wps[0].t;
+      var total = wps[wps.length - 1].t - wps[0].t;
+      if(total > 0) progress = Math.max(0, Math.min(1, elapsed / total));
+    }
+    var progressiveDelay = Math.pow(progress, 0.65) * 70;
+    // Amplify compounding for already-late trips
+    if(baseDev > 60) progressiveDelay *= 1.0 + (baseDev / 300) * 0.5;
+
+    // ── Micro-variation noise (makes values look live, not static) ──
+    // Oscillates on a ~30-second bucket so numbers drift slightly over time
+    var timeBucket = Math.floor(timeSecs / 30);
+    var noisePhase = ((h2 * timeBucket) % 6283) / 1000;
+    var noise = Math.sin(noisePhase + h3 / 500) * 18;
+
+    var dev = Math.round(baseDev * routeFactor * peakMult + progressiveDelay + noise);
+    return Math.max(-180, Math.min(1200, dev));
   }
 
   // ── BUILD SIM TRAMS ──
@@ -584,6 +629,20 @@ function init(){
       t.dv = calcDeviation(t._simTrip, simTime);
       t.path = [{la: pos.lat, lo: pos.lng, n: pos.nearStop}];
 
+      // ── DEVIATION JUMP ALERT ──
+      // Fire when a tram advances to a new waypoint and the deviation has
+      // jumped significantly compared to the previous signpost.
+      if(window.Alerts) {
+        if(t._lastWpIdx !== undefined && pos.wpIdx === t._lastWpIdx + 1) {
+          var newWp = t._simTrip.waypoints[pos.wpIdx];
+          window.Alerts.checkSignpostJump(t, pos.wpIdx, newWp ? newWp.c : '?', t.dv);
+        } else if(t._lastWpIdx !== undefined && pos.wpIdx !== t._lastWpIdx) {
+          // Waypoint index regressed or skipped (trip change) — reset tracking
+          window.Alerts.resetTram(t.id);
+        }
+      }
+      t._lastWpIdx = pos.wpIdx;
+
       // ── CHECK: has this tram entered a disruption zone? ──
       if(!t.blockedByDis && disruptions.length > 0){
         checkSimTramDisruption(t, disruptions);
@@ -658,6 +717,8 @@ function init(){
     t.blockState = 'trapped';
     t._trappedAtSim = simTime;
     t._preTrapDv = t.dv;
+    // Tram is now captured — resolve any open deviation alert for it
+    if(window.Alerts) window.Alerts.resolveForTram(t.id);
     
     // Log trip impact
     if(t._simTrip){
@@ -1199,6 +1260,7 @@ function init(){
       // Entering sim mode
       SIM_MODE = true;
       simPlaying = true;
+      window._simRunning = true;
 
       var timeInput = document.getElementById('simTimeInput');
       simTime = hhmmToSecs(timeInput.value);
@@ -1254,6 +1316,7 @@ function init(){
   window.simStop = function(){
     SIM_MODE = false;
     simPlaying = false;
+    window._simRunning = false;
     if(simAnimFrame) cancelAnimationFrame(simAnimFrame);
     simAnimFrame = null;
 

@@ -237,11 +237,51 @@ function _initMaximo() {
 }
 
 // ── EXPOSE PUBLIC API ──────────────────────────────────────────────────────
+
+// Creates a standalone Maximo incident from a deviation alert (no linked disruption).
+function createAlertIncident(alertData) {
+  var alertKey = 'ALERT-' + alertData.id;
+  if (mxIncidents[alertKey]) return mxIncidents[alertKey];
+
+  var mxRef = buildMxRef();
+  var inc = {
+    mxRef:     mxRef,
+    disId:     alertKey,
+    template:  { code: 'EXT-DEV', desc: 'Tram Deviation Alert', priority: 3 },
+    status:    'PENDING',
+    createdAt: nowTs(),
+    syncedAt:  null,
+    prePopulated: {
+      type:        'Unspecified deviation',
+      routes:      [alertData.tramRoute],
+      primaryRoute: alertData.tramRoute,
+      direction:   null,
+      startTime:   alertData.ts ? alertData.ts.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false}) : nowTs(),
+      location:    'Tram ' + alertData.tramId + ' between ' + (alertData.fromCode || '?') + ' and ' + alertData.toCode,
+      narrative:   'Deviation jumped ' + Math.round(alertData.jumpSecs / 60) + ' minutes between ' +
+                   (alertData.fromCode || '?') + ' and ' + alertData.toCode +
+                   '. Flagged by automatic deviation alert system.'
+    },
+    fromTram:      { id: alertData.tramId, run: alertData.tramRun, route: alertData.tramRoute },
+    pendingFields: ['causeCode', 'driverDetails', 'delayStartTime', 'delayEndTime'],
+    overrides:     []
+  };
+
+  mxIncidents[alertKey] = inc;
+  setTimeout(function(){ inc.status = 'SYNCED'; inc.syncedAt = nowTs(); }, 800);
+
+  // Open the Maximo panel to show the newly created incident
+  renderMaximoPanel(alertKey);
+
+  return inc;
+}
+
 window.SimMaximo = {
-  createIncident: createMxIncident,
-  getIncident:    function(disId){ return mxIncidents[disId]||null; },
-  incidents:      mxIncidents,
-  templates:      MX_TEMPLATES
+  createIncident:      createMxIncident,
+  createAlertIncident: createAlertIncident,
+  getIncident:         function(disId){ return mxIncidents[disId]||null; },
+  incidents:           mxIncidents,
+  templates:           MX_TEMPLATES
 };
 
 window.openMaximoPanel = function(disId) {

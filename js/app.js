@@ -480,8 +480,12 @@ function anim(){
           var rb=R[t.route];t.dest=t.dir==='Outbound'?rb.d:rb.o;
           var ddb=DIR_DATA[t.route];if(ddb)t.updnDest=t.updn==='Down'?ddb.dn:ddb.up;
           t.dv=Math.min(900,t.dv+600);
-          // Clear state — tram heads to terminus, re-evaluated there
-          delete t.blockedByDis;delete t.blockState;delete t._turnbackXO;
+          // Keep disruption tag — tram reversed away from zone, heading to terminus.
+          // 'returning' state allows normal movement but prevents the tram from
+          // being "free" (untagged) and potentially re-entering the zone at
+          // high sim speeds before reaching the terminus for re-evaluation.
+          t.blockState='returning';
+          delete t._turnbackXO;
           if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));
           needStats=true;
           return;
@@ -510,11 +514,11 @@ function anim(){
         if(Math.random()<.3)t.dv+=Math.floor(Math.random()*61)-30;
         t.dv=Math.max(-180,Math.min(900,t.dv));
  
-        // ── Clear escaping state at terminus ──
-        if(t.blockState==='escaping'){
+        // ── Clear transient disruption states at terminus ──
+        if(t.blockState==='escaping'||t.blockState==='returning'){
           delete t.blockedByDis;delete t.blockState;delete t._disBaselineDv;
         }
- 
+
         // ── Check if tram should now short-work ──
         if(disruptions.length>0&&!t.blockedByDis){
           checkDisruptionOnTerminusReversal(t);
@@ -846,19 +850,37 @@ function renderPerfPanel(){
   v.forEach(function(t){var s=sc(t.dv);sumDev+=t.dv;if(s==='blue')bl++;else if(s==='green')gr++;else if(s==='yellow')yl++;else if(s==='amber')am++;else mg++;});
   var onTime=bl+gr,pct=Math.round(onTime/total*100);
   var avgDev=Math.round(sumDev/total);
-  // KPIs
+  var heroCol=pct>=85?'var(--grn)':pct>=70?'var(--yel)':pct>=50?'var(--amb)':'var(--mag)';
+  var avgCol=avgDev<=60?'var(--grn)':avgDev<=180?'var(--yel)':'var(--amb)';
+  // Drive the conic-gradient ring via CSS custom property
+  var ringStyle='--hero-col:'+heroCol+';--hero-pct:'+pct;
+  // Hero KPI + secondary row
   var kpiEl=document.getElementById('perfKpis');
   kpiEl.innerHTML=
-    '<div class="perf-kpi"><div class="perf-kpi-val" style="color:'+(pct>=85?'var(--grn)':pct>=70?'var(--yel)':'var(--amb)')+'">'+pct+'%</div><div class="perf-kpi-lbl">On Time (±2 min)</div></div>'+
-    '<div class="perf-kpi"><div class="perf-kpi-val">'+total+'</div><div class="perf-kpi-lbl">Trams Active</div></div>'+
-    '<div class="perf-kpi"><div class="perf-kpi-val" style="color:'+(avgDev<=60?'var(--grn)':avgDev<=180?'var(--yel)':'var(--amb)')+'">'+devTxt(avgDev)+'</div><div class="perf-kpi-lbl">Avg Deviation</div></div>'+
-    '<div class="perf-kpi"><div class="perf-kpi-val" style="color:var(--mag)">'+mg+'</div><div class="perf-kpi-lbl">Very Late (10m+)</div></div>';
+    '<div class="perf-hero">'+
+      '<div class="perf-hero-ring" style="'+ringStyle+'">'+
+        '<div class="perf-hero-inner">'+
+          '<div class="perf-hero-pct" style="color:'+heroCol+'">'+pct+'<span class="perf-hero-unit">%</span></div>'+
+          '<div class="perf-hero-sub">on time</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="perf-hero-meta">'+
+        '<div class="perf-hero-label">Network Punctuality</div>'+
+        '<div class="perf-hero-bar-wrap"><div class="perf-hero-bar-fill" style="width:'+pct+'%;background:'+heroCol+'"></div></div>'+
+        '<div class="perf-hero-hint">'+(pct>=85?'On target ✓':pct>=70?'Below target':pct>=50?'Needs attention':'Critical')+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="perf-kpi-row3">'+
+      '<div class="perf-kpi-sm"><div class="perf-kpi-val2">'+total+'</div><div class="perf-kpi-lbl">Active</div></div>'+
+      '<div class="perf-kpi-sm"><div class="perf-kpi-val2" style="color:'+avgCol+'">'+devTxt(avgDev)+'</div><div class="perf-kpi-lbl">Avg Dev</div></div>'+
+      '<div class="perf-kpi-sm"><div class="perf-kpi-val2" style="color:var(--mag)">'+mg+'</div><div class="perf-kpi-lbl">Very Late</div></div>'+
+    '</div>';
   // Breakdown bars
   var bars=[
     {lbl:'Early',n:bl,col:'var(--blu)'},
     {lbl:'On Time',n:gr,col:'var(--grn)'},
-    {lbl:'Late 1-5m',n:yl,col:'var(--yel)'},
-    {lbl:'Late 5-10m',n:am,col:'var(--amb)'},
+    {lbl:'Late 1–5m',n:yl,col:'var(--yel)'},
+    {lbl:'Late 5–10m',n:am,col:'var(--amb)'},
     {lbl:'Very Late',n:mg,col:'var(--mag)'}
   ];
   var barsEl=document.getElementById('perfBars');
@@ -932,30 +954,40 @@ function renderDisLog(){
   var body=document.getElementById('dislogBody');
   if(count)count.textContent=disruptionLog.length;
   if(!body)return;
-  if(disruptionLog.length===0){body.innerHTML='<div class="dislog-empty">No disruptions logged today</div>';return;}
+  if(disruptionLog.length===0){body.innerHTML='<div class="dislog-empty">No disruptions logged this session</div>';return;}
+  var now=Date.now();
   body.innerHTML=disruptionLog.map(function(e){
     var rtCol=R[e.route]?R[e.route].c:'#888';
-    var dur='';
+    var dur='',durLbl='';
     if(e.status==='active'){
-      var elapsed=Math.floor((Date.now()-e.start)/1000);
+      var elapsed=Math.floor((now-e.start)/1000);
       var m=Math.floor(elapsed/60),s=elapsed%60;
-      // Also show relative "Xm ago" for context
-      var relM=Math.floor(elapsed/60);
       dur=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-      if(relM>0)dur+=' <span style="color:var(--tx3);font-size:8px">('+relM+'m ago)</span>';
+      durLbl=m>0?m+'m ongoing':'just now';
     } else {
-      dur=e.endTs?'→'+e.endTs:'—';
+      dur=e.endTs?'→ '+e.endTs:'—';
+      durLbl='cleared';
     }
     var clearBtn=e.status==='active'
-      ?'<button onclick="event.stopPropagation();removeDis('+e.id+')" title="Clear disruption" style="background:none;border:1px solid #e040fb44;color:#e040fb;border-radius:2px;padding:0 4px;font-size:9px;cursor:pointer;font-family:JetBrains Mono,monospace;flex-shrink:0">✕</button>'
-      :'<span style="width:20px;flex-shrink:0"></span>';
-    return '<div class="dislog-row">'+
-      '<span class="dl-time">'+e.time+'</span>'+
-      '<span class="dl-rt" style="color:'+rtCol+'">Rt '+e.route+'</span>'+
-      '<span class="dl-type">'+e.type+'</span>'+
-      '<span class="dl-dur">'+dur+'</span>'+
-      '<span class="dl-status '+e.status+'">'+e.status.toUpperCase()+'</span>'+
-      clearBtn+
+      ?'<button class="dlc-x" onclick="event.stopPropagation();removeDis('+e.id+')" title="Clear">✕</button>'
+      :'';
+    var routes=e.routes&&e.routes.length>1
+      ?e.routes.map(function(r){var c=R[r]?R[r].c:'#888';return'<span class="dlc-rt" style="color:'+c+'">'+r+'</span>';}).join('')
+      :'<span class="dlc-rt" style="color:'+rtCol+'">'+e.route+'</span>';
+    var statusCls=e.status==='active'?'dlc-status-active':'dlc-status-cleared';
+    var statusDot=e.status==='active'?'●':'○';
+    return '<div class="dlc" style="border-left-color:'+rtCol+'">'+
+      '<div class="dlc-hd">'+
+        '<div class="dlc-routes">'+routes+'</div>'+
+        '<span class="dlc-type-badge">'+e.type+'</span>'+
+        clearBtn+
+      '</div>'+
+      '<div class="dlc-ft">'+
+        '<span class="dlc-ts">'+e.time+'</span>'+
+        '<span class="dlc-dur">'+dur+'</span>'+
+        '<span class="dlc-extra">'+durLbl+'</span>'+
+        '<span class="'+statusCls+'">'+statusDot+' '+(e.status==='active'?'ACTIVE':'CLEARED')+'</span>'+
+      '</div>'+
       '</div>';
   }).join('');
 }
@@ -1717,6 +1749,78 @@ window.confirmDisruption=function(){
   addToDisLog(dis);
 };
 
+// ── SCRIPTED DISRUPTION — for demo mode, bypasses the form UI ──
+window.createScriptedDisruption=function(lat,lng,route,type,notes,dir){
+  dir=dir||'Both directions';
+  if(!R[route])return null;
+  disCounter++;
+  var primaryRoute=route;
+  // Co-route detection (same as confirmDisruption)
+  var affectedRoutes=[primaryRoute];
+  rks.forEach(function(k){
+    if(k===primaryRoute)return;
+    var shape=R[k].shape;if(!shape)return;
+    for(var i=0;i<shape.length-1;i++){
+      var ax=shape[i][0],ay=shape[i][1],bx=shape[i+1][0],by=shape[i+1][1];
+      var dx=bx-ax,dy=by-ay,len2=dx*dx+dy*dy,d;
+      if(len2===0){d=geoDist(lat,lng,ax,ay);}
+      else{var t=Math.max(0,Math.min(1,((lat-ax)*dx+(lng-ay)*dy)/len2));d=geoDist(lat,lng,ax+t*dx,ay+t*dy);}
+      if(d<60){affectedRoutes.push(k);break;}
+    }
+  });
+  affectedRoutes=affectedRoutes.filter(function(v,i,a){return a.indexOf(v)===i;});
+  var dis={
+    id:disCounter,type:type,routes:affectedRoutes,route:primaryRoute,
+    location:type+' nr '+affectedRoutes.map(function(r){return 'Rt '+r;}).join('/'),
+    la:lat,lo:lng,dir:dir,notes:notes||'',start:Date.now(),_fromTram:null
+  };
+  var primaryShape=R[primaryRoute]?R[primaryRoute].fwd:null;
+  var routeXOs=GIS_XO.filter(function(g){
+    var xoRts=XO_ROUTES[g.pole];
+    if(!xoRts||xoRts.indexOf(primaryRoute)<0)return false;
+    if(!primaryShape)return true;
+    var r=routeParam(g.la,g.lo,primaryShape);g._param=r.param;g._snap=r.snap;
+    return r.snap<300;
+  });
+  var disParam=primaryShape?routeParam(dis.la,dis.lo,primaryShape).param:0;
+  routeXOs.sort(function(a,b){return a._param-b._param;});
+  var before=routeXOs.filter(function(x){return x._param<disParam;});
+  var after=routeXOs.filter(function(x){return x._param>=disParam;});
+  dis.southXO=before.length?before[before.length-1]:null;
+  dis.northXO=after.length?after[0]:null;
+  dis.routeXOs=routeXOs;dis._disParam=disParam;dis._primaryShape=primaryShape;
+  dis.routeBlockParams={};
+  affectedRoutes.forEach(function(k){
+    var shape=R[k]?R[k].fwd:null;if(!shape)return;
+    var arr=routeParamArr[k];
+    var routeMax=arr?arr[arr.length-1]:99999;
+    var sp=dis.southXO?routeParam(dis.southXO.la,dis.southXO.lo,shape).param:0;
+    var np=dis.northXO?routeParam(dis.northXO.la,dis.northXO.lo,shape).param:routeMax;
+    if(sp>np){var tmp=sp;sp=np;np=tmp;}
+    dis.routeBlockParams[k]={southParam:sp,northParam:np,southIsTerminus:!dis.southXO,northIsTerminus:!dis.northXO};
+  });
+  disruptions.push(dis);
+  var flagIcon=L.divIcon({className:'dis-flag',html:'<div class="dis-flag-icon">&#x26A0;</div>',iconSize:[0,0],iconAnchor:[0,0]});
+  var flagMarker=L.marker([dis.la,dis.lo],{icon:flagIcon,zIndexOffset:600}).addTo(map);
+  dis.marker=flagMarker;
+  var popupHtml=buildDisPopup(dis);
+  flagMarker.bindPopup(popupHtml,{maxWidth:420});
+  drawDisBlockedLine(dis);
+  dis.timer=setInterval(function(){
+    var elapsed=Math.floor((Date.now()-dis.start)/1000);
+    var ts=String(Math.floor(elapsed/60)).padStart(2,'0')+':'+String(elapsed%60).padStart(2,'0');
+    var el=document.getElementById('disDur'+dis.id);if(el)el.textContent=ts;
+    var jt=document.getElementById('jt'+dis.id);if(jt)jt.textContent=ts;
+  },1000);
+  layerState.xovers=true;applyLayerVis();
+  var cks=document.getElementById('layerMenu').querySelectorAll('input');
+  if(cks[3])cks[3].checked=true;
+  applyDisruptionToTrams(dis);
+  flagMarker.openPopup();
+  updateDisList();updateNetStrip();addToDisLog(dis);
+  return dis;
+};
+
 // Extract lat/lng points from a shape between two along-route distances p1..p2
 function shapeSlice(shape,p1,p2){
   if(!shape||shape.length<2)return[];
@@ -1875,6 +1979,8 @@ window.removeDis=function(id){
   if(d.blockedLine)map.removeLayer(d.blockedLine);
   if(d.timer)clearInterval(d.timer);
   clearDisruptionFromTrams(id); // release trapped/turnback trams for this disruption
+  // Snapshot attribution results into history before removing
+  if(window.DisHistory) window.DisHistory.recordClosure(d, disruptionLog.find(function(e){return e.id===id;}));
   disruptions.splice(idx,1);
   if(disruptions.length===0){
     layerState.xovers=false;applyLayerVis();
@@ -2093,7 +2199,8 @@ window.simDisruption=function(){
 function clearAllDisruptions(){
   disruptions.forEach(function(d){
     if(d.timer)clearInterval(d.timer);
-    clearDisruptionFromTrams(d.id); // release all trams blocked by this disruption
+    clearDisruptionFromTrams(d.id);
+    if(window.DisHistory) window.DisHistory.recordClosure(d, disruptionLog.find(function(e){return e.id===d.id;}));
   });
   disruptions.splice(0); // empty in-place to preserve window.disruptions reference
   disMarkers.forEach(function(m){map.removeLayer(m);});disMarkers=[];
