@@ -733,6 +733,8 @@ details[open] .attr-tunables-summary::before{content:'▼ '}
 }
 .alert-badge-sim{background:#7b68ee;color:#fff}
 .alert-tram{font-size:10px;font-weight:600;flex:1;color:var(--txt)}
+.alert-tram-jump{cursor:pointer;border-radius:3px;padding:1px 4px;margin:-1px -4px;transition:background .12s,color .12s}
+.alert-tram-jump:hover{background:rgba(255,255,255,.1);color:#fff}
 .alert-dismiss{
   background:none;border:none;color:var(--tx3);cursor:pointer;
   font-size:12px;padding:0 2px;line-height:1;
