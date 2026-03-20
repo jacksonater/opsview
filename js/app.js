@@ -308,7 +308,7 @@ function mkIcon(t){
 function tramTipHtml(t){
   var arr=t.updn==='Down'?'&#9660; Southbound':'&#9650; Northbound';
   var rc=(window.R&&window.R[t.route])?window.R[t.route].c:'#888';
-  var devStr=fmtDev(t.dv);
+  var devStr=devTxt(t.dv); // devTxt is defined in this file; fmtDev lives in alerts.js and is not in scope
   var devCol=scHex(sc(t.dv));
   var isTrapped=(t.blockState==='trapped');
   return '<div class="tram-tt">'+
@@ -657,14 +657,41 @@ function makeLiveIcon(v, devClass){
   }
 }
 function refreshIcons(){
-  trams.forEach(function(t){if(t.mk&&t.vis)t.mk.setIcon(mkIcon(t));});
-  if(liveMode && window._liveMkrs){
+  var z=map.getZoom();
+  // Re-run declutter whenever zoom changes (affects which trams are shown)
+  if(!liveMode&&trams.length){
+    declutterTrams();
+    trams.forEach(function(t){
+      var show=t.vis&&!t.declutterHide;
+      if(t.mk){
+        if(show&&!map.hasLayer(t.mk))map.addLayer(t.mk);
+        else if(!show&&map.hasLayer(t.mk))map.removeLayer(t.mk);
+      }
+    });
+  }
+  // Refresh icons for all on-map tram markers
+  trams.forEach(function(t){if(t.mk&&map.hasLayer(t.mk))t.mk.setIcon(mkIcon(t));});
+  if(liveMode&&window._liveMkrs){
     window._liveMkrs.forEach(function(m){if(m._v)m.setIcon(makeLiveIcon(m._v,m._devClass));});
   }
-  var z=map.getZoom(),b=document.getElementById('zoomBadge');
-  if(z<12){b.className='tier-dot';b.textContent='● DOT VIEW  z'+z;}
-  else if(z<15){b.className='tier-cmp';b.textContent='● COMPACT  z'+z;}
-  else{b.className='tier-full';b.textContent='● FULL DETAIL  z'+z;}
+  // Zoom badge
+  var b=document.getElementById('zoomBadge');
+  if(z<11){
+    var tot=trams.filter(function(t){return t.vis;}).length;
+    b.className='tier-net';
+    b.textContent='● NETWORK  z'+z+(tot?' · '+tot+' trams':'');
+  } else if(z<12){
+    var hid=trams.filter(function(t){return t.vis&&t.declutterHide;}).length;
+    b.className='tier-dot';
+    b.textContent='● DOT VIEW  z'+z+(hid?' ('+hid+' hidden)':'');
+  } else if(z<15){
+    var hid2=trams.filter(function(t){return t.vis&&t.declutterHide;}).length;
+    b.className='tier-cmp';
+    b.textContent='● COMPACT  z'+z+(hid2?' ('+hid2+' hidden)':'');
+  } else {
+    b.className='tier-full';
+    b.textContent='● FULL DETAIL  z'+z;
+  }
 }
 map.on('zoomend',refreshIcons);
 refreshIcons();
@@ -985,6 +1012,45 @@ function soloR(k){
 }
 window.fAll=function(){soloRoute=null;rks.forEach(function(k){aR.add(k);});aFilt();};
 window.fClr=function(){soloRoute=null;aR.clear();aFilt();};
+// ── DECLUTTER: hide lower-priority trams when the zoom is too low ──
+// At z < 11 all trams are hidden (only route lines visible).
+// At z 11–13 a grid-cell approach ensures at most one tram per cell,
+// prioritising disrupted/late trams so operators always see the most
+// important vehicles.  Above z 13 everything is shown as normal.
+function declutterTrams(){
+  var z=map.getZoom();
+  if(z<11){
+    trams.forEach(function(t){t.declutterHide=true;});
+    return;
+  }
+  if(z>=13){
+    trams.forEach(function(t){t.declutterHide=false;});
+    return;
+  }
+  // Grid-based declutter for z 11–12.
+  // Cell size chosen so each cell is roughly 2 icon-widths across.
+  var cellDeg=z<12?0.045:0.022;
+  var grid={};
+  // Sort: trapped first, then by |deviation| descending so the most
+  // important vehicle wins each grid cell.
+  var sorted=trams.slice().sort(function(a,b){
+    var pa=a.blockState==='trapped'?3:Math.abs(a.dv)>300?2:Math.abs(a.dv)>60?1:0;
+    var pb=b.blockState==='trapped'?3:Math.abs(b.dv)>300?2:Math.abs(b.dv)>60?1:0;
+    return pb-pa;
+  });
+  sorted.forEach(function(t){
+    if(!t.vis||t.searchHide){t.declutterHide=false;return;}
+    var pos=t._simPos||(t.path&&t.path[t.si||0]);
+    if(!pos){t.declutterHide=false;return;}
+    var lat=pos.la!==undefined?pos.la:pos.lat;
+    var lng=pos.lo!==undefined?pos.lo:(pos.lng||pos.lon);
+    if(lat==null||lng==null){t.declutterHide=false;return;}
+    var key=Math.round(lat/cellDeg)+','+Math.round(lng/cellDeg);
+    if(grid[key]){t.declutterHide=true;}
+    else{grid[key]=true;t.declutterHide=false;}
+  });
+}
+
 function aFilt(){
   if(liveMode){
     // Filter live markers; simulator trams are managed separately
@@ -998,7 +1064,18 @@ function aFilt(){
     }
     document.getElementById('ff').textContent=visCount+'/'+totalCount+' visible';
   } else {
-    trams.forEach(function(t){var show=aR.has(t.route)&&!t.searchHide;t.vis=show;if(t.mk){if(show){if(!map.hasLayer(t.mk))map.addLayer(t.mk);}else{if(map.hasLayer(t.mk))map.removeLayer(t.mk);}}});
+    // 1. Set vis from route filter
+    trams.forEach(function(t){t.vis=aR.has(t.route)&&!t.searchHide;});
+    // 2. Compute declutter flags (zoom-dependent)
+    declutterTrams();
+    // 3. Apply combined visibility to map markers
+    trams.forEach(function(t){
+      var show=t.vis&&!t.declutterHide;
+      if(t.mk){
+        if(show){if(!map.hasLayer(t.mk))map.addLayer(t.mk);}
+        else{if(map.hasLayer(t.mk))map.removeLayer(t.mk);}
+      }
+    });
     uSt();
   }
   rks.forEach(function(k){var rl=rLines[k];if(!map.hasLayer(rl))map.addLayer(rl);rl.setStyle(aR.has(k)?{opacity:.2,weight:2.5}:{opacity:.06,weight:1.5});});
@@ -2235,6 +2312,29 @@ window.clearDisruptionFromTrams=clearDisruptionFromTrams;
 window.checkDisruptionOnTerminusReversal=checkDisruptionOnTerminusReversal;
 window.applyLayerVis=applyLayerVis;
 window.shapeSlice=shapeSlice; window.drawDisBlockedLine=drawDisBlockedLine;
+window.tramTipHtml=tramTipHtml; window.aRV=aRV;
+
+// ── HELPER: open disruption form pre-filled from a tram (used by sim markers) ──
+window.openDisFormFromTram=function(t,latlng){
+  pendingDisLatlng=latlng;
+  pendingFromTram=t;
+  disCreateMode=false;
+  document.body.classList.remove('dis-create-mode');
+  var dcb=document.getElementById('disCreateBtn');if(dcb)dcb.classList.remove('active');
+  var sel=document.getElementById('dfRoute');sel.innerHTML='';
+  rks.forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent='Route '+k+' ('+R[k].o+' \u2014 '+R[k].d+')';sel.appendChild(o);});
+  sel.value=t.route;
+  var dtEl=document.getElementById('dfType');if(dtEl)dtEl.value='Vehicle breakdown';
+  var ddEl=document.getElementById('dfDir');if(ddEl)ddEl.value=t.updn==='Down'?'Down only':'Up only';
+  document.getElementById('dfNotes').value='Reported at tram #'+t.id+' on route '+t.route;
+  var coord=document.getElementById('dfCoord');if(coord)coord.textContent='Tram '+t.id+' (Rt '+t.route+') at '+latlng.lat.toFixed(5)+','+latlng.lng.toFixed(5);
+  var form=document.getElementById('disForm');
+  var pt=map.latLngToContainerPoint(latlng);
+  var mapEl=document.getElementById('mc');
+  form.style.left=Math.min(pt.x+10,mapEl.offsetWidth-300)+'px';
+  form.style.top=Math.max(10,Math.min(pt.y-100,mapEl.offsetHeight-350))+'px';
+  form.classList.add('open');
+};
 
 // Signal that app.js is ready — simulator.js init() runs synchronously here
 window._opsviewReady=true;
