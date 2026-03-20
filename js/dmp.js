@@ -322,34 +322,69 @@ function geoSegDist(disLa, disLo, geo){
   return 99999;
 }
 
-// ── DMP SCENARIO MATCHING v3 ──
-// Geo-distance-first: the scenario whose segment is closest to the disruption point wins.
-// Route overlap breaks ties when segments are within 80m of each other.
-// Returns array sorted best-first; [0] is the single recommended scenario.
-function getDmpScenarios(routes, disLa, disLo){
+// ── DMP SCENARIO MATCHING v4 ──
+// Primary-route-first, with hard geo cap to exclude irrelevant corridors.
+//
+// Problem with v3: `routes` includes ALL co-detected lines (anything within
+// 60m of the disruption), so a short-prefix route like '1' could match
+// Swanston St scenarios even when the controller selected Route 11.  The
+// sort was geo-distance-only, meaning a nearby Swanston St scenario beat
+// the correct Collins St scenario when the disruption was placed in the CBD.
+//
+// Fix:
+//   1. Only consider scenarios within GEO_CAP metres of the disruption —
+//      this excludes scenarios from completely different corridors.
+//   2. Split results into two groups:
+//        primary  — scenario's route list includes the PRIMARY route selected
+//        secondary — scenario only matches via a co-detected co-route
+//   3. Return primary group first (geo-sorted), then secondary group.
+//   This guarantees the controller always sees scenarios for the route they
+//   chose before seeing tangential co-route matches.
+//
+// `primaryRoute` is the route the controller explicitly selected (dis.route).
+// `routes` is the full affected-routes array (includes co-detected lines).
+function getDmpScenarios(routes, disLa, disLo, primaryRoute){
   if(typeof routes==='string') routes=[routes];
 
-  var scored=[];
+  var GEO_CAP=2000; // metres — hard cap; never show scenarios >2 km away
+
+  var primary=[], secondary=[];
+
   DMP_DATA.forEach(function(s){
-    var overlap=s.rt.filter(function(r){return routes.indexOf(r)>=0;}).length;
-    if(overlap===0) return;
-    var routeScore=overlap/Math.max(s.rt.length,routes.length);
     var geoDist=geoSegDist(disLa,disLo,s.geo);
-    scored.push({s:s,geoDist:Math.round(geoDist),routeScore:routeScore});
+    if(geoDist>GEO_CAP) return; // too far from disruption — skip entirely
+
+    var anyMatch=s.rt.filter(function(r){return routes.indexOf(r)>=0;}).length>0;
+    if(!anyMatch) return;
+
+    var routeScore=s.rt.filter(function(r){return routes.indexOf(r)>=0;}).length/
+      Math.max(s.rt.length,routes.length);
+    var entry={s:s,geoDist:Math.round(geoDist),routeScore:routeScore};
+
+    if(primaryRoute && s.rt.indexOf(primaryRoute)>=0){
+      primary.push(entry);
+    } else {
+      secondary.push(entry);
+    }
   });
 
-  // Primary sort: geo distance (lower = better).
-  // Tiebreak within 80m: higher route overlap wins.
-  // Scenarios without geo data go to the end.
-  scored.sort(function(a,b){
-    var ag=a.s.geo&&a.s.geo.a!=null, bg=b.s.geo&&b.s.geo.a!=null;
-    if(ag&&!bg) return -1;
-    if(!ag&&bg) return 1;
-    if(Math.abs(a.geoDist-b.geoDist)<=80) return b.routeScore-a.routeScore;
-    return a.geoDist-b.geoDist;
-  });
+  function sortGroup(arr){
+    arr.sort(function(a,b){
+      var ag=a.s.geo&&a.s.geo.a!=null, bg=b.s.geo&&b.s.geo.a!=null;
+      if(ag&&!bg) return -1;
+      if(!ag&&bg) return 1;
+      if(Math.abs(a.geoDist-b.geoDist)<=80) return b.routeScore-a.routeScore;
+      return a.geoDist-b.geoDist;
+    });
+  }
 
-  return scored;
+  sortGroup(primary);
+  sortGroup(secondary);
+
+  // Mark secondary entries so the UI can distinguish them
+  secondary.forEach(function(e){ e.isSecondary=true; });
+
+  return primary.concat(secondary);
 }
 
 // ── RENDER HELPERS ──
@@ -378,7 +413,7 @@ window.openDmpPanel = function(disId){
   if(window.closeAllRightPanels) window.closeAllRightPanels('dmp');
   document.body.classList.add('rp-open');
   var affRoutes=dis.routes||[dis.route];
-  var matches=getDmpScenarios(affRoutes,dis.la,dis.lo);
+  var matches=getDmpScenarios(affRoutes,dis.la,dis.lo,dis.route);
 
   var panel=document.getElementById('dmpPanel');
   var ctx=document.getElementById('dmpCtx');
@@ -443,11 +478,17 @@ window.openDmpPanel = function(disId){
     h+='<span class="dmp-alts-arr">\u25B6</span>'+others.length+' alternative'+(others.length!==1?'s':'');
     h+='</div>';
     h+='<div id="dmpAltsList" class="dmp-sc-body">';
+    var shownCoRouteDivider=false;
     others.forEach(function(m){
+      // Insert a divider before the first co-route (secondary) match
+      if(m.isSecondary && !shownCoRouteDivider){
+        shownCoRouteDivider=true;
+        h+='<div class="dmp-coroute-divider">Co-route scenarios (nearby corridors)</div>';
+      }
       var os=m.s;
       var od=m.geoDist<9000?'~'+m.geoDist+'m':'';
       var oid='altBody_'+os.id.replace(/\./g,'_');
-      h+='<div class="dmp-alt-sc">';
+      h+='<div class="dmp-alt-sc'+(m.isSecondary?' dmp-alt-secondary':'')+'">';
       h+='<div class="dmp-alt-hdr" onclick="toggleDmpCard(\''+oid+'\')">';
       h+='<span class="dmp-sc-id">'+os.id+'</span>';
       h+='<span class="dmp-alt-loc">'+(os.loc||'').substring(0,60)+'</span>';
